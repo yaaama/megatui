@@ -131,34 +131,6 @@ class FileItem(Static):
 
         return text
 
-    def init_item_segments(self, item: m.MegaItem) -> list[Segment]:
-        # Declare some variables:
-        segments: list[Segment] = []
-        fsize_float: float
-        fsize_unit_enum: m.F_SizeUnit
-        # Get the size of the file and size unit
-        fsize_float, fsize_unit_enum = item.get_size()
-
-        # SEGMENTS:
-        # File size segments
-        fsize: Segment = Segment(text=str(fsize_float))
-        fsize_unit: Segment = Segment(text=fsize_unit_enum.get_unit_str())
-
-        # ftype is file or directory
-        ftype: Segment = Segment(text=item.ftype_str())
-
-        # File name segment
-        fname: Segment = Segment(text=item.name)
-        # File modification time
-        fmtime: Segment = Segment(text=item.mtime)
-
-        segments.extend([ftype, fname, fmtime, fsize, fsize_unit])
-        return segments
-
-    def init_strip(self, item: m.MegaItem) -> Strip:
-
-        strip: Strip = Strip(segments=self.init_item_segments(item))
-        return strip
 
     def on_mount(self) -> None:
         pass
