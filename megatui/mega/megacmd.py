@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-
 import asyncio
-import enum
+from enum import Enum
+import math
 import os
 import re
 import shlex
@@ -20,22 +19,101 @@ class MegaCmdError(Exception):
         self.stderr: str | None = stderr
 
 
-# File type ENUM
-FILE_TYPE = enum.Enum(
-    "FILE_TYPES",
-    [
-        ("FILE", 1),
-        ("DIRECTORY", 2),
-    ],
-)
+class FILE_TYPE(Enum):
+    """File types."""
+
+    DIRECTORY = 0
+    FILE = 1
+
+
+class F_SizeUnit(Enum):
+    """File size units."""
+
+    B = 0
+    KB = 1
+    MB = 2
+    GB = 3
+    TB = 4
+
+    # Helper to get the string representation used in the size calculation
+    def get_unit_str(self):
+        _unit_strings = ["B", "KB", "MB", "GB", "TB"]  # Match the order in the Enum
+        try:
+            return _unit_strings[self.value]
+        # Raise an error for unknown units
+        except IndexError:
+            return "?"
 
 
 @dataclass
 class MegaItem:
     name: str  # Name of item
-    size: int | None  # Keep as string as it inlcudes units
+    size: int  # Size of the file item (in bytes)
     mtime: str  # Parse into date if needed
-    type: FILE_TYPE  # 'd' for dir, 'f' for file
+    ftype: FILE_TYPE  # 'd' for dir, 'f' for file
+
+    def is_file(self) -> bool:
+        if self.ftype == FILE_TYPE.FILE:
+            return True
+        return False
+
+
+    def is_dir(self) -> bool:
+        if self.ftype == FILE_TYPE.DIRECTORY:
+            return True
+        return False
+
+
+    def ftype_str(self) -> str:
+        """Returns a string for the 'type'."""
+        match self.ftype:
+            case FILE_TYPE.DIRECTORY:
+                return "D"
+            case FILE_TYPE.FILE:
+                return "F"
+
+
+    def get_size(self) -> tuple[float, F_SizeUnit]:
+        """Returns size in a human-friendly unit."""
+
+        # Calculate the logarithm base 1024 to find the scale
+        # math.log(num_bytes, 1024) gives the power of 1024
+        # Floor gives the index for the correct unit
+        # Example: log(2048, 1024) = 1.0 -> index 1 (KB)
+        # Example: log(1000, 1024) = 0.99... -> index 0 (B)
+        # Example: log(xxxx, 1024) = 4... -> index 4 (TB)
+        # We cap the index at the maximum available unit
+        unit_index: int = min(int(math.log(self.size, 1024)), len(F_SizeUnit) - 1)
+
+        # Calculate the divisor using bit shift (1 << (10 * unit_index))
+        # This is equivalent to 1024 ** unit_index or 2**(10 * unit_index)
+        divisor: int
+        if unit_index == 0:
+            divisor = 1
+        else:
+            # calculate 1024^unit_index using shifts
+            # 1 << 10 is 1024 (2^10)
+            # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
+            divisor = 1 << (10 * unit_index)
+
+        # Perform floating point division for the final readable value
+        scaled_value: float = float(self.size) / divisor
+        return (scaled_value, F_SizeUnit(unit_index))
+
+    def get_size_in_units(self, unit: F_SizeUnit) -> int:
+        """Returns size in units of 'unit'"""
+        match unit:
+            case F_SizeUnit.B:
+                return self.size
+            # Bit shifting
+            case F_SizeUnit.KB:
+                return self.size >> 10
+            case F_SizeUnit.MB:
+                return self.size >> 20
+            case F_SizeUnit.GB:
+                return self.size >> 30
+            case F_SizeUnit.TB:
+                return self.size >> 40
 
 
 # Alias
@@ -52,17 +130,6 @@ class MegaCmdResponse:
 
 # Alias
 MCResponse = MegaCmdResponse
-
-# Unit size enum.
-SIZE_UNIT = enum.Enum(
-    "SIZE_UNITS",
-    [
-        ("BYTES", 1),
-        ("KILOBYTES", 2),
-        ("MEGABYTES", 3),
-        ("GIGABYTES", 4),
-    ],
-)
 
 MEGA_COMMANDS_ALL: set[str] = {
     "attr",
@@ -341,7 +408,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
         mtime_str = f"{date_str} {time_str}"
 
         # --- Parse Size ---
-        item_size: int | None = None
+        item_size: int = 0
 
         if size_str.isdigit():
             try:
@@ -358,14 +425,14 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
         else:
             # Unexpected value...
             print(f"Warning: Unexpected size format '{size_str}' for item '{name_str}'")
-            item_size = None
+            item_size = 0
 
         items.append(
             MegaItem(
                 name=name_str.strip(),
                 size=item_size,
                 mtime=mtime_str,
-                type=item_type,
+                ftype=item_type,
             )
         )
     return items
@@ -373,7 +440,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
 
 ###############################################################################
 async def mega_du(
-    dir: str = "/", recurse: bool = True, units: SIZE_UNIT = SIZE_UNIT.MEGABYTES
+    dir: str = "/", recurse: bool = True, units: F_SizeUnit = F_SizeUnit.MB
 ):
     """
     Get disk usage.
