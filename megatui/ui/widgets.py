@@ -3,27 +3,34 @@ from typing import override
 
 from textual.app import ComposeResult
 from textual.reactive import var
-from textual.widgets import Label, ListItem, ListView, Placeholder
+from textual.widgets import Label, ListItem, ListView, Placeholder, Static
 from textual.message import Message
+# from textual.containers import Widget .
 
-import megatui.mega.megacmd as megacmd
+import megatui.mega.megacmd as m
 
 
 class CloudInfoBar(Placeholder):
     pass
 
 
+# class FileItem(Static):
+#
+#     @override
+#     def compose(self) -> ComposeResult:
+#         with
+
 class FilesListItem(ListItem):
     """
     A ListItem specialized to display a MegaItem.
     """
 
-    def __init__(self, item: megacmd.MegaItem) -> None:
+    def __init__(self, item: m.MegaItem) -> None:
         super().__init__()
-        self.item: megacmd.MegaItem = item
+        self.item: m.MegaItem = item
 
         # Use different display for dirs vs files
-        prefix = "[d] " if item.type == megacmd.FILE_TYPE.DIRECTORY else "[f] "
+        prefix = "[d] " if item.ftype == m.FILE_TYPE.DIRECTORY else "[f] "
         size_segment: str
         if item.size:
             size_in_mb = round(item.size / 1024 / 1024, ndigits=2)
@@ -44,7 +51,7 @@ class FilesListItem(ListItem):
 class FilesListView(ListView):
     """A ListView for displaying MegaItems."""
 
-    items: var[megacmd.MegaItems] = var([])
+    items: var[m.MegaItems] = var([])
     current_path: var[str] = var("/")
 
     # --- Messages ---
@@ -69,7 +76,7 @@ class FilesListView(ListView):
 
     # --- Watcher ---
     def watch_items(
-        self, old_items: megacmd.MegaItems, new_items: megacmd.MegaItems
+        self, old_items: m.MegaItems, new_items: m.MegaItems
     ) -> None:
         """Update the list view when items change."""
         _ = self.clear()
@@ -102,7 +109,7 @@ class FilesListView(ListView):
         self.disabled = True
         try:
             self.app.log.error(f"Calling mega_ls for path: {path}")  # Log before call
-            fetched_items = await megacmd.mega_ls(path)
+            fetched_items = await m.mega_ls(path)
             self.app.log.error(
                 f"mega_ls completed for path: {path}. Found {len(fetched_items)} items."
             )  # Log after call
@@ -120,7 +127,7 @@ class FilesListView(ListView):
 
             self.app.log.error(f"Posted messages for path: {path}.")  # Log after post
 
-        except megacmd.MegaCmdError as e:
+        except m.MegaCmdError as e:
             # Log the specific MegaCmdError
             self.app.log.error(
                 f"MegaCmdError loading path '{path}': {e} (RC: {e.return_code}, Stderr: {e.stderr})"
@@ -159,7 +166,7 @@ class FilesListView(ListView):
             return
 
         item = selected_list_item.item
-        if item.type != megacmd.FILE_TYPE.DIRECTORY:
+        if item.ftype != m.FILE_TYPE.DIRECTORY:
             return
 
         # Change paths

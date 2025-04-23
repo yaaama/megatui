@@ -2,7 +2,7 @@
 
 import asyncio
 
-import megatui.mega.megacmd as megacmd
+import megatui.mega.megacmd as m
 
 # Import the App class from the ui module
 from megatui.app import MegaAppTUI
@@ -23,7 +23,7 @@ from megatui.app import MegaAppTUI
 async def main() -> None:
     """Main entry point."""
     # Check login status before starting TUI (optional but good practice)
-    logged_in, message = await megacmd.check_mega_login()
+    logged_in, message = await m.check_mega_login()
     if not logged_in:
         print(f"MEGA Login Check: {message}")
         return

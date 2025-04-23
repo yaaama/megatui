@@ -5,7 +5,8 @@ description = "Terminal user interface for MEGA"
 requires-python = ">=3.13"
 readme="README.md"
 dependencies = [
-    "textual>=3.1.0",
+    "textual-dev>=1.7.0",
+    "textual[dev]>=3.1.0",
 ]
 
 

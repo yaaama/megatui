@@ -82,7 +82,7 @@ class MegaAppTUI(App[None]):
         item = list_item.item
 
         # Update status bar
-        self.selected_item_info = f"{item.name} ({item.type})"
+        self.selected_item_info = f"{item.name} ({item.ftype})"
 
         # TODO: Add async worker to fetch *actual* file content for preview
 
