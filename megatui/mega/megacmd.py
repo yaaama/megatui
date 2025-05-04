@@ -55,14 +55,14 @@ class MegaItem:
     def is_file(self) -> bool:
         if self.ftype == FILE_TYPE.FILE:
             return True
-        return False
-
+        else:
+            return False
 
     def is_dir(self) -> bool:
         if self.ftype == FILE_TYPE.DIRECTORY:
             return True
-        return False
-
+        else:
+            return False
 
     def ftype_str(self) -> str:
         """Returns a string for the 'type'."""
@@ -71,7 +71,6 @@ class MegaItem:
                 return "D"
             case FILE_TYPE.FILE:
                 return "F"
-
 
     def get_size(self) -> tuple[float, F_SizeUnit]:
         """Returns size in a human-friendly unit."""
@@ -258,9 +257,9 @@ async def run_megacmd(command: list[str]) -> MegaCmdResponse:
     # Add the rest of the items
     cmd.extend(command)
 
-    print(
-        f"Running command: {' '.join(shlex.quote(c) for c in command)}"
-    )  # Debug print
+    # print(f"Command list: {cmd}")
+    # print(f"Running command: {' '.join(shlex.quote(c) for c in command)}")
+    # print(f"process cmd: {executable} {command}")
 
     try:
         process = await asyncio.create_subprocess_exec(
@@ -271,6 +270,7 @@ async def run_megacmd(command: list[str]) -> MegaCmdResponse:
         stdout_str = stdout.decode("utf-8", errors="replace").strip()
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
 
+        # print(f"Standard out: {stdout_str}")
         megacmd_obj = MegaCmdResponse(
             stdout=stdout_str,
             stderr=None,  # Initialize stderr as None

@@ -1,18 +1,32 @@
-from typing import override
+from pathlib import Path, PurePath
+import os
+from typing import override, Literal
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Static, ListView
-from textual.reactive import var
+from textual.widgets import Footer, Header, Static, ListView, Label, Log
+from textual.reactive import Reactive, var
+from textual import work  # Import work decorator for workers
+from textual.message import Message  # Import Message base class
 
-from .mega import megacmd as megacmd
 
-# Import from sibling module widgets
-from .ui.widgets import FilesListView, FilesListItem
+# import mega.megacmd as megacmd
+from megatui.mega.megacmd import ( # Changed import path
+    MegaItem,
+    MegaCmdError,
+    check_mega_login, # Import login check function
+)
+from megatui.ui.fileview import FileList, FileItem
+
+
+
 
 
 class MegaAppTUI(App[None]):
+
+
+    CSS_PATH="ui/style.tcss"
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("r", "refresh", "Refresh List", key_display="r"),
@@ -22,110 +36,170 @@ class MegaAppTUI(App[None]):
         Binding("h", "navigate_out", "Parent Dir", key_display="h / Backspace"),
         Binding("enter", "navigate_in", "Enter Dir", show=False),  # Map Enter
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
+        Binding("f1", "toggle_log", "Toggle Log", key_display="F1"),
+        Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
         # Add other bindings
     ]
 
-    CSS = """
-    Vertical {
-        grid-size: 2;
-    }
-    Horizontal {
-        grid-size: 2; /* Make two columns */
-    }
-    #file-list {
-        width: 1fr;
-        border-right: ascii $accent; /* Separator */
-    }
-    #preview-pane {
-        width: 0.5fr;
-        padding: 0 1;
-    }
-    #status-bar {
-        height: 1;
-        dock: bottom; /* Place above footer */
-        background: $accent-darken-2;
-    }
-    """
-    # CSS should be added as a file
-    # CSS_PATH = "app.css"
 
-    current_path: var[str] = var("/")  # Track current path at the app level
-    selected_item_info: var[str] = var("")  # Reactive var for status bar
 
+    TITLE = "MegaTUI"
+    SUB_TITLE = "MEGA Cloud Storage Manager"
+    ENABLE_COMMAND_PALETTE = True
+    status_message: Reactive[str] = var("Logged in.")
+    show_log_pane: Reactive[bool] = var(False)
+    current_mega_path: Reactive[str] = var("/")
+
+    # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
-        yield Header()
-        with Vertical():
-            with Horizontal():  # Arrange list and preview side-by-side
-                yield FilesListView(id="file-list", initial_index=0)
-                # TODO Make this ls into their directories
-                # yield Static(
-                #     "Select an item...", id="preview-pane", expand=True, markup=False
-                # )
+        """Create child widgets for the app."""
 
-        yield Static(id="status-bar", markup=False)  # Add a status bar
+        self.log.info("MegaAppTUI mounted. Starting initial load.")
+        yield Header()
+        with Horizontal(id="main-container"):
+            yield FileList(id="file-list")
+            # yield Static("Preview", id="preview-pane") # Placeholder for preview
+
+        yield Log(id="log-pane", max_lines=500, name="Log Output") # Added name
+        with Horizontal(id="status-bar"):
+            yield Label(self.status_message, id="status-message")
+            yield Label(f"Path: {self.current_mega_path}", id="status-path") # Bind to reactive var
         yield Footer()
 
-    # --- Message Handlers ---
-    def on_file_list_view_highlighted(self, message: ListView.Highlighted) -> None:
-        """Called when the highlighted item in any ListView changes."""
-        # Check if the message is from our specific file list
-        if message.list_view.id != "file-list":
-            return
-
-        self.query_one("#status-bar", Static)
-        list_item = message.item  # The highlighted ListItem
-
-        if not (isinstance(list_item, FilesListItem)):
-            return
-
-        item = list_item.item
-
-        # Update status bar
-        self.selected_item_info = f"{item.name} ({item.ftype})"
-
-        # TODO: Add async worker to fetch *actual* file content for preview
-
-    def watch_selected_item_info(self, new_info: str) -> None:
-        """Update status bar when reactive var changes."""
-        self.query_one("#status-bar", Static).update(f"Selected: {new_info}")
-
+    # --- App Logic ---
     def on_mount(self) -> None:
-        """Called when the app is mounted."""
-        # Initial load is handled by FileListView's on_mount
-        pass
+        """Called when the app is mounted. Perform initial load."""
+        self.log.info("MegaAppTUI mounted. Starting initial load.")
+        # Get the FileList widget and load the root directory
+        file_list = self.query_one(FileList)
+        # Start loading the root directory
+        file_list.load_directory(self.current_mega_path)
 
-    # Update status or header when path changes
-    def on_file_list_view_path_changed(
-        self, message: FilesListView.PathChanged
-    ) -> None:
-        self.current_path = message.new_path
-        # Example: Update subtitle - adapt as needed
-        self.query_one(Header).tall = False  # Keep header standard height
-        self.sub_title = f"Path: {self.current_path}"
 
-    def on_file_list_view_load_error(self, message: FilesListView.LoadError) -> None:
-        """Handles load error (e.g., show status message)."""
-        status_bar = self.query_one("#status-bar", Static)
-        status_bar.update(f"[bold red]Error loading list: {message.error}")
-        self.app.notify(
-            "Failed to load directory contents.", title="Error", severity="error"
-        )
 
+    # --- Action Handlers ---
     def action_refresh(self) -> None:
-        """Called to refresh the file list."""
-        list_view = self.query_one(FilesListView)
-        list_view.load_directory(self.current_path)  # Reload current directory
+        """Reloads the current directory."""
+        file_list = self.query_one(FileList)
+        self.status_message = f"Refreshing '{file_list.curr_path}'..."
+        _ = file_list.load_directory(file_list.curr_path)
 
-    # --- Action methods ---
-    def action_cursor_down(self) -> None:
-        self.query_one(FilesListView).action_cursor_down()
-
-    def action_cursor_up(self) -> None:
-        self.query_one(FilesListView).action_cursor_up()
 
     def action_navigate_in(self) -> None:
-        self.query_one(FilesListView).action_navigate_in()
+        """Navigates into the selected directory."""
+        file_list = self.query_one(FileList)
+        if file_list.highlighted_child is None:
+            return  # Nothing selected
+
+        # Get the custom FileItem widget from the highlighted ListItem
+        list_item = file_list.highlighted_child
+        # Assume the first child of ListItem is our FileItem widget
+        file_item_widget = list_item.query_one(FileItem)
+        selected_item_data = file_item_widget.item  # Get the MegaItem data
+
+        current_path: str = file_list.curr_path
+        dir_name: str = selected_item_data.name
+
+        # Log values for debugging
+        self.app.log.info(f"action_navigate_in: Current Path='{current_path}', Selected Dir='{dir_name}'")
+
+        if current_path == "/":
+            new_path = f"/{dir_name}"
+        else:
+            # Ensure current_path doesn't end with '/' before joining
+            clean_current_path = current_path.rstrip('/')
+            new_path = f"{clean_current_path}/{dir_name}"
+
+        # Log the constructed path
+        self.app.log.info(f"action_navigate_in: Constructed new_path='{new_path}'")
+
+        self.status_message = f"Entering '{new_path}'..."
+        _ = file_list.load_directory(new_path) # Pass the correct path
 
     def action_navigate_out(self) -> None:
-        self.query_one(FilesListView).action_navigate_out()
+        """Navigates to the parent directory."""
+        file_list = self.query_one(FileList)
+        current_path = Path(file_list.curr_path)
+
+        # Avoid going above root "/"
+        if str(current_path) == "/":
+            self.status_message = "Already at root."
+            return
+
+        parent_path = str(current_path.parent)
+        # Ensure root path is represented as "/" not "."
+        if parent_path == ".":
+            parent_path = "/"
+
+        self.status_message = f"Entering '{parent_path}'..."
+        _ = file_list.load_directory(parent_path)
+
+    def action_toggle_log(self) -> None:
+        """Toggles the visibility of the log pane."""
+        self.show_log_pane = not self.show_log_pane
+        self.log.info(f"Action: Toggled log pane {'ON' if self.show_log_pane else 'OFF'}")
+
+
+    def action_toggle_darkmode(self) -> None:
+        """Toggles the visibility of the log pane."""
+        self.log.info("Toggling darkmode.")
+        self.action_toggle_dark()
+
+    # --- Watchers ---
+    # Watch reactive variables and update UI elements accordingly
+    def watch_status_message(self, new_message: str) -> None:
+        """Update the status bar message label."""
+        # Use query to find the label and update it
+        try:
+            status_label = self.query_one("#status-message", Label)
+            status_label.update(new_message)
+        except Exception:
+            # Do nothing
+            pass
+
+    # --- Watcher for log pane visibility ---
+    def watch_show_log_pane(self, show: bool) -> None:
+        """Called when show_log_pane changes."""
+        log_pane = self.query_one("#log-pane")
+        # Use set_class to add/remove the 'visible' class
+        log_pane.set_class(show, "visible")
+        # Optional: Update status or focus
+        if show:
+            self.status_message = "Log pane visible (F1 to hide)"
+            # Optionally scroll to end and focus if needed
+            # log_pane.scroll_end(animate=False)
+            # log_pane.focus() # Might steal focus, use carefully
+        else:
+            self.status_message = "Log pane hidden (F1 to show)"
+
+    # --- Message Handlers ---
+    # Handle custom messages bubbled up from child widgets (like FileList)
+    def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
+        """Update status bar when path changes."""
+        path_label = self.query_one("#status-path", Label)
+        path_label.update(f"Path: {message.new_path}")
+        self.status_message = f"Loaded '{message.new_path}'"  # Update main status too
+        self.query_one("#file-list").scroll_home(animate=False)  # Scroll to top
+
+    def on_file_list_load_success(self, message: FileList.LoadSuccess) -> None:
+        """Handle successful directory load."""
+        # Status message might already be set by PathChanged, or set it here
+        self.status_message = f"Loaded '{self.query_one(FileList).curr_path}'"
+        # Optional: log success
+        self.log.info("Directory loaded successfully.")
+
+    def on_file_list_load_error(self, message: FileList.LoadError) -> None:
+        """Handle errors during directory load."""
+        self.status_message = f"Error loading: {message.error}"
+        # Log the detailed error
+        self.log.error(f"Error loading directory: {message.error}")
+        # Maybe show a dialog or keep the status message updated
+
+    def action_cursor_up(self) -> None:
+        """Move the cursor up in the file list."""
+        self.query_one(FileList).action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        """Move the cursor down in the file list."""
+        self.query_one(FileList).action_cursor_down()

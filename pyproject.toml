@@ -1,5 +1,5 @@
 [project]
-name = "mega-tui"
+name = "megatui"
 version = "0.0.1"
 description = "Terminal user interface for MEGA"
 requires-python = ">=3.13"

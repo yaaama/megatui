@@ -1,0 +1,133 @@
+/* ;;; -*- mode: css-ts; -*- * */
+
+
+    Screen {
+        layers: base status; /* Define layers */
+    }
+
+    #main-container {
+        /* Occupies the main screen area */
+        width: 1fr;
+        height: 1fr;
+        /* layer: base; */
+        /* Use grid for layout */
+        grid-size: 2; /* For two columns like ranger */
+        grid-gutter: 1 2;
+    }
+
+    #file-list {
+        width: 1fr; /* Take full width for now */
+        /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
+        height: 100%; /* Fill the container height */
+        border: round $accent; /* Add a border */
+        /* layer: base; /\* Belongs to the base layer *\/ */
+    }
+
+    #status-bar {
+        dock: bottom;
+        height: 1;
+        /* background: $accent-darken-2; */
+        /* color: $text-muted; */
+        padding: 0 1;
+        /* layer: status; /\* Belongs to the status layer *\/ */
+        width: 100%; /* Ensure it spans the width */
+        visibility: visible; /* Ensure it's visible */
+    }
+    #status-bar Label {
+      width: 1fr; /* Make labels fill available space */
+    }
+    #status-message {
+      content-align: left top;
+    }
+    #status-path {
+       content-align: right top;
+    }
+
+
+    /* --- Style the Log Pane --- */
+    #log-pane {
+        /* Dock below main content, above status bar/footer */
+        dock: bottom;
+        /* Height: Fixed 10 lines, adjust as needed */
+        height: 10;
+        border: thick $primary;
+        /* Use a higher layer so it docks *above* the status bar */
+        /* layer: log_layer; */
+        /* Start hidden */
+        display: none;
+        /* Add some scrollbar margin if desired */
+        /* scrollbar-gutter: stable; */
+    }
+    /* --- Class to make the log pane visible --- */
+    #log-pane.visible {
+        display: block; /* Change display to make it visible */
+    }
+    Footer {
+        /* Ensure footer is also on a high layer if needed,
+           but docking usually handles it */
+        /* layer: log_layer; */
+    }
+
+    FileItem {
+        padding: 0 1;
+        height: 1;
+        width: 100%;
+    }
+
+    .fileitem--icon {
+        /* Styles for the icon */
+        width: 2;
+        /* Fixed width for icon */
+    }
+
+    .fileitem--name {
+        /* Styles for the filename */
+        /* Let it take remaining space */
+        /* text-overflow: ellipsis; /* Handled by Text.truncate */
+    }
+
+    .file-item--directory {
+        color: $accent-lighten-1;
+        /* color for dirs */
+    }
+
+    .file-item--time {
+        color: grey;
+        /* color for dirs */
+    }
+
+    .file-item--size {
+        color: red;
+        /* color for dirs */
+    }
+
+    .file-item--file {
+        color: blue;
+        /* color for dirs */
+    }
+
+
+    /* Type-specific styling */
+    FileItem.--directory .fileitem--icon {
+        /* color: $accent-lighten-1; */
+        /* Brighter color for directory icons */
+        /* font-style: bold; */
+        /* Example */
+    }
+
+    FileItem.--directory .fileitem--name {
+        /* color: $accent; */
+        /* Example: different name color */
+    }
+
+    FileItem.--file .fileitem--icon {
+        /* color: $primary-lighten-2; */
+        /* Color for file icons */
+    }
+
+
+    /* Add style for hover maybe? */
+    /* FileItem:hover {
+         background: $accent;
+         color: $text;
+    */
