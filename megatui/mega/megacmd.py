@@ -21,7 +21,6 @@ class MegaCmdError(Exception):
 
 class FILE_TYPE(Enum):
     """File types."""
-
     DIRECTORY = 0
     FILE = 1
 
@@ -74,6 +73,9 @@ class MegaItem:
 
     def get_size(self) -> tuple[float, F_SizeUnit]:
         """Returns size in a human-friendly unit."""
+
+        if (self.is_dir() == True or self.size == 0):
+           return  (0, F_SizeUnit.B)
 
         # Calculate the logarithm base 1024 to find the scale
         # math.log(num_bytes, 1024) gives the power of 1024
