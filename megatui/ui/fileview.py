@@ -53,7 +53,7 @@ class FileList(ListView):
             super().__init__()
 
     ###################################################################
-    @work(exclusive=True, group="megacmd", description="Fetching MEGA listing...")
+    @work(exclusive=True, group="megacmd", description="mega-ls : Fetching dir listings")
     async def fetch_files(self, path: str) -> MegaItems | None:
         """
         Asynchronously fetches items from MEGA for the given path.
@@ -69,8 +69,8 @@ class FileList(ListView):
                 #     key=lambda item: (item.ftype.value, item.name.lower())
                 # )
                 return fetched_items  # Return the result
-
-            return None
+            else:
+                return None
 
         except MegaCmdError as e:
             self.app.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
@@ -87,7 +87,7 @@ class FileList(ListView):
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Called when the fetch_files worker state changes."""
         self.app.log.debug(
-            f"Worker {event.worker.name} state changed: {event.state} for loading path {self._loading_path}"
+            f"Worker {event.worker.name} state changed: {event.state} for path '{self._loading_path}'"
         )
 
         # Check if this event is for the worker we care about
