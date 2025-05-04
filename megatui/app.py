@@ -1,23 +1,19 @@
-from pathlib import Path, PurePath
 import os
-from typing import override, Literal
+from pathlib import Path, PurePath
+from typing import Literal, override
 
+from textual import work  # Import work decorator for workers
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Static, ListView, Label, Log
-from textual.reactive import Reactive, var
-from textual import work  # Import work decorator for workers
 from textual.message import Message  # Import Message base class
-
+from textual.reactive import Reactive, var
+from textual.widgets import Footer, Header, Label, ListView, Log, Static
 
 # import mega.megacmd as megacmd
-from megatui.mega.megacmd import (  # Changed import path
-    MegaItem,
-    MegaCmdError,
-    check_mega_login,  # Import login check function
-)
-from megatui.ui.fileview import FileList, FileItem
+from megatui.mega.megacmd import check_mega_login  # Import login check function
+from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
+from megatui.ui.fileview import FileItem, FileList
 
 
 class MegaAppTUI(App[None]):
@@ -40,7 +36,6 @@ class MegaAppTUI(App[None]):
     SUB_TITLE = "MEGA Cloud Storage Manager"
     ENABLE_COMMAND_PALETTE = True
     status_message: Reactive[str] = var("Logged in.")
-    show_log_pane: Reactive[bool] = var(False)
     current_mega_path: Reactive[str] = var("/")
 
     # --- UI Composition ---
@@ -59,7 +54,9 @@ class MegaAppTUI(App[None]):
             yield Label(
                 f"Path: {self.current_mega_path}", id="status-path"
             )  # Bind to reactive var
-        yield Footer()
+
+        # Why does the footer create so many event messages?
+        yield Footer(disabled=True)
 
     # --- App Logic ---
     def on_mount(self) -> None:

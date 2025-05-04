@@ -1,21 +1,18 @@
 # UI Components Related to Files
 #
 from os import abort
-from typing import override
-
-from rich.console import Console
-from rich.text import Text
-from textual.widgets import ListItem, ListView, Static
-from textual.app import RenderResult, ComposeResult
-from textual.message import Message
-from textual import reactive, work  # Import work decorator
-from textual.worker import Worker, WorkerState  # Import worker types
-from typing import Literal
-
+from typing import Literal, override
 
 import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaItems, MegaItem, MegaCmdError
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.ui.fileitem import FileItem
+from rich.console import Console
+from rich.text import Text
+from textual import reactive, work  # Import work decorator
+from textual.app import ComposeResult, RenderResult
+from textual.message import Message
+from textual.widgets import ListItem, ListView, Static
+from textual.worker import Worker, WorkerState  # Import worker types
 
 
 ###########################################################################
@@ -24,12 +21,10 @@ from megatui.ui.fileitem import FileItem
 class FileList(ListView):
     """A ListView widget to display multiple FileItems."""
 
-
-
     items: MegaItems = []
     curr_path: str = "/"
-    new_path : str = "/"
-    _loading_path : str = "/"
+    new_path: str = "/"
+    _loading_path: str = "/"
 
     # Messages ################################################################
     class PathChanged(Message):
@@ -55,7 +50,9 @@ class FileList(ListView):
             super().__init__()
 
     ###################################################################
-    @work(exclusive=True, group="megacmd", description="mega-ls : Fetching dir listings")
+    @work(
+        exclusive=True, group="megacmd", description="mega-ls : Fetching dir listings"
+    )
     async def fetch_files(self, path: str) -> MegaItems | None:
         """
         Asynchronously fetches items from MEGA for the given path.
@@ -88,55 +85,59 @@ class FileList(ListView):
     # --- Worker Completion Handler ---
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Called when the fetch_files worker state changes."""
-        self.app.log.debug(
-            f"Worker {event.worker.name} state changed: {event.state} for path '{self._loading_path}'"
-        )
 
         # Check if this event is for the worker we care about
         if event.worker.name != "fetch_files":
             return
 
+
+        if event.state == WorkerState.CANCELLED :
+            return
+
+        self.app.log.debug(
+            f"Worker {event.worker.name} state changed: {event.state} for path '{self._loading_path}'"
+        )
+
+        if (event.state == WorkerState.PENDING) or (event.state == WorkerState.RUNNING):
+            self.border_subtitle : str = f"Loading '{self._loading_path}'"
+            return
+
+
+
+
         # Get the path that this worker was started for
         completed_path = self._loading_path  # The path this worker was processing
 
         if completed_path == "":
-            self.app.log.warning("Worker finished but no _loading_path was set.")
-            _ = self.app.action_quit()
-
             # Should not happen ideally
+            self.app.log.warning("Worker finished but no _loading_path was set.")
 
-        if event.state == WorkerState.SUCCESS:
-            fetched_items: MegaItems | None = event.worker.result
-            if fetched_items is not None:
-                self.app.log.info(
-                    f"Worker success for path '{completed_path}', items: {len(fetched_items)}"
-                )
-                # Call the UI update method on the main thread
-                self._update_list_on_success(completed_path, fetched_items)
-            else:
-                # Worker succeeded but returned None (likely error handled in fetch_files)
-                self.app.log.warning(
-                    f"Fetch worker for '{completed_path}' succeeded but returned None result."
-                )
-                self.border_subtitle = "Load Error!"
-                # LoadError message should have been posted by the worker
-
-        elif event.state == WorkerState.ERROR:
+        if event.state == WorkerState.ERROR:
             self.app.log.error(f"Worker for path '{completed_path}' failed!")
+            self.border_subtitle = "Load Error!"
+            return
+
+        fetched_items: MegaItems | None = event.worker.result
+        if fetched_items is not None:
+            self.app.log.info(
+                f"Worker success for path '{completed_path}', items: {len(fetched_items)}"
+            )
+            # Call the UI update method on the main thread
+            self._update_list_on_success(completed_path, fetched_items)
+        else:
+            # Worker succeeded but returned None
+            self.app.log.warning(
+                f"Fetch worker for '{completed_path}' succeeded but returned 'None' result."
+            )
             self.border_subtitle = "Load Error!"
             # LoadError message should have been posted by the worker
 
-        # Reset loading path tracker once handled
-        if self.curr_path == completed_path or event.state != WorkerState.RUNNING:
-            # self._loading_path = ""  # Clear tracker
-            pass
-
-    def _update_list_on_success(self, path: str, fetched_items: m.MegaItems) -> None:
+    def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.app.log.debug(f"Updating list UI for path: {path}")
-        self.items = fetched_items
-        self.curr_path = path
-        self.border_title = f"MEGA: {path}"
+        self.items: MegaItems = fetched_items
+        self.curr_path: str = path
+        self.border_title: str = f"MEGA: {path}"
         self.border_subtitle = f"{len(fetched_items)} items"
 
         self.clear()
@@ -147,18 +148,17 @@ class FileList(ListView):
         self.post_message(self.LoadSuccess(path))
         self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
-
     def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
-
-        self.app.log.info(f"FileList.load_directory: Received request for path='{path}'")
+        self.app.log.info(
+            f"FileList.load_directory: Received request for path='{path}'"
+        )
 
         self.app.log.info(f"Requesting load for directory: {path}")
         self.border_title = f"MEGA: {path}"
         self.border_subtitle = f"Loading '{path}'..."
         self._loading_path = path  # Track the path we are loading
         self.clear()
-
         # Start the worker. Results handled by on_worker_state_changed.
         self.fetch_files(path)
 
@@ -166,7 +166,6 @@ class FileList(ListView):
     def compose(self) -> ComposeResult:
         for it in self.items:
             yield FileItem(item=it)
-
 
     # --- Initialization ---
     def __init__(

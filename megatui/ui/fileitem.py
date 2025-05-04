@@ -84,16 +84,14 @@ class FileItem(Static):
             fsize_str = " " * 10  # Pad directory size column
 
         text = Text.assemble(
-            (f"{icon} ", "default"),  # Or some other basic style like "bold"
+            (f"{icon} ", "default"),
             (fname_str),
             (" ", ""),
-            # Use theme variables directly if defined in your app's theme CSS
             (f" {fmtime_str:^18}"),
             (" ", ""),
             (f" {fsize_str}"),
         )
 
-        # Let the Static widget handle truncation based on its available width
         text.truncate(self.size.width, overflow="ellipsis")
         text.pad_right(
             self.size.width - text.cell_len
