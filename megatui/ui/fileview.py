@@ -8,7 +8,7 @@ from rich.text import Text
 from textual.widgets import ListItem, ListView, Static
 from textual.app import RenderResult, ComposeResult
 from textual.message import Message
-from textual import work  # Import work decorator
+from textual import reactive, work  # Import work decorator
 from textual.worker import Worker, WorkerState  # Import worker types
 from typing import Literal
 
@@ -23,6 +23,8 @@ from megatui.ui.fileitem import FileItem
 ###########################################################################
 class FileList(ListView):
     """A ListView widget to display multiple FileItems."""
+
+
 
     items: MegaItems = []
     curr_path: str = "/"
@@ -145,9 +147,6 @@ class FileList(ListView):
         self.post_message(self.LoadSuccess(path))
         self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
-        if not self.has_focus and len(fetched_items) > 0 and self.app.is_running:
-            self.focus()
-            self.index = 0  # Highlight the first item
 
     def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
@@ -167,6 +166,7 @@ class FileList(ListView):
     def compose(self) -> ComposeResult:
         for it in self.items:
             yield FileItem(item=it)
+
 
     # --- Initialization ---
     def __init__(

@@ -28,8 +28,8 @@ class MegaAppTUI(App[None]):
         Binding("r", "refresh", "Refresh List", key_display="r"),
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
-        Binding("l", "navigate_in", "Enter Dir", key_display="l / Enter"),
-        Binding("h", "navigate_out", "Parent Dir", key_display="h / Backspace"),
+        Binding("l", "navigate_in", "Enter Dir", key_display="l"),
+        Binding("h", "navigate_out", "Parent Dir", key_display="h"),
         Binding("enter", "navigate_in", "Enter Dir", show=False),  # Map Enter
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
@@ -71,17 +71,19 @@ class MegaAppTUI(App[None]):
         file_list.load_directory(self.current_mega_path)
 
     # --- Action Handlers ---
-    def action_refresh(self) -> None:
+    async def action_refresh(self) -> None:
         """Reloads the current directory."""
         file_list = self.query_one(FileList)
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
-        _ = file_list.load_directory(file_list.curr_path)
+        file_list.load_directory(file_list.curr_path)
 
-    def action_navigate_in(self) -> None:
+    async def action_navigate_in(self) -> None:
         """Navigates into the selected directory."""
         file_list = self.query_one(FileList)
+
         if file_list.highlighted_child is None:
-            return  # Nothing selected
+            # Nothing selected
+            return
 
         # Get the custom FileItem widget from the highlighted ListItem
         list_item = file_list.highlighted_child
@@ -108,7 +110,7 @@ class MegaAppTUI(App[None]):
         self.app.log.info(f"action_navigate_in: Constructed new_path='{new_path}'")
 
         self.status_message = f"Entering '{new_path}'..."
-        _ = file_list.load_directory(new_path)  # Pass the correct path
+        file_list.load_directory(new_path)  # Pass the correct path
 
     def action_navigate_out(self) -> None:
         """Navigates to the parent directory."""
@@ -151,7 +153,6 @@ class MegaAppTUI(App[None]):
         path_label = self.query_one("#status-path", Label)
         path_label.update(f"Path: {message.new_path}")
         self.status_message = f"Loaded '{message.new_path}'"
-        self.status_message = f"Loaded '{self.query_one(FileList).curr_path}'"
 
     def on_file_list_load_error(self, message: FileList.LoadError) -> None:
         """Handle errors during directory load."""
