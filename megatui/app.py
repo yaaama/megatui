@@ -150,6 +150,7 @@ class MegaAppTUI(App[None]):
         path_label = self.query_one("#status-path", Label)
         path_label.update(f"Path: {message.new_path}")
         self.status_message = f"Loaded '{message.new_path}'"
+        self.query_one(FileList).action_cursor_down()
 
     def on_file_list_load_error(self, message: FileList.LoadError) -> None:
         """Handle errors during directory load."""
