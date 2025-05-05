@@ -13,7 +13,8 @@ from textual.widgets import Footer, Header, Label, ListView, Log, Static
 # import mega.megacmd as megacmd
 from megatui.mega.megacmd import check_mega_login  # Import login check function
 from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
-from megatui.ui.fileview import FileItem, FileList
+from megatui.ui.fileview import FileList
+from megatui.ui.fileitem import FileItem
 
 
 class MegaAppTUI(App[None]):
@@ -132,7 +133,7 @@ class MegaAppTUI(App[None]):
         self.current_mega_path = parent_path
 
     def action_toggle_darkmode(self) -> None:
-        """Toggles the visibility of the log pane."""
+        """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
