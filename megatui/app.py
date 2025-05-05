@@ -108,11 +108,14 @@ class MegaAppTUI(App[None]):
 
         self.status_message = f"Entering '{new_path}'..."
         file_list.load_directory(new_path)  # Pass the correct path
+        self.current_mega_path = new_path
 
     def action_navigate_out(self) -> None:
         """Navigates to the parent directory."""
+
         file_list = self.query_one(FileList)
-        current_path = Path(file_list.curr_path)
+        self.log.info(f"Navigating out of directory {self.current_mega_path}")
+        current_path = PurePath(self.current_mega_path)
 
         # Avoid going above root "/"
         if str(current_path) == "/":
@@ -126,6 +129,7 @@ class MegaAppTUI(App[None]):
 
         self.status_message = f"Entering '{parent_path}'..."
         _ = file_list.load_directory(parent_path)
+        self.current_mega_path = parent_path
 
     def action_toggle_darkmode(self) -> None:
         """Toggles the visibility of the log pane."""
@@ -151,6 +155,7 @@ class MegaAppTUI(App[None]):
         path_label.update(f"Path: {message.new_path}")
         self.status_message = f"Loaded '{message.new_path}'"
         self.query_one(FileList).action_cursor_down()
+        self.current_mega_path = message.new_path
 
     def on_file_list_load_error(self, message: FileList.LoadError) -> None:
         """Handle errors during directory load."""
