@@ -19,6 +19,8 @@ background.
 The UI and bindings are inspired by [ranger](https://github.com/ranger/ranger) and
 [lf](https://github.com/gokcehan/lf).
 
+![megatui screenshot](./assets/screenshot.png)
+
 ## 🪷 Features
 
 As of writing this (_Mon Apr 14 20:27:56 2025_), this project is just a few days
