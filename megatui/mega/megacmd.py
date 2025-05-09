@@ -488,6 +488,21 @@ async def mega_cd(target_path: str = "/"):
         print(f"Error changing directories to '{target_path}': {error_msg}")
         return
 
+async def mega_pwd() -> str:
+    """
+    Change directories.
+    """
+    print(f"Printing working directory")
+
+    cmd: list[str] = ["pwd"]
+    response = await run_megacmd(cmd)
+
+    if response.return_code != 0 or response.stderr:
+        error_msg = response.stderr if response.stderr else response.stdout
+        print(f"Error printing working directory.")
+        return ""
+
+    return response.stdout.strip()
 
 ###############################################################################
 async def mega_cd_ls(
