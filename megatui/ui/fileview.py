@@ -1,7 +1,9 @@
 # UI Components Related to Files
 #
 from os import abort
-from typing import Literal, override
+from typing import Any, Literal, override
+
+from textual import worker, on, work
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
@@ -12,7 +14,7 @@ from textual import reactive, work  # Import work decorator
 from textual.app import ComposeResult, RenderResult
 from textual.message import Message
 from textual.widgets import ListItem, ListView, Static
-from textual.worker import Worker, WorkerState  # Import worker types
+from textual.worker import WorkType, Worker  # Import worker types
 
 
 ###########################################################################
@@ -22,9 +24,11 @@ class FileList(ListView):
     """A ListView widget to display multiple FileItems."""
 
     items: MegaItems = []
+    file_items : list[FileItem] = []
     curr_path: str = "/"
     new_path: str = "/"
     _loading_path: str = "/"
+    border_subtitle : str
 
     # Messages ################################################################
     class PathChanged(Message):
@@ -51,7 +55,7 @@ class FileList(ListView):
 
     ###################################################################
     @work(
-        exclusive=True, group="megacmd", description="mega-ls : Fetching dir listings"
+        exclusive=True, group="megacmd", name="fetch_files", description="mega-ls : Fetching dir listings"
     )
     async def fetch_files(self, path: str) -> MegaItems | None:
         """
@@ -59,7 +63,8 @@ class FileList(ListView):
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
         """
-        self.app.log.info(f"FileList: Worker starting fetch for path: {path}")
+
+        self.log.info(f"FileList: Worker starting fetch for path: {path}")
         try:
             # Fetch and sort items
             fetched_items = await m.mega_ls(path)
@@ -135,8 +140,7 @@ class FileList(ListView):
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.app.log.debug(f"Updating list UI for path: {path}")
-        self.items: MegaItems = fetched_items
-        self.curr_path: str = path
+        self.curr_path = path
         self.border_title: str = f"MEGA: {path}"
         self.border_subtitle = f"{len(fetched_items)} items"
 
@@ -148,19 +152,40 @@ class FileList(ListView):
         self.post_message(self.LoadSuccess(path))
         self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
-    def load_directory(self, path: str) -> None:
+    async def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
         self.app.log.info(
             f"FileList.load_directory: Received request for path='{path}'"
         )
 
-        self.app.log.info(f"Requesting load for directory: {path}")
+        self.log.info(f"Requesting load for directory: {path}")
         self.border_title = f"MEGA: {path}"
         self.border_subtitle = f"Loading '{path}'..."
         self._loading_path = path  # Track the path we are loading
         self.clear()
         # Start the worker. Results handled by on_worker_state_changed.
-        self.fetch_files(path)
+        worker_obj : Worker[MegaItems | None]
+
+        worker_obj = self.fetch_files(path)
+
+        await worker_obj.wait()
+
+        fetched_items: MegaItems | None = worker_obj.result
+
+        if fetched_items:
+            self.app.log.info(
+                f"Worker success for path '{self._loading_path}', items: {len(fetched_items)}"
+            )
+            # Call the UI update method on the main thread
+            self._update_list_on_success(self._loading_path, fetched_items)
+        else:
+            # Worker succeeded but returned None
+            self.app.log.warning(
+                f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
+            )
+            self.border_subtitle = "Load Error!"
+
+    # async def action_download_file(self) -> None:
 
     @override
     def compose(self) -> ComposeResult:
@@ -171,9 +196,10 @@ class FileList(ListView):
     def __init__(
         self,
         *args,
-        **kwargs,
+        **kwargs
+
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.border_title = "MEGA"
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
