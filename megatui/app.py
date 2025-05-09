@@ -8,10 +8,10 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.message import Message  # Import Message base class
 from textual.reactive import Reactive, var
-from textual.widgets import Footer, Header, Label, ListView, Log, Static
+from textual.widgets import Footer, Header, Label, ListView, ListItem, Log, Static
 
 # import mega.megacmd as megacmd
-from megatui.mega.megacmd import check_mega_login  # Import login check function
+from megatui.mega.megacmd import check_mega_login, mega_get  # Import login check function
 from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
 from megatui.ui.fileview import FileList
 from megatui.ui.fileitem import FileItem
@@ -30,6 +30,7 @@ class MegaAppTUI(App[None]):
         Binding("enter", "navigate_in", "Enter Dir", show=False),  # Map Enter
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
+        Binding("f3" , "download", "download", key_display="f3"),
         # Add other bindings
     ]
 
@@ -74,6 +75,41 @@ class MegaAppTUI(App[None]):
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
         await file_list.load_directory(file_list.curr_path)
 
+
+
+    async def download_files(self, files : list[MegaItem]) -> None:
+        """ Downloads files."""
+        if not files:
+            self.log.warning("Did not receive any files to download: '{files}'")
+            return
+
+        for file in files:
+            home = Path.home()
+            await mega_get(target_path=str(home), remote_path=str(file.get_full_path()), is_dir=file.is_dir())
+
+    async def action_download(self) -> None:
+
+        file_list = self.query_one(FileList)
+
+        if file_list.highlighted_child is None:
+            # Nothing selected
+            return
+
+        # Get the custom FileItem widget from the highlighted ListItem
+        list_item : ListItem = file_list.highlighted_child
+
+        # Assume the first child of ListItem is our FileItem widget
+        file_item_widget : FileItem = list_item.query_one(FileItem)
+        selected_item_data : MegaItem = file_item_widget.mega_item  # Get the MegaItem data
+
+        download_items = [selected_item_data]
+
+        self.app.log.info(f"action_download: Downloading file '{selected_item_data.name}'")
+        self.status_message = f"Downloading '{selected_item_data.name}'"
+        await self.download_files(download_items)
+
+
+
     async def action_navigate_in(self) -> None:
         """Navigates into the selected directory."""
         file_list = self.query_one(FileList)
@@ -86,7 +122,7 @@ class MegaAppTUI(App[None]):
         list_item = file_list.highlighted_child
         # Assume the first child of ListItem is our FileItem widget
         file_item_widget = list_item.query_one(FileItem)
-        selected_item_data = file_item_widget.item  # Get the MegaItem data
+        selected_item_data = file_item_widget.mega_item  # Get the MegaItem data
 
         current_path: str = file_list.curr_path
         dir_name: str = selected_item_data.name

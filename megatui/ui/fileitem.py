@@ -9,7 +9,7 @@ from textual.widgets import Static
 
 
 class FileItem(Static):
-    item: MegaItem
+    mega_item: MegaItem
 
     DEFAULT_CSS = """
     FileItem {
@@ -61,23 +61,23 @@ class FileItem(Static):
 
         super().__init__(name=name, id=id, disabled=disabled)
         # Store the MegaItem item
-        self.item = item
+        self.mega_item = item
         self.add_class(
-            f"--{self.item.ftype.name.lower()}"
+            f"--{self.mega_item.ftype.name.lower()}"
         )  # Adds '--directory' or '--file'
 
     @override
     def render(self) -> Text:
         """Return a Rich Text object representing the file item."""
         # --- Get Data ---
-        icon = "📁" if self.item.is_dir() else "📄"
-        fname_str : Text = Text(self.item.name)
+        icon = "📁" if self.mega_item.is_dir() else "📄"
+        fname_str : Text = Text(self.mega_item.name)
         fname_str.truncate(30, overflow="ellipsis")
         fname_str.align("left", 30)
-        fmtime_str = self.item.mtime
+        fmtime_str = self.mega_item.mtime
 
-        if self.item.is_file() == True:
-            fsize_float, fsize_unit_enum = self.item.get_size()
+        if self.mega_item.is_file() == True:
+            fsize_float, fsize_unit_enum = self.mega_item.get_size()
             # Right-align size within a fixed width (e.g., 10 characters)
             fsize_str = f"{fsize_float:.1f} {fsize_unit_enum.get_unit_str()}".rjust(10)
         else:
