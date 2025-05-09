@@ -2,6 +2,7 @@ import asyncio
 from enum import Enum
 import math
 import os
+from pathlib import PurePath
 import re
 import shlex
 import subprocess
@@ -47,6 +48,7 @@ class F_SizeUnit(Enum):
 @dataclass
 class MegaItem:
     name: str  # Name of item
+    folder: str
     size: int  # Size of the file item (in bytes)
     mtime: str  # Parse into date if needed
     ftype: FILE_TYPE  # 'd' for dir, 'f' for file
@@ -70,6 +72,13 @@ class MegaItem:
                 return "D"
             case FILE_TYPE.FILE:
                 return "F"
+
+    def get_full_path(self) -> PurePath:
+        folder : PurePath  = PurePath(self.folder)
+        path : PurePath = folder / self.name
+        return path
+
+
 
     def get_size(self) -> tuple[float, F_SizeUnit]:
         """Returns size in a human-friendly unit."""
@@ -101,8 +110,8 @@ class MegaItem:
         scaled_value: float = float(self.size) / divisor
         return (scaled_value, F_SizeUnit(unit_index))
 
-    def get_size_in_units(self, unit: F_SizeUnit) -> int:
-        """Returns size in units of 'unit'"""
+    def get_size_in(self, unit: F_SizeUnit) -> int:
+        """Returns size of file in specified unit."""
         match unit:
             case F_SizeUnit.B:
                 return self.size
@@ -119,6 +128,16 @@ class MegaItem:
 
 # Alias
 MegaItems = list[MegaItem]
+
+# TODO
+@dataclass
+class MegaMediaInfo:
+    path: str
+    width: int | None
+    height : int | None
+    fps : int | None
+    playtime: int | None
+
 
 
 # Response from running mega commands.
@@ -432,6 +451,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
         items.append(
             MegaItem(
                 name=name_str.strip(),
+                folder=path,
                 size=item_size,
                 mtime=mtime_str,
                 ftype=item_type,
