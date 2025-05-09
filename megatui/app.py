@@ -44,7 +44,6 @@ class MegaAppTUI(App[None]):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
 
-        self.log.info("MegaAppTUI mounted. Starting initial load.")
         yield Header()
         with Horizontal(id="main-container"):
             yield FileList(id="file-list")
@@ -60,20 +59,20 @@ class MegaAppTUI(App[None]):
         yield Footer(disabled=True)
 
     # --- App Logic ---
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Called when the app is mounted. Perform initial load."""
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
         file_list = self.query_one(FileList)
         # Start loading the root directory
-        file_list.load_directory(self.current_mega_path)
+        await file_list.load_directory(self.current_mega_path)
 
     # --- Action Handlers ---
     async def action_refresh(self) -> None:
         """Reloads the current directory."""
         file_list = self.query_one(FileList)
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
-        file_list.load_directory(file_list.curr_path)
+        await file_list.load_directory(file_list.curr_path)
 
     async def action_navigate_in(self) -> None:
         """Navigates into the selected directory."""
@@ -108,10 +107,10 @@ class MegaAppTUI(App[None]):
         self.app.log.info(f"action_navigate_in: Constructed new_path='{new_path}'")
 
         self.status_message = f"Entering '{new_path}'..."
-        file_list.load_directory(new_path)  # Pass the correct path
+        await file_list.load_directory(new_path)  # Pass the correct path
         self.current_mega_path = new_path
 
-    def action_navigate_out(self) -> None:
+    async def action_navigate_out(self) -> None:
         """Navigates to the parent directory."""
 
         file_list = self.query_one(FileList)
@@ -129,7 +128,7 @@ class MegaAppTUI(App[None]):
             parent_path = "/"
 
         self.status_message = f"Entering '{parent_path}'..."
-        _ = file_list.load_directory(parent_path)
+        await file_list.load_directory(parent_path)
         self.current_mega_path = parent_path
 
     def action_toggle_darkmode(self) -> None:
