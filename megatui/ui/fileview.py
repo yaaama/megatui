@@ -87,55 +87,9 @@ class FileList(ListView):
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
-    # --- Worker Completion Handler ---
-    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
-        """Called when the fetch_files worker state changes."""
-
-        # Check if this event is for the worker we care about
-        if event.worker.name != "fetch_files":
-            return
-
-
-        if event.state == WorkerState.CANCELLED :
-            return
-
-        self.app.log.debug(
-            f"Worker {event.worker.name} state changed: {event.state} for path '{self._loading_path}'"
-        )
-
-        if (event.state == WorkerState.PENDING) or (event.state == WorkerState.RUNNING):
-            self.border_subtitle : str = f"Loading '{self._loading_path}'"
-            return
 
 
 
-
-        # Get the path that this worker was started for
-        completed_path = self._loading_path  # The path this worker was processing
-
-        if completed_path == "":
-            # Should not happen ideally
-            self.app.log.warning("Worker finished but no _loading_path was set.")
-
-        if event.state == WorkerState.ERROR:
-            self.app.log.error(f"Worker for path '{completed_path}' failed!")
-            self.border_subtitle = "Load Error!"
-            return
-
-        fetched_items: MegaItems | None = event.worker.result
-        if fetched_items is not None:
-            self.app.log.info(
-                f"Worker success for path '{completed_path}', items: {len(fetched_items)}"
-            )
-            # Call the UI update method on the main thread
-            self._update_list_on_success(completed_path, fetched_items)
-        else:
-            # Worker succeeded but returned None
-            self.app.log.warning(
-                f"Fetch worker for '{completed_path}' succeeded but returned 'None' result."
-            )
-            self.border_subtitle = "Load Error!"
-            # LoadError message should have been posted by the worker
 
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
