@@ -7,17 +7,23 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.message import Message  # Import Message base class
-from textual.reactive import Reactive, var
+from textual.reactive import Reactive, var, reactive
 from textual.widgets import Footer, Header, Label, ListView, ListItem, Log, Static
-
+from textual.widget import Widget
 # import mega.megacmd as megacmd
-from megatui.mega.megacmd import check_mega_login, mega_get  # Import login check function
+from megatui.mega.megacmd import (
+    check_mega_login,
+    mega_get,
+)  # Import login check function
 from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
 from megatui.ui.fileview import FileList
 from megatui.ui.fileitem import FileItem
 
 
-class MegaAppTUI(App[None]):
+class MegaAppTUI(App[str]):
+    TITLE = "MegaTUI"
+    SUB_TITLE = "MEGA Cloud Storage Manager"
+    ENABLE_COMMAND_PALETTE = True
 
     CSS_PATH = "ui/style.tcss"
     BINDINGS = [
@@ -30,36 +36,31 @@ class MegaAppTUI(App[None]):
         Binding("enter", "navigate_in", "Enter Dir", show=False),  # Map Enter
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
-        Binding("f3" , "download", "download", key_display="f3"),
+        Binding("f3", "download", "download", key_display="f3"),
         # Add other bindings
     ]
 
-    TITLE = "MegaTUI"
-    SUB_TITLE = "MEGA Cloud Storage Manager"
-    ENABLE_COMMAND_PALETTE = True
-    status_message: Reactive[str] = var("Logged in.")
-    current_mega_path: Reactive[str] = var("/")
+    status_message: Reactive[str] = reactive("Logged in.")
+    current_mega_path: Reactive[str] = reactive("/")
 
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
 
-        yield Header()
-        with Horizontal(id="main-container"):
-            yield FileList(id="file-list")
-            # yield Static("Preview", id="preview-pane") # Placeholder for preview
+        with Vertical():
+            yield Header()
+            with Horizontal(id="status-bar"):
+                yield Label(f"Path: {self.current_mega_path}", id="status-path")
+                yield Label(self.status_message, id="status-message")
 
-        with Horizontal(id="status-bar"):
-            yield Label(self.status_message, id="status-message")
-            yield Label(
-                f"Path: {self.current_mega_path}", id="status-path"
-            )  # Bind to reactive var
+            with Horizontal(id="main-container"):
+                yield FileList(id="file-list")
+                # yield Static("Preview", id="preview-pane") # Placeholder for preview
 
         # Why does the footer create so many event messages?
         yield Footer(disabled=True)
 
-    # --- App Logic ---
     async def on_mount(self) -> None:
         """Called when the app is mounted. Perform initial load."""
         self.log.info("MegaAppTUI mounted. Starting initial load.")
@@ -75,17 +76,27 @@ class MegaAppTUI(App[None]):
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
         await file_list.load_directory(file_list.curr_path)
 
+    """
+    Downloading files
+    TODO: Can download multiple files using selection
+    TODO: Check for existing files on system and handle them
+    TODO: Display download status
+    TODO: Ask for download path
+    """
 
-
-    async def download_files(self, files : list[MegaItem]) -> None:
-        """ Downloads files."""
+    async def download_files(self, files: list[MegaItem]) -> None:
+        """Downloads files."""
         if not files:
             self.log.warning("Did not receive any files to download: '{files}'")
             return
 
         for file in files:
             home = Path.home()
-            await mega_get(target_path=str(home), remote_path=str(file.get_full_path()), is_dir=file.is_dir())
+            await mega_get(
+                target_path=str(home),
+                remote_path=str(file.get_full_path()),
+                is_dir=file.is_dir(),
+            )
 
     async def action_download(self) -> None:
 
@@ -95,20 +106,17 @@ class MegaAppTUI(App[None]):
             # Nothing selected
             return
 
-        # Get the custom FileItem widget from the highlighted ListItem
-        list_item : ListItem = file_list.highlighted_child
-
-        # Assume the first child of ListItem is our FileItem widget
-        file_item_widget : FileItem = list_item.query_one(FileItem)
-        selected_item_data : MegaItem = file_item_widget.mega_item  # Get the MegaItem data
+        selected_item_data: MegaItem = (
+            file_list.highlighted_child.query_one(FileItem).mega_item
+        )  # Get the MegaItem data
 
         download_items = [selected_item_data]
 
-        self.app.log.info(f"action_download: Downloading file '{selected_item_data.name}'")
+        self.app.log.info(
+            f"action_download: Downloading file '{selected_item_data.name}'"
+        )
         self.status_message = f"Downloading '{selected_item_data.name}'"
         await self.download_files(download_items)
-
-
 
     async def action_navigate_in(self) -> None:
         """Navigates into the selected directory."""

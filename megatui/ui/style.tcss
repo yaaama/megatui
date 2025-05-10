@@ -24,10 +24,10 @@
     }
 
     #status-bar {
-        dock: bottom;
+        /* dock: top; */
         height: 1;
-        /* background: $accent-darken-2; */
-        /* color: $text-muted; */
+        background: initial;
+        /* color: blue; */
         padding: 0 1;
         /* layer: status; /\* Belongs to the status layer *\/ */
         width: 100%; /* Ensure it spans the width */
@@ -37,10 +37,10 @@
       width: 1fr; /* Make labels fill available space */
     }
     #status-message {
-      content-align: left top;
+      content-align: right middle;
     }
     #status-path {
-       content-align: right top;
+       content-align: left middle;
     }
 
 
