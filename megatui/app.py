@@ -180,14 +180,23 @@ class MegaAppTUI(App[str]):
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
+
+    def clear_status_message(self) -> None:
+        self.status_message = ""
+
+
+
+
     # --- Watchers ---
     # Watch reactive variables and update UI elements accordingly
     def watch_status_message(self, new_message: str) -> None:
         """Update the status bar message label."""
+
         # Use query to find the label and update it
         try:
             status_label = self.query_one("#status-message", Label)
             status_label.update(new_message)
+            status_label.set_timer(delay=6, callback=self.clear_status_message)
         except Exception:
             # Do nothing
             pass
