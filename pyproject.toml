@@ -23,6 +23,7 @@ defineConstant = { DEBUG = true }
 reportMissingImports = "error"
 reportMissingTypeStubs = false
 reportUnusedCallResult = false
+reportUnannotatedClassAttribute = false
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"
