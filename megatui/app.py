@@ -18,12 +18,14 @@ from megatui.mega.megacmd import (
 from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
 from megatui.ui.fileview import FileList
 from megatui.ui.fileitem import FileItem
+from megatui.ui.file_tree import FileTreeScreen
 
 
 class MegaAppTUI(App[str]):
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     ENABLE_COMMAND_PALETTE = True
+    SCREENS = {"filetree": FileTreeScreen}
 
     CSS_PATH = "ui/style.tcss"
     BINDINGS = [
@@ -37,11 +39,12 @@ class MegaAppTUI(App[str]):
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
         Binding("f3", "download", "download", key_display="f3"),
+        Binding("f", "push_screen('filetree')", "filetree")
         # Add other bindings
     ]
 
-    status_message: Reactive[str] = reactive("Logged in.")
-    current_mega_path: Reactive[str] = reactive("/")
+    status_message: var[str] = var("Logged in.")
+    current_mega_path: var[str] = var("/")
 
     # --- UI Composition ---
     @override
@@ -60,6 +63,8 @@ class MegaAppTUI(App[str]):
 
         # Why does the footer create so many event messages?
         yield Footer(disabled=True)
+
+
 
     async def on_mount(self) -> None:
         """Called when the app is mounted. Perform initial load."""
@@ -83,7 +88,6 @@ class MegaAppTUI(App[str]):
     TODO: Display download status
     TODO: Ask for download path
     """
-
     async def download_files(self, files: list[MegaItem]) -> None:
         """Downloads files."""
         if not files:
@@ -108,7 +112,7 @@ class MegaAppTUI(App[str]):
 
         selected_item_data: MegaItem = (
             file_list.highlighted_child.query_one(FileItem).mega_item
-        )  # Get the MegaItem data
+        )
 
         download_items = [selected_item_data]
 
