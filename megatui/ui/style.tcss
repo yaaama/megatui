@@ -131,3 +131,25 @@
          background: $accent;
          color: $text;
     */
+
+    RenamePopup {
+        align: center middle;
+    }
+
+    RenamePopup > Container {
+        width: auto;
+        height: auto;
+        padding: 1 2;
+        border: round;
+        min-width: 50%;
+    }
+
+    #rename-input-box {
+        /* align: center middle; */
+        /* text-align: center; */
+    }
+
+    RenamePopup > Container > Label {
+        /* text-align: center;
+         * align: center middle; */
+    }
