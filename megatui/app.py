@@ -2,7 +2,7 @@ import os
 from pathlib import Path, PurePath
 from typing import Literal, override
 
-from textual import work  # Import work decorator for workers
+from textual import work, on  # Import work decorator for workers
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -10,15 +10,17 @@ from textual.message import Message  # Import Message base class
 from textual.reactive import Reactive, var, reactive
 from textual.widgets import Footer, Header, Label, ListView, ListItem, Log, Static
 from textual.widget import Widget
+
 # import mega.megacmd as megacmd
-from megatui.mega.megacmd import (
+from mega.megacmd import (
     check_mega_login,
     mega_get,
 )  # Import login check function
-from megatui.mega.megacmd import MegaCmdError, MegaItem  # Changed import path
-from megatui.ui.fileview import FileList
-from megatui.ui.fileitem import FileItem
-from megatui.ui.file_tree import FileTreeScreen
+from mega.megacmd import MegaCmdError, MegaItem  # Changed import path
+from ui.fileview import FileList
+from ui.fileitem import FileItem
+from ui.file_tree import FileTreeScreen
+from ui.file_action import RenamePopup
 
 
 class MegaAppTUI(App[str]):
@@ -26,11 +28,14 @@ class MegaAppTUI(App[str]):
     SUB_TITLE = "MEGA Cloud Storage Manager"
     ENABLE_COMMAND_PALETTE = True
     SCREENS = {"filetree": FileTreeScreen}
+    status_message: var[str] = var("Logged in.")
+    current_mega_path: var[str] = var("/")
 
     CSS_PATH = "ui/style.tcss"
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("r", "refresh", "Refresh List", key_display="r"),
+        Binding("R", "rename_file", "rename", key_display="R"),
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
         Binding("l", "navigate_in", "Enter Dir", key_display="l"),
@@ -39,12 +44,9 @@ class MegaAppTUI(App[str]):
         Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
         Binding("f3", "download", "download", key_display="f3"),
-        Binding("f", "push_screen('filetree')", "filetree")
+        Binding("f", "push_screen('filetree')", "filetree"),
         # Add other bindings
     ]
-
-    status_message: var[str] = var("Logged in.")
-    current_mega_path: var[str] = var("/")
 
     # --- UI Composition ---
     @override
@@ -64,8 +66,6 @@ class MegaAppTUI(App[str]):
         # Why does the footer create so many event messages?
         yield Footer(disabled=True)
 
-
-
     async def on_mount(self) -> None:
         """Called when the app is mounted. Perform initial load."""
         self.log.info("MegaAppTUI mounted. Starting initial load.")
@@ -81,6 +81,18 @@ class MegaAppTUI(App[str]):
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
         await file_list.load_directory(file_list.curr_path)
 
+    def action_rename_file(self) -> None:
+        self.log.info("Renaming file")
+
+        file_list = self.query_one(FileList)
+        file = file_list.query_one(FileItem)
+
+        if not file:
+            self.log.error("No highlighted file to rename.")
+            return
+
+        self.push_screen(RenamePopup(file.mega_item.name))
+
     """
     Downloading files
     TODO: Can download multiple files using selection
@@ -88,6 +100,7 @@ class MegaAppTUI(App[str]):
     TODO: Display download status
     TODO: Ask for download path
     """
+
     async def download_files(self, files: list[MegaItem]) -> None:
         """Downloads files."""
         if not files:
@@ -110,9 +123,9 @@ class MegaAppTUI(App[str]):
             # Nothing selected
             return
 
-        selected_item_data: MegaItem = (
-            file_list.highlighted_child.query_one(FileItem).mega_item
-        )
+        selected_item_data: MegaItem = file_list.highlighted_child.query_one(
+            FileItem
+        ).mega_item
 
         download_items = [selected_item_data]
 
@@ -184,12 +197,8 @@ class MegaAppTUI(App[str]):
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
-
     def clear_status_message(self) -> None:
         self.status_message = ""
-
-
-
 
     # --- Watchers ---
     # Watch reactive variables and update UI elements accordingly

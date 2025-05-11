@@ -3,7 +3,7 @@
 
 from typing import override
 
-from megatui.mega.megacmd import MegaItem
+from mega.megacmd import MegaItem
 from rich.text import Text
 from textual.widgets import Static
 

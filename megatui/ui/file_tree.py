@@ -9,8 +9,6 @@ from textual.screen import Screen, ModalScreen
 
 
 class FileTreeScreen(ModalScreen[None]):
-
-
     @override
     def compose(self) -> ComposeResult:
         yield LocalSystemFileTree()

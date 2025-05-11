@@ -5,9 +5,9 @@ from typing import Any, Literal, override
 
 from textual import worker, on, work
 
-import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.ui.fileitem import FileItem
+import mega.megacmd as m
+from mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from ui.fileitem import FileItem
 from rich.console import Console
 from rich.text import Text
 from textual import reactive, work  # Import work decorator
@@ -24,11 +24,11 @@ class FileList(ListView):
     """A ListView widget to display multiple FileItems."""
 
     items: MegaItems = []
-    file_items : list[FileItem] = []
+    file_items: list[FileItem] = []
     curr_path: str = "/"
     new_path: str = "/"
     _loading_path: str = "/"
-    border_subtitle : str
+    border_subtitle: str
 
     # Messages ################################################################
     class PathChanged(Message):
@@ -55,7 +55,10 @@ class FileList(ListView):
 
     ###################################################################
     @work(
-        exclusive=True, group="megacmd", name="fetch_files", description="mega-ls : Fetching dir listings"
+        exclusive=True,
+        group="megacmd",
+        name="fetch_files",
+        description="mega-ls : Fetching dir listings",
     )
     async def fetch_files(self, path: str) -> MegaItems | None:
         """
@@ -87,10 +90,6 @@ class FileList(ListView):
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
-
-
-
-
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.app.log.debug(f"Updating list UI for path: {path}")
@@ -118,7 +117,7 @@ class FileList(ListView):
         self._loading_path = path  # Track the path we are loading
         self.clear()
         # Start the worker. Results handled by on_worker_state_changed.
-        worker_obj : Worker[MegaItems | None]
+        worker_obj: Worker[MegaItems | None]
 
         worker_obj = self.fetch_files(path)
 
@@ -147,12 +146,7 @@ class FileList(ListView):
             yield FileItem(item=it)
 
     # --- Initialization ---
-    def __init__(
-        self,
-        *args,
-        **kwargs
-
-    ) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__()
         self.border_title = "MEGA"
         self.border_subtitle = "Initializing..."
