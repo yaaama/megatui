@@ -47,6 +47,7 @@ class FileItem(Static):
 
     """
 
+    """ Initialise FileItem """
     def __init__(
         self,
         item: MegaItem,
@@ -88,6 +89,7 @@ class FileItem(Static):
             f"--{self.mega_item.ftype.name.lower()}"
         )  # Adds '--directory' or '--file'
 
+    """ Function that will render the item content. """
     @override
     def render(self) -> Text:
         line: Text = Text.assemble(

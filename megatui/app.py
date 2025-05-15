@@ -1,12 +1,6 @@
-import asyncio
 from pathlib import Path, PurePath
 from typing import override
 
-# import mega.megacmd as megacmd
-from megatui.mega.megacmd import (  # Import login check function; Changed import path
-    MegaItem,
-    mega_get,
-)
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -16,6 +10,11 @@ from megatui.ui.file_action import RenamePopup
 from megatui.ui.file_tree import FileTreeScreen
 from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
+
+from megatui.mega.megacmd import (
+    MegaItem,
+    mega_get,
+)
 
 
 class MegaAppTUI(App[str]):
@@ -45,7 +44,9 @@ class MegaAppTUI(App[str]):
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
+        """
+        Compose the basic UI for the application.
+        """
 
         with Vertical():
             yield Header()
@@ -59,10 +60,13 @@ class MegaAppTUI(App[str]):
                 # yield Static("Preview", id="preview-pane")
 
         # Why does the footer create so many event messages?
-        yield Footer(disabled=True)
+        # yield Footer(disabled=True)
 
     async def on_mount(self) -> None:
-        """Called when the app is mounted. Perform initial load."""
+        """
+        Called when the app is mounted.
+        Performs initial load.
+        """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
         file_list = self.query_one(FileList)
@@ -70,22 +74,23 @@ class MegaAppTUI(App[str]):
         await file_list.load_directory(self.current_mega_path)
 
     # --- Action Handlers ---
-    """
-    Refreshes the current working directory.
-    """
 
     async def action_refresh(self) -> None:
-        """Reloads the current directory."""
+        """
+        Refreshes the current working directory.
+        """
         file_list = self.query_one(FileList)
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
         await file_list.load_directory(file_list.curr_path)
 
-    """
-    Rename a file.
-    Popup will be shown to prompt the user for the new name.
-    """
-
     def action_rename_file(self) -> None:
+        """
+        Rename a file.
+        Popup will be shown to prompt the user for the new name.
+
+        TODO: Make this actually rename the file.
+        TODO: Add keybindings for the new screen.
+        """
         self.log.info("Renaming file")
 
         file_list = self.query_one(FileList)
@@ -97,18 +102,14 @@ class MegaAppTUI(App[str]):
 
         self.push_screen(RenamePopup(file.mega_item.name))
 
-    """
-    Downloading files
-    TODO: Can download multiple files using selection
-    TODO: Check for existing files on system and handle them
-    TODO: Display download status
-    TODO: Ask for download path
-    """
-
     async def download_files(self, files: list[MegaItem]) -> None:
-        """Downloads files."""
+        """
+        Helper method to download files.
+
+        TODO: Check for existing files on system and handle them
+        """
         if not files:
-            self.log.warning("Did not receive any files to download: '{files}'")
+            self.log.warning("Did not receive any files to download!")
             return
 
         for file in files:
@@ -120,10 +121,18 @@ class MegaAppTUI(App[str]):
             )
 
     async def action_download(self) -> None:
+        """
+        Download the currently highlighted file or a selection of files.
+
+        TODO: Can download multiple files using selection
+        TODO: Ask for download path
+        TODO: Display download status
+        """
         file_list = self.query_one(FileList)
 
         if file_list.highlighted_child is None:
             # Nothing selected
+            self.log.debug("Download failed as no file is currently highlighted.")
             return
 
         selected_item_data: MegaItem = file_list.highlighted_child.query_one(
@@ -171,11 +180,13 @@ class MegaAppTUI(App[str]):
         self.app.log.info(f"action_navigate_in: Constructed new_path='{new_path}'")
 
         self.status_message = f"Entering '{new_path}'..."
-        await file_list.load_directory(new_path)  # Pass the correct path
+        await file_list.load_directory(new_path)
         self.current_mega_path = new_path
 
     async def action_navigate_out(self) -> None:
-        """Navigates to the parent directory."""
+        """
+        Navigate to parent directory.
+        """
 
         file_list = self.query_one(FileList)
         self.log.info(f"Navigating out of directory {self.current_mega_path}")
@@ -200,14 +211,27 @@ class MegaAppTUI(App[str]):
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
-    def clear_status_message(self) -> None:
-        self.status_message = ""
+    """
+    # Actions #############################################################
+    """
 
-    # --- Watchers ---
+    def action_cursor_up(self) -> None:
+        """Move the cursor up in the file list."""
+        self.query_one(FileList).action_cursor_up()
+
+    def action_cursor_down(self) -> None:
+        """Move the cursor down in the file list."""
+        self.query_one(FileList).action_cursor_down()
+
+    """
+    # Watchers ################################################################
+    """
+
     # Watch reactive variables and update UI elements accordingly
     def watch_status_message(self, new_message: str) -> None:
-        """Update the status bar message label."""
-
+        """
+        Refresh UI when status bar is updated.
+        """
         # Use query to find the label and update it
         try:
             status_label = self.query_one("#status-message", Label)
@@ -217,7 +241,16 @@ class MegaAppTUI(App[str]):
             # Do nothing
             pass
 
-    # --- Message Handlers ---
+    def clear_status_message(self) -> None:
+        """
+        Helper to clear the status message.
+        """
+        self.status_message = ""
+
+    """
+    # Message Handlers ###########################################################
+    """
+
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
         path_label = self.query_one("#status-path", Label)
@@ -235,12 +268,3 @@ class MegaAppTUI(App[str]):
 
     def on_file_list_empty_directory(self, message: FileList.EmptyDirectory) -> None:
         self.status_message = "Empty directory."
-
-
-    def action_cursor_up(self) -> None:
-        """Move the cursor up in the file list."""
-        self.query_one(FileList).action_cursor_up()
-
-    def action_cursor_down(self) -> None:
-        """Move the cursor down in the file list."""
-        self.query_one(FileList).action_cursor_down()

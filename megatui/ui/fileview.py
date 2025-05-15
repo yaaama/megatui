@@ -19,17 +19,19 @@ from megatui.ui.fileitem import FileItem
 # FileList
 ###########################################################################
 class FileList(ListView):
-    """A ListView widget to display multiple FileItems."""
+    """
+    A ListView widget to display multiple FileItems
+    """
 
-    """ All MegaItems Currently Displayed. """
+    """
+    All MegaItems in the current directory.
+    TODO: Make this into a map of directories to items => dict[Dir, items[MegaItems]]
+    This can be used to cache directories.
+    """
     items: MegaItems = []
     border_subtitle: str
-    """ Stack to keep track of directories entered. """
-    dir_stack: list[str] = []
     """ Current path we are in. """
     curr_path: str = "/"
-    """ Path we are entering. """
-    new_path: str = "/"
     """ Path we are loading. """
     _loading_path: str = "/"
 
@@ -67,7 +69,7 @@ class FileList(ListView):
         exclusive=True,
         group="megacmd",
         name="fetch_files",
-        description="mega-ls : Fetching dir listings",
+        description="mega-ls - Fetching dir listings",
     )
     async def fetch_files(self, path: str) -> MegaItems | None:
         """
@@ -167,4 +169,3 @@ class FileList(ListView):
         self.border_title = "MEGA"
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
-        self.dir_stack.append("/")
