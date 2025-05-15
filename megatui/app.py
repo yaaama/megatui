@@ -32,16 +32,15 @@ class MegaAppTUI(App[str]):
     current_mega_path: var[str] = var("/")
 
     CSS_PATH = "ui/style.tcss"
+
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("r", "refresh", "Refresh List", key_display="r"),
         Binding("R", "rename_file", "rename", key_display="R"),
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
-        Binding("l", "navigate_in", "Enter Dir", key_display="l"),
-        Binding("h", "navigate_out", "Parent Dir", key_display="h"),
-        Binding("enter", "navigate_in", "Enter Dir", show=False),  # Map Enter
-        Binding("backspace", "navigate_out", "Parent Dir", show=False),  # Map Backspace
+        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
+        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
         Binding("f3", "download", "download", key_display="f3"),
         Binding("f", "push_screen('filetree')", "filetree"),
