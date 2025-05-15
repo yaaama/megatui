@@ -1,26 +1,21 @@
-import os
+import asyncio
 from pathlib import Path, PurePath
-from typing import Literal, override
+from typing import override
 
-from textual import work, on  # Import work decorator for workers
+# import mega.megacmd as megacmd
+from megatui.mega.megacmd import (  # Import login check function; Changed import path
+    MegaItem,
+    mega_get,
+)
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.message import Message  # Import Message base class
-from textual.reactive import Reactive, var, reactive
-from textual.widgets import Footer, Header, Label, ListView, ListItem, Log, Static
-from textual.widget import Widget
-
-# import mega.megacmd as megacmd
-from mega.megacmd import (
-    check_mega_login,
-    mega_get,
-)  # Import login check function
-from mega.megacmd import MegaCmdError, MegaItem  # Changed import path
-from ui.fileview import FileList
-from ui.fileitem import FileItem
-from ui.file_tree import FileTreeScreen
-from ui.file_action import RenamePopup
+from textual.reactive import var
+from textual.widgets import Footer, Header, Label
+from megatui.ui.file_action import RenamePopup
+from megatui.ui.file_tree import FileTreeScreen
+from megatui.ui.fileitem import FileItem
+from megatui.ui.fileview import FileList
 
 
 class MegaAppTUI(App[str]):

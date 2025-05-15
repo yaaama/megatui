@@ -3,13 +3,11 @@ from typing import override
 
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.reactive import reactive
 from textual.screen import ModalScreen
-from textual.widgets import Input, Label, Static
+from textual.widgets import Input, Label
 
 
 class RenamePopup(ModalScreen):
-
     filename: str
 
     def __init__(self, filename: str):

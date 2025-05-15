@@ -3,10 +3,9 @@
 
 from typing import override
 
-from mega.megacmd import MegaItem
+from megatui.mega.megacmd import MegaItem
 from rich.text import Text
-from textual.widgets import Static
-from textual.app import ComposeResult
+from textual.widgets import Static, ListItem
 
 
 class FileItem(Static):

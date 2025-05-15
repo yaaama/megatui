@@ -1,12 +1,10 @@
 import asyncio
-from enum import Enum
 import math
-import os
-from pathlib import PurePath
 import re
-import shlex
 import subprocess
 from dataclasses import dataclass
+from enum import Enum
+from pathlib import PurePath, Path
 
 
 class MegaCmdError(Exception):

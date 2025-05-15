@@ -4,8 +4,8 @@ from typing import override
 
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.screen import ModalScreen
 from textual.widgets import DirectoryTree, Static
-from textual.screen import Screen, ModalScreen
 
 
 class FileTreeScreen(ModalScreen[None]):

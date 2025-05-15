@@ -1,20 +1,18 @@
 # UI Components Related to Files
 #
-from os import abort
-from typing import Any, Literal, override
+from typing import override
 
-from textual import worker, on, work
-
-import mega.megacmd as m
-from mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from ui.fileitem import FileItem
-from rich.console import Console
-from rich.text import Text
-from textual import reactive, work  # Import work decorator
-from textual.app import ComposeResult, RenderResult
+import megatui.mega.megacmd as m
+# import mega.megacmd as m
+from megatui.mega.megacmd import MegaCmdError, MegaItems
+from textual import (
+    work,
+)
+from textual.app import ComposeResult
 from textual.message import Message
-from textual.widgets import ListItem, ListView, Static
-from textual.worker import WorkType, Worker  # Import worker types
+from textual.widgets import ListItem, ListView
+from textual.worker import Worker  # Import worker types
+from megatui.ui.fileitem import FileItem
 
 
 ###########################################################################
