@@ -21,12 +21,17 @@ from megatui.ui.fileitem import FileItem
 class FileList(ListView):
     """A ListView widget to display multiple FileItems."""
 
+    """ All MegaItems Currently Displayed. """
     items: MegaItems = []
-    file_items: list[FileItem] = []
-    curr_path: str = "/"
-    new_path: str = "/"
-    _loading_path: str = "/"
     border_subtitle: str
+    """ Stack to keep track of directories entered. """
+    dir_stack: list[str] = []
+    """ Current path we are in. """
+    curr_path: str = "/"
+    """ Path we are entering. """
+    new_path: str = "/"
+    """ Path we are loading. """
+    _loading_path: str = "/"
 
     # Messages ################################################################
     class PathChanged(Message):
@@ -104,7 +109,8 @@ class FileList(ListView):
 
         self.clear()
         for item_data in fetched_items:
-            self.append(ListItem(FileItem(item=item_data)))
+            new_item: FileItem = FileItem(item=item_data)
+            self.append(ListItem(new_item))
 
         # Post messages (already on main thread here)
         self.post_message(self.LoadSuccess(path))
@@ -120,10 +126,9 @@ class FileList(ListView):
         self.border_title = f"MEGA: {path}"
         self.border_subtitle = f"Loading '{path}'..."
         self._loading_path = path  # Track the path we are loading
-        self.clear()
+
         # Start the worker. Results handled by on_worker_state_changed.
         worker_obj: Worker[MegaItems | None]
-
         worker_obj = self.fetch_files(path)
 
         await worker_obj.wait()
@@ -154,7 +159,7 @@ class FileList(ListView):
     @override
     def compose(self) -> ComposeResult:
         for it in self.items:
-            yield FileItem(item=it)
+            yield ListItem(FileItem(item=it))
 
     # --- Initialization ---
     def __init__(self, *args, **kwargs) -> None:
@@ -162,3 +167,4 @@ class FileList(ListView):
         self.border_title = "MEGA"
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
+        self.dir_stack.append("/")

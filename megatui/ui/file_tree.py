@@ -14,10 +14,7 @@ class FileTreeScreen(ModalScreen[None]):
         yield LocalSystemFileTree()
 
 
-
 class LocalSystemFileTree(Static):
-
-
     BINDINGS = [
         Binding(
             "shift+left",

@@ -55,7 +55,8 @@ class MegaAppTUI(App[str]):
 
             with Horizontal(id="main-container"):
                 yield FileList(id="file-list")
-                # yield Static("Preview", id="preview-pane") # Placeholder for preview
+                # Placeholder for preview
+                # yield Static("Preview", id="preview-pane")
 
         # Why does the footer create so many event messages?
         yield Footer(disabled=True)
@@ -69,11 +70,20 @@ class MegaAppTUI(App[str]):
         await file_list.load_directory(self.current_mega_path)
 
     # --- Action Handlers ---
+    """
+    Refreshes the current working directory.
+    """
+
     async def action_refresh(self) -> None:
         """Reloads the current directory."""
         file_list = self.query_one(FileList)
         self.status_message = f"Refreshing '{file_list.curr_path}'..."
         await file_list.load_directory(file_list.curr_path)
+
+    """
+    Rename a file.
+    Popup will be shown to prompt the user for the new name.
+    """
 
     def action_rename_file(self) -> None:
         self.log.info("Renaming file")
@@ -105,12 +115,11 @@ class MegaAppTUI(App[str]):
             home = Path.home()
             await mega_get(
                 target_path=str(home),
-                remote_path=str(file.get_full_path()),
+                remote_path=str(file.full_path),
                 is_dir=file.is_dir(),
             )
 
     async def action_download(self) -> None:
-
         file_list = self.query_one(FileList)
 
         if file_list.highlighted_child is None:
