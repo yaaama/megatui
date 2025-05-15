@@ -51,6 +51,12 @@ class FileList(ListView):
             self.error: Exception = error  # Include the error
             super().__init__()
 
+    class EmptyDirectory(Message):
+        """ Message to signal the entered directory is empty. """
+        def __init__(self) -> None:
+            super().__init__()
+
+
     ###################################################################
     @work(
         exclusive=True,
@@ -68,14 +74,15 @@ class FileList(ListView):
         self.log.info(f"FileList: Worker starting fetch for path: {path}")
         try:
             # Fetch and sort items
-            fetched_items = await m.mega_ls(path)
-            if fetched_items:  # Check if mega_ls itself returned None/empty on error
+            fetched_items : MegaItems = await m.mega_ls(path)
+            # Check if mega_ls itself returned None/empty on error
+            if fetched_items:
                 # fetched_items.sort(
                 #     key=lambda item: (item.ftype.value, item.name.lower())
                 # )
                 return fetched_items  # Return the result
             else:
-                return None
+                return []
 
         except MegaCmdError as e:
             self.app.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
@@ -123,18 +130,24 @@ class FileList(ListView):
 
         fetched_items: MegaItems | None = worker_obj.result
 
-        if fetched_items:
-            self.app.log.info(
-                f"Worker success for path '{self._loading_path}', items: {len(fetched_items)}"
-            )
-            # Call the UI update method on the main thread
-            self._update_list_on_success(self._loading_path, fetched_items)
-        else:
+        # Failed
+        if fetched_items is None:
             # Worker succeeded but returned None
             self.app.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
             self.border_subtitle = "Load Error!"
+            return
+
+        # Success
+        file_count : int = len(fetched_items)
+        self.app.log.info(
+            f"Worker success for path '{self._loading_path}', items: {file_count}"
+        )
+        # Call the UI update method on the main thread
+        self._update_list_on_success(self._loading_path, fetched_items)
+        if file_count == 0:
+            self.post_message(self.EmptyDirectory())
 
     # async def action_download_file(self) -> None:
 

@@ -224,6 +224,10 @@ class MegaAppTUI(App[str]):
         self.log.error(f"Error loading directory: {message.error}")
         # Maybe show a dialog or keep the status message updated
 
+    def on_file_list_empty_directory(self, message: FileList.EmptyDirectory) -> None:
+        self.status_message = "Empty directory."
+
+
     def action_cursor_up(self) -> None:
         """Move the cursor up in the file list."""
         self.query_one(FileList).action_cursor_up()
