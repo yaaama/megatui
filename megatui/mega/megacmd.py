@@ -7,6 +7,14 @@ from enum import Enum
 from pathlib import PurePath, Path
 
 
+class MegaLibError(Exception):
+    """Custom exception for incorrect library usage."""
+
+    def __init__(self, message: str, fatal: bool = False):
+        super().__init__(message)
+        self.fatal: bool = fatal
+
+
 class MegaCmdError(Exception):
     """Custom exception for mega-* command errors."""
 
