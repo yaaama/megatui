@@ -1,12 +1,8 @@
-"""
-megatui __main__ hook: Entry point for running the TUI.
-"""
-
 import asyncio
 import sys
-from app import MegaAppTUI  # Import the main App class
-from mega.megacmd import check_mega_login  # Import login check
 
+from megatui.app import MegaAppTUI  # Import the main App class
+from megatui.mega.megacmd import check_mega_login  # Import login check
 
 async def run_app() -> None:
     """Checks login and runs the Textual app."""
@@ -26,7 +22,6 @@ async def run_app() -> None:
     # Start the TUI
     app = MegaAppTUI()
     await app.run_async()
-
 
 if __name__ == "__main__":
     try:
