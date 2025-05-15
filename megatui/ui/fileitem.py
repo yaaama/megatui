@@ -57,17 +57,10 @@ class FileItem(Static):
 
         Args:
             item (MegaItem): The file/directory data object.
-            name (str | None): Optional name for querying.
-            id (str | None): Optional CSS ID.
-            disabled (bool): Whether the widget is disabled.
         """
 
-        super().__init__()
         # Store the MegaItem item
         self.mega_item = item
-        self.add_class(
-            f"--{self.mega_item.ftype.name.lower()}"
-        )  # Adds '--directory' or '--file'
 
         # Name
         self._fname_str: Text = Text(
@@ -79,20 +72,25 @@ class FileItem(Static):
         self._mtime_str = f"{self.mega_item.mtime:<{self.MTIME_WIDTH}}"
 
         # Icon & size of file
+        self._icon_str: str = "📄"
         # Size field empty if directory
         if self.mega_item.is_file():
-            self._icon_str: str = "📄"
             fsize_float, fsize_unit_enum = self.mega_item.get_size()
             fsize_base = f"{fsize_float:.2f} {fsize_unit_enum.get_unit_str()}"
         else:
-            self._icon_str: str = "📁"
+            self._icon_str = "📁"
             fsize_base = ""
 
-        self._fsize_str = f"{fsize_base:<{self.MTIME_WIDTH}}"
+        self._fsize_str = f"{fsize_base:<{self.SIZE_WIDTH}}"
+
+        super().__init__(markup=False)
+
+        self.add_class(
+            f"--{self.mega_item.ftype.name.lower()}"
+        )  # Adds '--directory' or '--file'
 
     @override
     def render(self) -> Text:
-
         line: Text = Text.assemble(
             (f"{self._icon_str} "),
             (self._fname_str),
@@ -101,6 +99,8 @@ class FileItem(Static):
             ("  ", ""),
             (f"{self._fsize_str}"),
         )
+
         return line
+
 
 # END
