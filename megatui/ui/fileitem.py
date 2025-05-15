@@ -6,10 +6,16 @@ from typing import override
 from mega.megacmd import MegaItem
 from rich.text import Text
 from textual.widgets import Static
+from textual.app import ComposeResult
 
 
 class FileItem(Static):
+    # MegaItem
     mega_item: MegaItem
+
+    NAME_WIDTH: int = 30
+    MTIME_WIDTH: int = 18
+    SIZE_WIDTH: int = 10
 
     DEFAULT_CSS = """
     FileItem {
@@ -45,9 +51,6 @@ class FileItem(Static):
     def __init__(
         self,
         item: MegaItem,
-        name: str | None = None,
-        id: str | None = None,
-        disabled: bool = False,
     ) -> None:
         """
         Initialise the FileItem.
@@ -59,44 +62,45 @@ class FileItem(Static):
             disabled (bool): Whether the widget is disabled.
         """
 
-        super().__init__(name=name, id=id, disabled=disabled)
+        super().__init__()
         # Store the MegaItem item
         self.mega_item = item
         self.add_class(
             f"--{self.mega_item.ftype.name.lower()}"
         )  # Adds '--directory' or '--file'
 
+        # Name
+        self._fname_str: Text = Text(
+            self.mega_item.name, overflow="ellipsis", no_wrap=True, end=""
+        )
+        self._fname_str.align(align="left", width=self.NAME_WIDTH)
+
+        # Modification time
+        self._mtime_str = f"{self.mega_item.mtime:<{self.MTIME_WIDTH}}"
+
+        # Icon & size of file
+        # Size field empty if directory
+        if self.mega_item.is_file():
+            self._icon_str: str = "📄"
+            fsize_float, fsize_unit_enum = self.mega_item.get_size()
+            fsize_base = f"{fsize_float:.2f} {fsize_unit_enum.get_unit_str()}"
+        else:
+            self._icon_str: str = "📁"
+            fsize_base = ""
+
+        self._fsize_str = f"{fsize_base:<{self.MTIME_WIDTH}}"
+
     @override
     def render(self) -> Text:
-        """Return a Rich Text object representing the file item."""
-        # --- Get Data ---
-        icon = "📁" if self.mega_item.is_dir() else "📄"
-        fname_str : Text = Text(self.mega_item.name)
-        fname_str.truncate(30, overflow="ellipsis")
-        fname_str.align("left", 30)
-        fmtime_str = self.mega_item.mtime
 
-        if self.mega_item.is_file() == True:
-            fsize_float, fsize_unit_enum = self.mega_item.get_size()
-            # Right-align size within a fixed width (e.g., 10 characters)
-            fsize_str = f"{fsize_float:.1f} {fsize_unit_enum.get_unit_str()}".rjust(10)
-        else:
-            fsize_str = " " * 10  # Pad directory size column
-
-        text = Text.assemble(
-            (f"{icon} ", "default"),
-            (fname_str),
-            (" ", ""),
-            (f" {fmtime_str:^18}"),
-            (" ", ""),
-            (f" {fsize_str}"),
+        line: Text = Text.assemble(
+            (f"{self._icon_str} "),
+            (self._fname_str),
+            ("  ", ""),
+            (f"{self._mtime_str}"),
+            ("  ", ""),
+            (f"{self._fsize_str}"),
         )
+        return line
 
-        text.truncate(self.size.width, overflow="ellipsis")
-        text.pad_right(
-            self.size.width - text.cell_len
-        )  # Pad to fill width for background highlighting
-
-        return text
-
-    # END
+# END
