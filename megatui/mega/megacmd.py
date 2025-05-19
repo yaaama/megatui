@@ -260,6 +260,32 @@ LS_REGEXP = re.compile(
 )
 
 
+def build_megacmd_cmd(command: list[str]) -> list[str]:
+    """
+    Constructs a list containing the command to run and arguments.
+    This list will transform something like: [ls, -l] into [mega-ls, -l]
+    Also performs checking.
+    """
+    # if 'command' is [ls, -l, --tree], then 'megacmd' name will be 'mega-ls'
+
+    megacmd_name: str = f"mega-{command[0]}"
+    if command[0] not in MEGA_COMMANDS_SUPPORTED:
+        raise MegaLibError(
+            f"The library does not support command '{command[0]}'.", fatal=True
+        )
+
+    # e.g. ['mega-ls']
+    final_command: list[str] = [megacmd_name]
+    # Remove first item (ls)
+    command.pop(0)
+
+    # Add the rest of the items
+    # e.g. ['mega-ls', '-l']
+    final_command.extend(command)
+
+    return final_command
+
+
 ###############################################################################
 async def run_megacmd(command: list[str]) -> MegaCmdResponse:
     """
@@ -272,32 +298,15 @@ async def run_megacmd(command: list[str]) -> MegaCmdResponse:
     """
 
     # Construct the actual executable name (e.g., "mega-ls")
-
-    # Form the exectuable name
-    executable: str = f"mega-{command[0]}"
-
-    # Check if the command is supported
-    if command[0] not in MEGA_COMMANDS_SUPPORTED:
-        print(f"Command '{command[0]}' is not supported.")
-        raise MegaLibError(
-            f"The library does not support command '{command[0]}'.", fatal=True
-        )
-
-    command.pop(0)
-    cmd: list[str] = [executable]
-
-    # Add the rest of the items
-    cmd.extend(command)
-
-    # print(f"Command list: {cmd}")
-    # print(f"Running command: {' '.join(shlex.quote(c) for c in command)}")
-    # print(f"process cmd: {executable} {command}")
+    cmd: list[str] = build_megacmd_cmd(command)
 
     try:
-        process = await asyncio.create_subprocess_exec(
-            executable, *command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        process : Process = await asyncio.create_subprocess_exec(
+            *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+
         stdout, stderr = await process.communicate()
+
 
         stdout_str = stdout.decode("utf-8", errors="replace").strip()
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
