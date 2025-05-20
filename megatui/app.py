@@ -73,7 +73,9 @@ class MegaAppTUI(App[str]):
         # Start loading the root directory
         await file_list.load_directory(self.current_mega_path)
 
-    # --- Action Handlers ---
+    """
+    Actions #############################################################
+    """
 
     async def action_refresh(self) -> None:
         """
@@ -211,9 +213,6 @@ class MegaAppTUI(App[str]):
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
-    """
-    # Actions #############################################################
-    """
 
     def action_cursor_up(self) -> None:
         """Move the cursor up in the file list."""

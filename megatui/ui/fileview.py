@@ -3,14 +3,16 @@
 from typing import override
 
 import megatui.mega.megacmd as m
+
 # import mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItems
 from textual import (
     work,
 )
+import asyncio
 from textual.app import ComposeResult
 from textual.message import Message
-from textual.widgets import ListItem, ListView
+from textual.widgets import ListItem, ListView, DataTable
 from textual.worker import Worker  # Import worker types
 from megatui.ui.fileitem import FileItem
 
@@ -59,10 +61,10 @@ class FileList(ListView):
             super().__init__()
 
     class EmptyDirectory(Message):
-        """ Message to signal the entered directory is empty. """
+        """Message to signal the entered directory is empty."""
+
         def __init__(self) -> None:
             super().__init__()
-
 
     ###################################################################
     @work(
@@ -81,7 +83,9 @@ class FileList(ListView):
         self.log.info(f"FileList: Worker starting fetch for path: {path}")
         try:
             # Fetch and sort items
-            fetched_items : MegaItems = await m.mega_ls(path)
+            fetched_items: MegaItems = await m.mega_ls(path)
+
+
             # Check if mega_ls itself returned None/empty on error
             if fetched_items:
                 # fetched_items.sort(
@@ -102,7 +106,9 @@ class FileList(ListView):
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
-    def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
+    def _update_list_on_success(
+        self, path: str, fetched_items: MegaItems
+    ) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.app.log.debug(f"Updating list UI for path: {path}")
         self.curr_path = path
@@ -111,8 +117,7 @@ class FileList(ListView):
 
         self.clear()
         for item_data in fetched_items:
-            new_item: FileItem = FileItem(item=item_data)
-            self.append(ListItem(new_item))
+            self.run_worker(self.append(ListItem(FileItem(item=item_data))))
 
         # Post messages (already on main thread here)
         self.post_message(self.LoadSuccess(path))
@@ -137,6 +142,10 @@ class FileList(ListView):
 
         fetched_items: MegaItems | None = worker_obj.result
 
+        if worker_obj.is_cancelled:
+            self.app.log.debug(f"Worker for path '{self._loading_path}' was cancelled.")
+            return
+
         # Failed
         if fetched_items is None:
             # Worker succeeded but returned None
@@ -145,10 +154,11 @@ class FileList(ListView):
             )
             self.border_subtitle = "Load Error!"
             return
+        # Success:
+        # Get number of files
+        file_count: int = len(fetched_items)
 
-        # Success
-        file_count : int = len(fetched_items)
-        self.app.log.info(
+        self.app.log.debug(
             f"Worker success for path '{self._loading_path}', items: {file_count}"
         )
         # Call the UI update method on the main thread
