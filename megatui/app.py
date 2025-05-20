@@ -8,11 +8,13 @@ from textual.reactive import var
 from textual.widgets import Footer, Header, Label
 from megatui.ui.file_action import RenamePopup
 from megatui.ui.file_tree import FileTreeScreen
-from megatui.ui.fileitem import FileItem
+
+# from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
 
 from megatui.mega.megacmd import (
     MegaItem,
+    MegaItems,
     mega_get,
 )
 
@@ -96,13 +98,13 @@ class MegaAppTUI(App[str]):
         self.log.info("Renaming file")
 
         file_list = self.query_one(FileList)
-        file = file_list.query_one(FileItem)
+        selected_item = file_list.get_selected_mega_item()
 
-        if not file:
+        if not selected_item:
             self.log.error("No highlighted file to rename.")
             return
 
-        self.push_screen(RenamePopup(file.mega_item.name))
+        self.push_screen(RenamePopup(selected_item.name))
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """
@@ -131,15 +133,13 @@ class MegaAppTUI(App[str]):
         TODO: Display download status
         """
         file_list = self.query_one(FileList)
+        selected_item_data: MegaItem | None = (
+            file_list.get_selected_mega_item()
+        )  # NEW way to get item
 
-        if file_list.highlighted_child is None:
-            # Nothing selected
+        if selected_item_data is None:
             self.log.debug("Download failed as no file is currently highlighted.")
             return
-
-        selected_item_data: MegaItem = file_list.highlighted_child.query_one(
-            FileItem
-        ).mega_item
 
         download_items = [selected_item_data]
 
@@ -150,18 +150,16 @@ class MegaAppTUI(App[str]):
         await self.download_files(download_items)
 
     async def action_navigate_in(self) -> None:
-        """Navigates into the selected directory."""
         file_list = self.query_one(FileList)
+        selected_item_data = file_list.get_selected_mega_item()  # NEW
 
-        if file_list.highlighted_child is None:
-            # Nothing selected
+        if (
+            selected_item_data is None or not selected_item_data.is_dir()
+        ):  # Check if it's a directory
+            self.log.debug(
+                "Navigate in: No directory selected or item is not a directory."
+            )
             return
-
-        # Get the custom FileItem widget from the highlighted ListItem
-        list_item = file_list.highlighted_child
-        # Assume the first child of ListItem is our FileItem widget
-        file_item_widget = list_item.query_one(FileItem)
-        selected_item_data = file_item_widget.mega_item  # Get the MegaItem data
 
         current_path: str = file_list.curr_path
         dir_name: str = selected_item_data.name
@@ -212,7 +210,6 @@ class MegaAppTUI(App[str]):
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
-
 
     def action_cursor_up(self) -> None:
         """Move the cursor up in the file list."""
