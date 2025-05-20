@@ -55,16 +55,27 @@ class MegaItem:
                 return "?"
 
     # Class Variables #################################################
+
     """Name of file/folder item."""
     name: str  # Name of item
-    """ Path of parent dir that contains file or folder. """
-    folder_path: str
+
+    """ Path of parent directory of file/directory. """
+    parent_path: str
+
     """ Size of file in BYTES, will be 0 for dirs."""
     size: int
+
     """ Modification time of file."""
     mtime: str  # Parse into date if needed
+
     """ Type of file. """
     ftype: FILE_TYPES
+
+    """ File version. """
+    version: int
+
+    """ Unique handle. """
+    handle: str
 
     def is_file(self) -> bool:
         return self.ftype == self.FILE_TYPES.FILE
@@ -73,7 +84,10 @@ class MegaItem:
         return self.ftype == self.FILE_TYPES.DIRECTORY
 
     def ftype_str(self) -> str:
-        """Returns a string for the 'type'."""
+        """
+        Returns a string for the 'type'.
+        Either D for directory or F for file.
+        """
         match self.ftype:
             case self.FILE_TYPES.DIRECTORY:
                 return "D"
@@ -82,7 +96,7 @@ class MegaItem:
 
     @property
     def full_path(self) -> PurePath:
-        folder: PurePath = PurePath(self.folder_path)
+        folder: PurePath = PurePath(self.parent_path)
         path: PurePath = folder / self.name
         return path
 
@@ -248,15 +262,15 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
 }
 
 
-# Default 'ls -l' regular expression.
+# Default 'ls -l --show-handles' regular expression.
 LS_REGEXP = re.compile(
-    r"^([d-])"  # Group 1: Type ('d' or '-')
-    + r"\S+\s+"  # Matches permissions ('---'), skip whitespace
-    + r"(\d+|-)\s+"  # Group 2: Version ('-' or number), skip whitespace
-    + r"(\d+|-)\s+"  # Group 3: Size (digits for bytes or '-'), skip whitespace
-    + r"(\d{2}\w{3}\d{4})\s+"  # Group 4: Date (DDMonYYYY), skip whitespace
-    + r"(\d{2}:\d{2}:\d{2})\s+"  # Group 5: Time (HH:MM:SS), skip whitespace
-    + r"(.+)$"  # Group 6: Filename (everything else)
+    r"^([^\s]{4})\s+"  #  Flags: Can be either alphabetical or a hyphen
+    + r"(\d+|-)\s+"  # Version ('-' or number), skip whitespace
+    + r"(\d+|-)\s+"  # Size (digits for bytes or '-'), skip whitespace
+    + r"(\d{2}\w{3}\d{4})\s+"  # Date (DDMonYYYY), skip whitespace
+    + r"(\d{2}:\d{2}:\d{2})\s+"  # Time (HH:MM:SS), skip whitespace
+    + r"(H:[^\s]+)\s+"  # File handle ('H:xxxxxxxx')
+    + r"(.+)$"  # Filename (everything else)
 )
 
 
@@ -301,12 +315,11 @@ async def run_megacmd(command: list[str]) -> MegaCmdResponse:
     cmd: list[str] = build_megacmd_cmd(command)
 
     try:
-        process : Process = await asyncio.create_subprocess_exec(
+        process = await asyncio.create_subprocess_exec(
             *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
         stdout, stderr = await process.communicate()
-
 
         stdout_str = stdout.decode("utf-8", errors="replace").strip()
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
@@ -335,12 +348,12 @@ async def run_megacmd(command: list[str]) -> MegaCmdResponse:
     except FileNotFoundError:
         # *** RAISE instead of print/return error response ***
         raise MegaCmdError(
-            f"Command '{executable}' not found.", stderr=f"{executable} not found"
+            f"Command '{cmd[0]}' not found.", stderr=f"{cmd[0]} not found"
         )
     except Exception as e:
         # *** RAISE instead of print/return error response ***
         # Wrap unexpected errors
-        raise MegaCmdError(f"Unexpected error running '{executable}': {e}") from e
+        raise MegaCmdError(f"Unexpected error running '{cmd[0]}': {e}") from e
 
 
 ###########################################################################
@@ -387,6 +400,37 @@ async def check_mega_login() -> tuple[bool, str | None]:
 
 
 ###########################################################################
+
+
+def parse_ls_output(line: str) -> tuple[MegaItem.FILE_TYPES, tuple[str, ...]] | None:
+    """
+    Parse output of 'mega-ls' and return a tuple of data.
+    Returned tuple will have first field as 'True' if the file is a directory, else false.
+    Other fields
+
+    """
+    _line: str = line.strip()
+
+    fields = LS_REGEXP.match(_line)
+
+    if not fields:
+        return None
+    # if not fields:
+    #     raise MegaLibError(message="Line being parsed is empty!", fatal=False)
+
+    # Get field values from our regexp matches
+    file_info: tuple[str, ...]
+    file_info = fields.groups()
+    # _flags, _vers, _size, _date, _time, _handle, _name = fields.groups()
+
+    # If flags (first elem) contains 'd' as first elem, then return True
+    if file_info[0][0] == "d":
+        return (MegaItem.FILE_TYPES.DIRECTORY, file_info)
+
+    else:
+        return (MegaItem.FILE_TYPES.FILE, file_info)
+
+
 async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> MegaItems:
     """
     Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
@@ -406,7 +450,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
         path = "/"
         print("Listing contents of current path.")
 
-    cmd: list[str] = ["ls", "-l"]
+    cmd: list[str] = ["ls", "-l", "--show-handles"]
 
     if flags:
         cmd.extend(flags)
@@ -422,64 +466,53 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
 
     items: MegaItems = []
     lines = response.stdout.strip().split("\n")
-    header_skipped = False
+    # Pop out the first element (it will be the header line)
+    lines.pop(0)
 
     # Parse the lines we receive
     for line in lines:
-        line = line.strip()
-        # Skip this line if it is empty space
-        if not line:
-            continue
-        if not header_skipped and line.startswith("FLAGS VERS"):  # Skip header
-            header_skipped = True
-            continue
-        if not header_skipped:
-            print(f"Warning: Skipping unexpected line before header: '{line}'")
+
+        parsed_tuple = parse_ls_output(line)
+        if parsed_tuple is None:
             continue
 
-        # Use our regex to match the output headers
-        match = LS_REGEXP.match(line)
-        if not match:
-            print(f"Warning: Could not parse line: '{line}'")
-            continue
+        _file_type = parsed_tuple[0]
+        _flags, _vers, _size, _date, _time, _handle, _name = parsed_tuple[1]
 
-        # Assign variables from our regexp matches
-        type_char, _version, size_str, date_str, time_str, name_str = match.groups()
-
-        item_type = (
-            MegaItem.FILE_TYPES.DIRECTORY
-            if type_char == "d"
-            else MegaItem.FILE_TYPES.FILE
-        )
-        mtime_str = f"{date_str} {time_str}"
-
-        # --- Parse Size ---
+        # Values to convert
+        mtime_str: str = f"{_date} {_time}"
+        handle_str: str
         item_size: int = 0
+        version: int = 0
 
-        if size_str.isdigit():
+        if _file_type == MegaItem.FILE_TYPES.FILE:
             try:
-                item_size = int(size_str)
+                item_size = int(_size)
+                version = int(_vers)
             except ValueError:
                 # Log this unexpected case, but maybe default to None or 0
                 print(
-                    f"Warning: Could not convert size '{size_str}' to int for item '{name_str}'"
+                    f"Warning: Could not convert size '{_size}' to int for item '{_name}'"
                 )
                 item_size = 0
-        # Directory size is 0
-        elif size_str == "-":
-            item_size = 0
+
+        # This must be a directory
         else:
-            # Unexpected value...
-            print(f"Warning: Unexpected size format '{size_str}' for item '{name_str}'")
             item_size = 0
+            version = 0
+
+        # Parse the handle
+        handle_str = _handle[2:]
 
         items.append(
             MegaItem(
-                name=name_str.strip(),
-                folder_path=path,
+                name=_name,
+                parent_path=path,
                 size=item_size,
                 mtime=mtime_str,
-                ftype=item_type,
+                ftype=_file_type,
+                version=version,
+                handle=handle_str,
             )
         )
     return items
