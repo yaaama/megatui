@@ -26,7 +26,6 @@ class MegaCmdError(Exception):
         self.stderr: str | None = stderr
 
 
-@dataclass
 class MegaItem:
     class FILE_TYPES(Enum):
         """File types."""
@@ -63,7 +62,10 @@ class MegaItem:
     parent_path: str
 
     """ Size of file in BYTES, will be 0 for dirs."""
-    size: int
+    _size: int
+
+    _size_human: float
+    size_unit: SIZE_UNITS
 
     """ Modification time of file."""
     mtime: str  # Parse into date if needed
@@ -76,6 +78,18 @@ class MegaItem:
 
     """ Unique handle. """
     handle: str
+
+    def __init__(self, name: str, parent_path: str, size: int, mtime: str, ftype: FILE_TYPES, version: int, handle: str):
+        self.name = name
+        self.parent_path = parent_path
+        self._size = size
+        self.mtime = mtime
+        self.ftype = ftype
+        self.version = version
+        self.handle = handle
+        self._size_human, self.size_unit = self.get_size()
+
+
 
     def is_file(self) -> bool:
         return self.ftype == self.FILE_TYPES.FILE
@@ -95,6 +109,10 @@ class MegaItem:
                 return "F"
 
     @property
+    def size(self) -> float:
+        return self._size_human
+
+    @property
     def full_path(self) -> PurePath:
         folder: PurePath = PurePath(self.parent_path)
         path: PurePath = folder / self.name
@@ -103,7 +121,7 @@ class MegaItem:
     def get_size(self) -> tuple[float, SIZE_UNITS]:
         """Returns size of item in a human-friendly unit."""
 
-        if self.size == 0:
+        if self._size == 0:
             return (0, self.SIZE_UNITS.B)
 
         if self.is_dir():
@@ -116,7 +134,7 @@ class MegaItem:
         # Example: log(1000, 1024) = 0.99... -> index 0 (B)
         # Example: log(xxxx, 1024) = 4... -> index 4 (TB)
         # We cap the index at the maximum available unit
-        unit_index: int = min(int(math.log(self.size, 1024)), len(self.SIZE_UNITS) - 1)
+        unit_index: int = min(int(math.log(self._size, 1024)), len(self.SIZE_UNITS) - 1)
 
         # Calculate the divisor using bit shift (1 << (10 * unit_index))
         # This is equivalent to 1024 ** unit_index or 2**(10 * unit_index)
@@ -130,23 +148,23 @@ class MegaItem:
             divisor = 1 << (10 * unit_index)
 
         # Perform floating point division for the final readable value
-        scaled_value: float = float(self.size) / divisor
+        scaled_value: float = float(self._size) / divisor
         return (scaled_value, self.SIZE_UNITS(unit_index))
 
     def get_size_in(self, unit: SIZE_UNITS) -> int:
         """Returns size of file in specified unit."""
         match unit:
             case self.SIZE_UNITS.B:
-                return self.size
+                return self._size
             # Bit shifting
             case self.SIZE_UNITS.KB:
-                return self.size >> 10
+                return self._size >> 10
             case self.SIZE_UNITS.MB:
-                return self.size >> 20
+                return self._size >> 20
             case self.SIZE_UNITS.GB:
-                return self.size >> 30
+                return self._size >> 30
             case self.SIZE_UNITS.TB:
-                return self.size >> 40
+                return self._size >> 40
 
 
 # Alias
@@ -164,12 +182,24 @@ class MegaMediaInfo:
 
 
 # Response from running mega commands.
-@dataclass
 class MegaCmdResponse:
     stdout: str
     stderr: str | None
     return_code: int | None
 
+    def __init__(self, stdout : str, stderr : str| None, return_code : int | None):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.return_code = return_code
+
+
+
+    def failed(self) -> bool:
+        if (self.return_code) != 0:
+            return True
+        if (self.stderr):
+            return True
+        return False
 
 # Alias
 MCResponse = MegaCmdResponse
