@@ -15,7 +15,8 @@ async def run_app() -> None:
         print(
             "Please log in using 'mega-login' or check 'mega-whoami'.", file=sys.stderr
         )
-        return  # Exit if not logged in
+        # Exit if not logged in
+        return
 
     print(f"MEGA Login Check: OK ({message})")  # Show username on success
 
@@ -29,9 +30,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nExiting MegaTUI...")
     except Exception as e:
-        # Log unexpected errors more gracefully
         print(f"\nAn unexpected error occurred: {e}", file=sys.stderr)
-        # Consider adding more detailed logging or traceback here if needed for debugging
-        # import traceback
-        # traceback.print_exc()
-        sys.exit(1)  # Exit with an error code
+        # Exit with an error code
+        sys.exit(1)

@@ -22,12 +22,9 @@ from megatui.mega.megacmd import (
 class MegaAppTUI(App[str]):
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
+    CSS_PATH = "ui/style.tcss"
     ENABLE_COMMAND_PALETTE = True
     SCREENS = {"filetree": FileTreeScreen}
-    status_message: var[str] = var("Logged in.")
-    current_mega_path: var[str] = var("/")
-
-    CSS_PATH = "ui/style.tcss"
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -42,6 +39,9 @@ class MegaAppTUI(App[str]):
         Binding("f", "push_screen('filetree')", "filetree"),
         # Add other bindings
     ]
+
+    status_message: var[str] = var("Logged in.")
+    current_mega_path: var[str] = var("/")
 
     # --- UI Composition ---
     @override
@@ -64,6 +64,7 @@ class MegaAppTUI(App[str]):
         # Why does the footer create so many event messages?
         # yield Footer(disabled=True)
 
+
     async def on_mount(self) -> None:
         """
         Called when the app is mounted.
@@ -71,6 +72,7 @@ class MegaAppTUI(App[str]):
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
+
         file_list = self.query_one(FileList)
         # Start loading the root directory
         await file_list.load_directory(self.current_mega_path)
