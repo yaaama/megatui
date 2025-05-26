@@ -1,7 +1,6 @@
 import asyncio
 import re
 import subprocess
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import PurePath, Path
 
@@ -25,37 +24,47 @@ class MegaCmdError(Exception):
         self.stderr: str | None = stderr
 
 
+class MegaFileTypes(Enum):
+    """File types."""
+
+    DIRECTORY = 0
+    FILE = 1
+
+
+class MegaSizeUnits(Enum):
+    """File size units."""
+
+    B = 0
+    KB = 1
+    MB = 2
+    GB = 3
+    TB = 4
+
+    # Helper to get the string representation used in the size calculation
+    def get_unit_str(self):
+        """Returns the unit best suited for the size of the file."""
+        # Match the order in the Enum
+        _unit_strings = ["B", "KB", "MB", "GB", "TB"]
+        try:
+            return _unit_strings[self.value]
+        # Raise an error for unknown units
+        except IndexError:
+            return "?"
 
 
 class MegaItem:
-    class FILE_TYPES(Enum):
-        """File types."""
-
-        DIRECTORY = 0
-        FILE = 1
-
-    class SIZE_UNITS(Enum):
-        """File size units."""
-
-        B = 0
-        KB = 1
-        MB = 2
-        GB = 3
-        TB = 4
-
-        # Helper to get the string representation used in the size calculation
-        def get_unit_str(self):
-            """Returns the unit best suited for the size of the file."""
-            # Match the order in the Enum
-            _unit_strings = ["B", "KB", "MB", "GB", "TB"]
-            try:
-                return _unit_strings[self.value]
-            # Raise an error for unknown units
-            except IndexError:
-                return "?"
-
     # Class Variables #################################################
-    __slots__ = ("name", "parent_path", "_size", "_size_human", "size_unit", "mtime", "ftype", "version", "handle")
+    __slots__ = (
+        "name",
+        "parent_path",
+        "bytes",
+        "size",
+        "size_unit",
+        "mtime",
+        "ftype",
+        "version",
+        "handle",
+    )
 
     """Name of file/folder item."""
     name: str  # Name of item
@@ -64,16 +73,19 @@ class MegaItem:
     parent_path: str
 
     """ Size of file in BYTES, will be 0 for dirs."""
-    _size: int
+    bytes: int
 
-    _size_human: float
-    size_unit: SIZE_UNITS
+    """ Size of file (human readable) """
+    size: float
+
+    """ Unit for human readable size. """
+    size_unit: MegaSizeUnits
 
     """ Modification time of file."""
     mtime: str  # Parse into date if needed
 
     """ Type of file. """
-    ftype: FILE_TYPES
+    ftype: MegaFileTypes
 
     """ File version. """
     version: int
@@ -81,24 +93,33 @@ class MegaItem:
     """ Unique handle. """
     handle: str
 
-    def __init__(self, name: str, parent_path: str, size: int, mtime: str, ftype: FILE_TYPES, version: int, handle: str):
+    def __init__(
+        self,
+        name: str,
+        parent_path: str,
+        size: int,
+        mtime: str,
+        ftype: MegaFileTypes,
+        version: int,
+        handle: str,
+    ):
 
-        import math
+        from math import log
 
         self.name = name
         self.parent_path = parent_path
-        self._size = size
+        self.bytes = size
         self.mtime = mtime
         self.ftype = ftype
         self.version = version
         self.handle = handle
 
-        if (size == 0) or (self.ftype == self.FILE_TYPES.DIRECTORY):
-            self.size_unit = self.SIZE_UNITS.B
-
+        if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
+            self.size_unit = MegaSizeUnits.B
+            return
 
         # Calculate human friendly sizing
-        unit_index: int = min(int(math.log(self._size, 1024)), len(self.SIZE_UNITS) - 1)
+        unit_index: int = min(int(log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
 
         divisor: int
         if unit_index == 0:
@@ -109,17 +130,14 @@ class MegaItem:
             # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
             divisor = 1 << (10 * unit_index)
 
-
         # Perform floating point division for the final readable value
-        self._size_human = float(self._size) / divisor
-
-
+        self.size = float(self.bytes) / divisor
 
     def is_file(self) -> bool:
-        return self.ftype == self.FILE_TYPES.FILE
+        return self.ftype == MegaFileTypes.FILE
 
     def is_dir(self) -> bool:
-        return self.ftype == self.FILE_TYPES.DIRECTORY
+        return self.ftype == MegaFileTypes.DIRECTORY
 
     def ftype_str(self) -> str:
         """
@@ -127,14 +145,14 @@ class MegaItem:
         Either D for directory or F for file.
         """
         match self.ftype:
-            case self.FILE_TYPES.DIRECTORY:
+            case MegaFileTypes.DIRECTORY:
                 return "D"
-            case self.FILE_TYPES.FILE:
+            case MegaFileTypes.FILE:
                 return "F"
 
     @property
     def size(self) -> float:
-        return self._size_human
+        return self.size
 
     @property
     def full_path(self) -> PurePath:
@@ -142,21 +160,20 @@ class MegaItem:
         path: PurePath = folder / self.name
         return path
 
-
-    def get_size_in(self, unit: SIZE_UNITS) -> int:
+    def get_size_in(self, unit: MegaSizeUnits) -> int:
         """Returns size of file in specified unit."""
         match unit:
-            case self.SIZE_UNITS.B:
-                return self._size
+            case MegaSizeUnits.B:
+                return self.bytes
             # Bit shifting
-            case self.SIZE_UNITS.KB:
-                return self._size >> 10
-            case self.SIZE_UNITS.MB:
-                return self._size >> 20
-            case self.SIZE_UNITS.GB:
-                return self._size >> 30
-            case self.SIZE_UNITS.TB:
-                return self._size >> 40
+            case MegaSizeUnits.KB:
+                return self.bytes >> 10
+            case MegaSizeUnits.MB:
+                return self.bytes >> 20
+            case MegaSizeUnits.GB:
+                return self.bytes >> 30
+            case MegaSizeUnits.TB:
+                return self.bytes >> 40
 
 
 # Alias
@@ -164,13 +181,19 @@ MegaItems = list[MegaItem]
 
 
 # TODO
-@dataclass
 class MegaMediaInfo:
     path: str
     width: int | None
     height: int | None
-    fps: int | None
-    playtime: int | None
+    fps: float | None
+    playtime: str
+
+    def __init__(self, path: str, width: int, height: int, fps: float, playtime: str):
+        self.path = path
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.playtime = playtime
 
 
 # Response from running mega commands.
@@ -179,19 +202,18 @@ class MegaCmdResponse:
     stderr: str | None
     return_code: int | None
 
-    def __init__(self, stdout : str, stderr : str| None, return_code : int | None):
+    def __init__(self, stdout: str, stderr: str | None, return_code: int | None):
         self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
 
-
-
     def failed(self) -> bool:
         if (self.return_code) != 0:
             return True
-        if (self.stderr):
+        if self.stderr:
             return True
         return False
+
 
 # Alias
 MCResponse = MegaCmdResponse
@@ -302,13 +324,14 @@ def build_megacmd_cmd(command: list[str]) -> list[str]:
     This list will transform something like: [ls, -l] into [mega-ls, -l]
     Also performs checking.
     """
-    # if 'command' is [ls, -l, --tree], then 'megacmd' name will be 'mega-ls'
 
-    megacmd_name: str = f"mega-{command[0]}"
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
         raise MegaLibError(
             f"The library does not support command '{command[0]}'.", fatal=True
         )
+
+    # if 'command' is [ls, -l, --tree], then 'megacmd' name will be 'mega-ls'
+    megacmd_name: str = f"mega-{command[0]}"
 
     # e.g. ['mega-ls']
     final_command: list[str] = [megacmd_name]
@@ -424,7 +447,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
 ###########################################################################
 
 
-def parse_ls_output(line: str) -> tuple[MegaItem.FILE_TYPES, tuple[str, ...]] | None:
+def parse_ls_output(line: str) -> tuple[MegaFileTypes, tuple[str, ...]] | None:
     """
     Parse output of 'mega-ls' and return a tuple of data.
     Returned tuple will have first field as 'True' if the file is a directory, else false.
@@ -447,10 +470,10 @@ def parse_ls_output(line: str) -> tuple[MegaItem.FILE_TYPES, tuple[str, ...]] | 
 
     # If flags (first elem) contains 'd' as first elem, then return True
     if file_info[0][0] == "d":
-        return (MegaItem.FILE_TYPES.DIRECTORY, file_info)
+        return (MegaFileTypes.DIRECTORY, file_info)
 
     else:
-        return (MegaItem.FILE_TYPES.FILE, file_info)
+        return (MegaFileTypes.FILE, file_info)
 
 
 async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> MegaItems:
@@ -507,7 +530,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
         item_size: int = 0
         version: int = 0
 
-        if _file_type == MegaItem.FILE_TYPES.FILE:
+        if _file_type == MegaFileTypes.FILE:
             try:
                 item_size = int(_size)
                 version = int(_vers)
@@ -544,7 +567,7 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
 async def mega_du(
     dir: str = "/",
     recurse: bool = True,
-    units: MegaItem.SIZE_UNITS = MegaItem.SIZE_UNITS.MB,
+    units: MegaSizeUnits = MegaSizeUnits.MB,
 ):
     """
     Get disk usage.
