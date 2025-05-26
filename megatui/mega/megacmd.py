@@ -1,5 +1,4 @@
 import asyncio
-import math
 import re
 import subprocess
 from dataclasses import dataclass
@@ -24,6 +23,8 @@ class MegaCmdError(Exception):
         super().__init__(message)
         self.return_code: int | None = return_code
         self.stderr: str | None = stderr
+
+
 
 
 class MegaItem:
@@ -54,6 +55,7 @@ class MegaItem:
                 return "?"
 
     # Class Variables #################################################
+    __slots__ = ("name", "parent_path", "_size", "_size_human", "size_unit", "mtime", "ftype", "version", "handle")
 
     """Name of file/folder item."""
     name: str  # Name of item
@@ -80,6 +82,9 @@ class MegaItem:
     handle: str
 
     def __init__(self, name: str, parent_path: str, size: int, mtime: str, ftype: FILE_TYPES, version: int, handle: str):
+
+        import math
+
         self.name = name
         self.parent_path = parent_path
         self._size = size
@@ -87,7 +92,26 @@ class MegaItem:
         self.ftype = ftype
         self.version = version
         self.handle = handle
-        self._size_human, self.size_unit = self.get_size()
+
+        if (size == 0) or (self.ftype == self.FILE_TYPES.DIRECTORY):
+            self.size_unit = self.SIZE_UNITS.B
+
+
+        # Calculate human friendly sizing
+        unit_index: int = min(int(math.log(self._size, 1024)), len(self.SIZE_UNITS) - 1)
+
+        divisor: int
+        if unit_index == 0:
+            divisor = 1
+        else:
+            # calculate 1024^unit_index using shifts
+            # 1 << 10 is 1024 (2^10)
+            # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
+            divisor = 1 << (10 * unit_index)
+
+
+        # Perform floating point division for the final readable value
+        self._size_human = float(self._size) / divisor
 
 
 
@@ -118,38 +142,6 @@ class MegaItem:
         path: PurePath = folder / self.name
         return path
 
-    def get_size(self) -> tuple[float, SIZE_UNITS]:
-        """Returns size of item in a human-friendly unit."""
-
-        if self._size == 0:
-            return (0, self.SIZE_UNITS.B)
-
-        if self.is_dir():
-            return (0, self.SIZE_UNITS.B)
-
-        # Calculate the logarithm base 1024 to find the scale
-        # math.log(num_bytes, 1024) gives the power of 1024
-        # Floor gives the index for the correct unit
-        # Example: log(2048, 1024) = 1.0 -> index 1 (KB)
-        # Example: log(1000, 1024) = 0.99... -> index 0 (B)
-        # Example: log(xxxx, 1024) = 4... -> index 4 (TB)
-        # We cap the index at the maximum available unit
-        unit_index: int = min(int(math.log(self._size, 1024)), len(self.SIZE_UNITS) - 1)
-
-        # Calculate the divisor using bit shift (1 << (10 * unit_index))
-        # This is equivalent to 1024 ** unit_index or 2**(10 * unit_index)
-        divisor: int
-        if unit_index == 0:
-            divisor = 1
-        else:
-            # calculate 1024^unit_index using shifts
-            # 1 << 10 is 1024 (2^10)
-            # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
-            divisor = 1 << (10 * unit_index)
-
-        # Perform floating point division for the final readable value
-        scaled_value: float = float(self._size) / divisor
-        return (scaled_value, self.SIZE_UNITS(unit_index))
 
     def get_size_in(self, unit: SIZE_UNITS) -> int:
         """Returns size of file in specified unit."""
