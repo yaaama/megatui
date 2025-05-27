@@ -89,6 +89,8 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
     "du",
     "ls",
     "whoami",
+    "pwd",
+    "mv",
 }
 
 
@@ -202,6 +204,7 @@ class MegaItem:
         self.handle = handle
 
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
+            self.size = 0.0
             self.size_unit = MegaSizeUnits.B
             return
 
@@ -229,7 +232,8 @@ class MegaItem:
                 self.size_unit = MegaSizeUnits.MB
             case 3:
                 self.size_unit = MegaSizeUnits.GB
-            case 4:
+            case _:
+                # Anything larger than 3 should be shown in terabytes
                 self.size_unit = MegaSizeUnits.TB
 
     def is_file(self) -> bool:
@@ -318,16 +322,15 @@ LS_REGEXP = re.compile(
 )
 
 
-def build_megacmd_cmd(command: tuple[str]) -> tuple[str]:
+def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """
     Constructs a list containing the command to run and arguments.
     This list will transform something like: [ls, -l] into [mega-ls, -l]
-    Also performs checking.
+    Also performs checking to see if the command is valid.
     """
 
-    if len(command) == 0:
-         raise MegaLibError("Command tuple cannot be empty.", fatal=True)
-
+    if not command:
+        raise MegaLibError("Command tuple cannot be empty.", fatal=True)
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
         raise MegaLibError(
@@ -338,7 +341,7 @@ def build_megacmd_cmd(command: tuple[str]) -> tuple[str]:
     megacmd_name: str = f"mega-{command[0]}"
 
     # Get all elements from the second element onwards using slice [1:]
-    remaining_args = command[1:]
+    remaining_args: tuple[str, ...] = command[1:]
 
     # (megacmd_name, followed by all elements in remaining_args)
     final: tuple[str, ...] = (megacmd_name, *remaining_args)
@@ -347,22 +350,22 @@ def build_megacmd_cmd(command: tuple[str]) -> tuple[str]:
 
 
 ###############################################################################
-async def run_megacmd(command: tuple[str]) -> MegaCmdResponse:
+async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     """
     Runs a specific mega-* command (e.g., mega-ls, mega-whoami)
     and returns MegaCmdResponse.
 
     Args:
-        command (str): The base command name (e.g., "ls", "whoami").
-        *args (str): Arguments and flags for the command.
+        command (tuple[str, ...]): The base command name and its arguments.
+
     """
 
     # Construct the actual executable name (e.g., "mega-ls")
-    cmd: list[str] = build_megacmd_cmd(command)
+    cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
 
     try:
         process = await asyncio.create_subprocess_exec(
-            *cmd,
+            *cmd_to_exec,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -372,7 +375,6 @@ async def run_megacmd(command: tuple[str]) -> MegaCmdResponse:
         stdout_str = stdout.decode("utf-8", errors="replace").strip()
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
 
-        # print(f"Standard out: {stdout_str}")
         megacmd_obj = MegaCmdResponse(
             stdout=stdout_str,
             stderr=None,  # Initialize stderr as None
@@ -394,14 +396,14 @@ async def run_megacmd(command: tuple[str]) -> MegaCmdResponse:
         return megacmd_obj
 
     except FileNotFoundError:
-        # *** RAISE instead of print/return error response ***
         raise MegaCmdError(
-            f"Command '{cmd[0]}' not found.", stderr=f"{cmd[0]} not found"
+            f"Command '{cmd_to_exec[0]}' not found.",
+            stderr=f"{cmd_to_exec[0]} not found",
         )
     except Exception as e:
         # *** RAISE instead of print/return error response ***
         # Wrap unexpected errors
-        raise MegaCmdError(f"Unexpected error running '{cmd[0]}': {e}") from e
+        raise MegaCmdError(f"Unexpected error running '{cmd_to_exec[0]}': {e}") from e
 
 
 ###########################################################################
@@ -423,7 +425,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
             - str | None: The username (email) if logged in, otherwise a message
                           indicating the status or error.
     """
-    response: MegaCmdResponse = await run_megacmd(command=["whoami"])
+    response: MegaCmdResponse = await run_megacmd(command=("whoami",))
 
     if response.return_code == 0 and response.stderr is not None:
         return False, "You are not logged in."
@@ -463,8 +465,6 @@ def parse_ls_output(line: str) -> tuple[MegaFileTypes, tuple[str, ...]] | None:
 
     if not fields:
         return None
-    # if not fields:
-    #     raise MegaLibError(message="Line being parsed is empty!", fatal=False)
 
     # Get field values from our regexp matches
     file_info: tuple[str, ...]
@@ -479,32 +479,44 @@ def parse_ls_output(line: str) -> tuple[MegaFileTypes, tuple[str, ...]] | None:
         return (MegaFileTypes.FILE, file_info)
 
 
-async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> MegaItems:
+async def mega_ls(
+    path: str | None = "/", flags: tuple[str, ...] | None = None
+) -> MegaItems:
     """
     Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
     Args:
         path (str): The MEGA path to list (e.g., "/", "/Backups"). Defaults to "/".
+        flags (tuple[str, ...], optional): Additional flags for mega-ls.
 
     Returns:
         list[MegaItem]: A list of MegaItem objects representing the contents.
                         Returns an empty list if the path is invalid or an error occurs.
     """
+    curr_path_for_items: str
+
     if path:
         target_path: str = path if path.startswith("/") else f"/{path}"
+        curr_path_for_items = target_path
         print(f"Listing contents of MEGA path: {target_path}")
+
     else:
         target_path = "."
-        path = "/"
+        curr_path_for_items = "/"
         print("Listing contents of current path.")
 
+    cmd: list[str] = [
+        "ls",
+        "-l",
+        "--show-handles",
+    ]
 
     if flags:
         cmd.extend(flags)
 
-    cmd: tuple[str] = ("ls", "-l", "--show-handles", (flags or ""), target_path )
+    cmd.append(target_path)
 
-    response: MCResponse = await run_megacmd(cmd)
+    response: MCResponse = await run_megacmd(tuple(cmd))
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
@@ -516,15 +528,21 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
     # Pop out the first element (it will be the header line)
     lines.pop(0)
 
+    # Handle empty output
+    if not lines or not lines[0].strip():
+        return []
+
     # Parse the lines we receive
     for line in lines:
 
         parsed_tuple = parse_ls_output(line)
         if parsed_tuple is None:
+            print(
+                f"Warning: Could not parse ls line: '{line}'"
+            )  # Log unparseable lines
             continue
 
-        _file_type = parsed_tuple[0]
-        _flags, _vers, _size, _date, _time, _handle, _name = parsed_tuple[1]
+        _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
 
         # Values to convert
         mtime_str: str = f"{_date} {_time}"
@@ -549,12 +567,12 @@ async def mega_ls(path: str | None = "/", flags: list[str] | None = None) -> Meg
             version = 0
 
         # Parse the handle
-        handle_str = _handle[2:]
+        handle_str = _handle[2:] if _handle.startswith("H:") else _handle
 
         items.append(
             MegaItem(
                 name=_name,
-                parent_path=path,
+                parent_path=curr_path_for_items,
                 size=item_size,
                 mtime=mtime_str,
                 ftype=_file_type,
@@ -586,9 +604,8 @@ async def mega_cd(target_path: str = "/"):
     """
     print(f"CDing to {target_path}")
 
-    cmd: list[str] = ["cd"]
-    cmd.append(target_path)
-    response = await run_megacmd(cmd)
+    cmd: list[str] = ["cd", target_path]
+    response = await run_megacmd(tuple(cmd))
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
@@ -602,7 +619,7 @@ async def mega_pwd() -> str:
     """
     print("Printing working directory.")
 
-    cmd: list[str] = ["pwd"]
+    cmd: tuple[str, ...] = ("pwd",)
     response = await run_megacmd(cmd)
 
     if response.return_code != 0 or response.stderr:
@@ -615,19 +632,16 @@ async def mega_pwd() -> str:
 
 ###############################################################################
 async def mega_cd_ls(
-    target_path: str | None = "/", ls_flags: list[str] | None = None
+    target_path: str | None = "/", ls_flags: tuple[str, ...] | None = None
 ) -> MegaItems:
     """
     Change directories and ls.
     """
-    if target_path:
-        print(f"cdls to {target_path}")
-    else:
-        print("cdls to root")
-        target_path = "/"
+    effective_target_path = target_path if target_path else "/"
+    print(f"cdls to {effective_target_path}")
 
-    await mega_cd(target_path)
-    items = await mega_ls(target_path, ls_flags)
+    await mega_cd(effective_target_path)
+    items = await mega_ls(effective_target_path, ls_flags)
 
     return items
 
@@ -639,13 +653,13 @@ async def mega_cp(file_path: str, target_path: str) -> None:
     """
     print(f"Copying file {file_path} to {target_path}")
 
-    cmd = ["cp", file_path, target_path]
+    cmd: tuple[str, ...] = ("cp", file_path, target_path)
     response = await run_megacmd(cmd)
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
-        print(f"Error copying file '{file_path} to '{target_path}': {error_msg}")
-        return
+        print(f"Error copying file '{file_path}' to '{target_path}': {error_msg}")
+        return  # Consider raising
 
     print(f"Successfully copied '{file_path}' to '{target_path}'")
 
@@ -655,32 +669,34 @@ async def mega_mv(file_path: str, target_path: str) -> None:
     """
     Move a file (or rename it).
     """
-
     print(f"Moving file {file_path} to {target_path}")
 
-    cmd = ["mv", file_path, target_path]
+    cmd: tuple[str, ...] = ("mv", file_path, target_path)
     response = await run_megacmd(cmd)
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
-        print(f"Error moving file '{file_path} to '{target_path}': {error_msg}")
+        print(f"Error moving file '{file_path}' to '{target_path}': {error_msg}")
+        # TODO Make this raise an exception
         return
 
     print(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
 ###############################################################################
-async def mega_rm(file: str, flags: list[str] | None) -> None:
+async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
     """
     Remove a file.
     """
 
     print(f"Removing file {file} with flags: {flags} ")
 
-    cmd = ["rm", file]
+    cmd: tuple[str, ...]
 
     if flags:
-        cmd.extend(flags)
+        cmd = ("rm", file, *flags)
+    else:
+        cmd = ("rm", file)
 
     response = await run_megacmd(cmd)
 
@@ -694,7 +710,7 @@ async def mega_rm(file: str, flags: list[str] | None) -> None:
 
 ###############################################################################
 async def mega_put(
-    local_path: str | list[str],
+    local_path: str | tuple[str, ...],
     target_path: str = "/",
     queue: bool = True,
     create_remote_dir: bool = True,
@@ -709,7 +725,7 @@ async def mega_put(
 
     if not local_path:
         print("Error! We need a local file to upload.")
-        return
+        raise MegaLibError("Local file is not specified for upload.", fatal=True)
 
     # Base of the command
     cmd = ["put"]
@@ -722,15 +738,15 @@ async def mega_put(
         cmd.append("-c")
 
     # Add path to upload
-    if type(local_path) is list[str]:
+    if isinstance(local_path, tuple):
         cmd.extend(local_path)
     else:
-        cmd.append(str(local_path))
+        cmd.append(local_path)
 
     # Remote destination
     cmd.append(target_path)
 
-    response = await run_megacmd(cmd)
+    response = await run_megacmd(tuple(cmd))
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
@@ -779,7 +795,7 @@ async def mega_get(
 
     cmd.append(target_path)
 
-    response = await run_megacmd(cmd)
+    response = await run_megacmd(tuple(cmd))
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
