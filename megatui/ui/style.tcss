@@ -1,155 +1,141 @@
 /* ;;; -*- mode: css-ts; -*- * */
 
+Screen {
+    layers: base status; /* Define layers */
+}
 
-    Screen {
-        layers: base status; /* Define layers */
-    }
+#main-container {
+    /* Occupies the main screen area */
+    width: 1fr;
+    height: 1fr;
+    /* layer: base; */
+    /* Use grid for layout */
+    grid-size: 2; /* For two columns like ranger */
+    grid-gutter: 1 2;
+}
 
-    #main-container {
-        /* Occupies the main screen area */
-        width: 1fr;
-        height: 1fr;
-        /* layer: base; */
-        /* Use grid for layout */
-        grid-size: 2; /* For two columns like ranger */
-        grid-gutter: 1 2;
-    }
+#file-list {
+    width: 1fr; /* Take full width for now */
+    /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
+    height: 100%; /* Fill the container height */
+    border: round $accent; /* Add a border */
+    /* layer: base; /\* Belongs to the base layer *\/ */
+}
 
-    #file-list {
-        width: 1fr; /* Take full width for now */
-        /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
-        height: 100%; /* Fill the container height */
-        border: round $accent; /* Add a border */
-        /* layer: base; /\* Belongs to the base layer *\/ */
-    }
+#status-bar {
+    /* dock: top; */
+    height: 1;
+    background: initial;
+    /* color: blue; */
+    padding: 0 1;
+    /* layer: status; /\* Belongs to the status layer *\/ */
+    width: 100%; /* Ensure it spans the width */
+    visibility: visible; /* Ensure it's visible */
+}
+#status-bar Label {
+    width: 1fr; /* Make labels fill available space */
+}
+#status-message {
+    content-align: right middle;
+}
+#status-path {
+    content-align: left middle;
+}
 
-    #status-bar {
-        /* dock: top; */
-        height: 1;
-        background: initial;
-        /* color: blue; */
-        padding: 0 1;
-        /* layer: status; /\* Belongs to the status layer *\/ */
-        width: 100%; /* Ensure it spans the width */
-        visibility: visible; /* Ensure it's visible */
-    }
-    #status-bar Label {
-      width: 1fr; /* Make labels fill available space */
-    }
-    #status-message {
-      content-align: right middle;
-    }
-    #status-path {
-       content-align: left middle;
-    }
-
-
-    /* --- Style the Log Pane --- */
-    #log-pane {
-        /* Dock below main content, above status bar/footer */
-        dock: bottom;
-        /* Height: Fixed 10 lines, adjust as needed */
-        height: 10;
-        border: thick $primary;
-        /* Use a higher layer so it docks *above* the status bar */
-        /* layer: log_layer; */
-        /* Start hidden */
-        display: none;
-        /* Add some scrollbar margin if desired */
-        /* scrollbar-gutter: stable; */
-    }
-    /* --- Class to make the log pane visible --- */
-    #log-pane.visible {
-        display: block; /* Change display to make it visible */
-    }
-    Footer {
-        /* Ensure footer is also on a high layer if needed,
+/* --- Style the Log Pane --- */
+#log-pane {
+    /* Dock below main content, above status bar/footer */
+    dock: bottom;
+    /* Height: Fixed 10 lines, adjust as needed */
+    height: 10;
+    border: thick $primary;
+    /* Use a higher layer so it docks *above* the status bar */
+    /* layer: log_layer; */
+    /* Start hidden */
+    display: none;
+    /* Add some scrollbar margin if desired */
+    /* scrollbar-gutter: stable; */
+}
+/* --- Class to make the log pane visible --- */
+#log-pane.visible {
+    display: block; /* Change display to make it visible */
+}
+Footer {
+    /* Ensure footer is also on a high layer if needed,
            but docking usually handles it */
-        /* layer: log_layer; */
-    }
+    /* layer: log_layer; */
+}
 
-    FileItem {
-        padding: 0 1;
-        height: 1;
-        width: 100%;
-    }
+/* FileList (DataTable) Styling */
+FileList {
+    width: 1fr;
+    height: 1fr;
+    border: round $primary; /* Use a variable from your app's theme or a direct color */
+    /* Add some internal padding to the DataTable itself if needed,
+        though cell padding is usually more effective for row content. */
+    /* padding: 0 1; */
+}
 
-    .fileitem--icon {
-        /* Styles for the icon */
-        width: 2;
-        /* Fixed width for icon */
-    }
+FileList .datatable--header {
+    background: $primary-background;
+    color: $text;
+    text-style: bold;
+    /* Add padding to header cells */
+    padding: 0 1; /* Vertical padding 0, Horizontal padding 1 */
+}
 
-    .fileitem--name {
-        /* Styles for the filename */
-        /* Let it take remaining space */
-        /* text-overflow: ellipsis; /* Handled by Text.truncate */
-    }
+FileList .datatable--header-key--selected {
+    background: $primary-darken-2; /* Or another distinct color for sorted column */
+}
 
-    .file-item--directory {
-        color: $accent-lighten-1;
-        /* color for dirs */
-    }
+/* Styling for ALL data rows */
+FileList .datatable--row {
+    /* background: $surface-lighten-1; */ /* Example background for rows */
+    /* color: $text; */
+    /*
+        Instead of padding the whole row, we'll pad individual cells.
+        This gives more control if some cells need different padding.
+        */
+}
 
-    .file-item--time {
-        color: grey;
-        /* color for dirs */
-    }
+/* Styling for the CURSOR row (selected row) */
+FileList .datatable--row.--cursor {
+    background: $secondary; /* A distinct background for the cursor */
+    color: $text-accent; /* Ensure text is readable on the cursor background */
+    text-style: bold;
+}
 
-    .file-item--size {
-        color: red;
-        /* color for dirs */
-    }
+/* --- Styling for individual cells for better spacing --- */
+/* Default padding for all data cells */
+FileList .datatable--cell {
+    padding: 0 1; /* Vertical padding 0, Horizontal padding 1. Adjust as needed. */
+    /* Try `padding: 0 2;` for more horizontal space. */
+}
 
-    .file-item--file {
-        color: blue;
-        /* color for dirs */
-    }
+/* Icon column */
+FileList .datatable--cell-icon {
+    width: 2; /* Icon (1) + space (1) + padding (1+1) = 4. Or just `width: auto;` and let padding control it. */
+    /* If using `width: auto;`, ensure icon itself doesn't cause too much width. */
+    text-align: right;
+    /* Override default cell padding if needed, e.g., less horizontal padding for icon */
+    /* padding: 0 0 0 1; */ /* Example: only left padding */
+}
 
+/* Name column - let it take up flexible space */
+FileList .datatable--cell-name {
+    width: 1fr; /* Takes remaining available width */
+}
 
-    /* Type-specific styling */
-    FileItem.--directory .fileitem--icon {
-        /* color: $accent-lighten-1; */
-        /* Brighter color for directory icons */
-        /* font-style: bold; */
-        /* Example */
-    }
+/* Modified column */
+FileList .datatable--cell-modified {
+    width: 22; /* Increased width to accommodate "DDMonYYYY HH:MM:SS" and padding */
+    /* e.g., "22Jan2025 14:08:10" is 18 chars. Add padding (1+1)*2 = 4. Total ~22 */
+    text-align: left; /* Or center, or right, depending on preference */
+}
 
-    FileItem.--directory .fileitem--name {
-        /* color: $accent; */
-        /* Example: different name color */
-    }
-
-    FileItem.--file .fileitem--icon {
-        /* color: $primary-lighten-2; */
-        /* Color for file icons */
-    }
-
-
-    /* Add style for hover maybe? */
-    /* FileItem:hover {
-         background: $accent;
-         color: $text;
-    */
-
-    RenamePopup {
-        align: center middle;
-    }
-
-    RenamePopup > Container {
-        width: auto;
-        height: auto;
-        padding: 1 2;
-        border: round;
-        min-width: 50%;
-    }
-
-    #rename-input-box {
-        /* align: center middle; */
-        /* text-align: center; */
-    }
-
-    RenamePopup > Container > Label {
-        /* text-align: center;
-         * align: center middle; */
-    }
+/* Size column */
+FileList .datatable--cell-size {
+    width: 15; /* Increased width for "XX.YY UU" (e.g., "100.00 MB") and padding */
+    /* e.g., "123.45 GB" is 9 chars. Add padding (1+1)*2 = 4. Total ~13-15 */
+    text-align: right;
+}

@@ -12,7 +12,7 @@ from typing import Generic, Any
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.message import Message
-from textual.widgets import ListItem, ListView, DataTable
+from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
 
 
@@ -30,22 +30,23 @@ class FileList(DataTable[Text]):
     This can be used to cache directories.
     """
 
-    """ Border subtitle. """
     border_subtitle: str
+    """ Border subtitle. """
 
-    """ Current path we are in. """
     curr_path: str = "/"
+    """ Current path we are in. """
 
-    """ Path we are loading. """
     _loading_path: str = "/"
+    """ Path we are loading. """
 
     # TODO We will map items by their 'Handle'
     _row_data_map: dict[str, MegaItem] = {}
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)  # Pass arguments to DataTable constructor
+
+    @override
+    def on_mount(self) -> None:
         self.border_title = "MEGA"
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
@@ -53,9 +54,15 @@ class FileList(DataTable[Text]):
         self.show_cursor = True
         self.cursor_type = "row"  # Highlight the whole row
 
+
         # Add columns during initialisation
         for col_name in self.COLUMNS:
+            if col_name == "Icon":
+                self.add_column(label="", key=col_name.lower())
+                continue
+
             self.add_column(label=col_name, key=col_name.lower())
+
 
     ###################################################################
     @work(
@@ -75,15 +82,8 @@ class FileList(DataTable[Text]):
         try:
             # Fetch and sort items
             fetched_items: MegaItems = await m.mega_ls(path)
-
-            # Check if mega_ls itself returned None/empty on error
-            if fetched_items:
-                # fetched_items.sort(
-                #     key=lambda item: (item.ftype.value, item.name.lower())
-                # )
-                return fetched_items  # Return the result
-            else:
-                return []
+            # Return the result or empty list
+            return fetched_items or []
 
         except MegaCmdError as e:
             self.app.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
@@ -106,24 +106,30 @@ class FileList(DataTable[Text]):
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
-            icon_str = "📁" if item_data.is_dir() else "📄"
-            name_str = item_data.name
-            mtime_str = item_data.mtime  # Assuming mtime is already a string
+            fsize_str: Text
 
             if item_data.is_file():
-                fsize_float = item_data.size
-                fsize_str = f"{fsize_float:.2f} {item_data.size_unit.unit_str()}"
+                fsize_str = Text(
+                    f"{item_data.size:.2f} {item_data.size_unit.unit_str()}"
+                )
             else:
-                fsize_str = ""
+                fsize_str = Text("")
 
             # Add row to DataTable. The values must match the order of COLUMNS.
             # FIXME Using index as row key
             row_key = str(index)
-            rowtxt = Text.assemble(icon_str, name_str, mtime_str, fsize_str)
-            self.add_row(rowtxt, key=row_key)
+
+            # Pass data as individual arguments for each column
+            self.add_row(
+                Text("📁" if item_data.is_dir() else "📄"),
+                Text(item_data.name),
+                Text(item_data.mtime),
+                fsize_str,
+                key=row_key,
+            )
             self._row_data_map[row_key] = item_data  # Store the MegaItem
 
-        # Post success messages
+        self.border_subtitle = f"{len(fetched_items)} items"
         self.post_message(self.LoadSuccess(path))
         self.post_message(self.PathChanged(path))  # Path *successfully* changed
 

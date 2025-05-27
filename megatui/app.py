@@ -1,6 +1,7 @@
 from pathlib import Path, PurePath
 from typing import override
 
+from textual import log, on, work, messages
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -63,7 +64,6 @@ class MegaAppTUI(App[str]):
 
         # Why does the footer create so many event messages?
         # yield Footer(disabled=True)
-
 
     async def on_mount(self) -> None:
         """
@@ -153,7 +153,7 @@ class MegaAppTUI(App[str]):
 
     async def action_navigate_in(self) -> None:
         file_list = self.query_one(FileList)
-        selected_item_data = file_list.get_selected_mega_item()  # NEW
+        selected_item_data = file_list.get_selected_mega_item()
 
         if (
             selected_item_data is None or not selected_item_data.is_dir()
@@ -196,7 +196,7 @@ class MegaAppTUI(App[str]):
 
         # Avoid going above root "/"
         if str(current_path) == "/":
-            self.status_message = "Already at root."
+            self.status_message = "Already at root! Cannot navigate out."
             return
 
         parent_path = str(current_path.parent)
@@ -254,7 +254,6 @@ class MegaAppTUI(App[str]):
         path_label = self.query_one("#status-path", Label)
         path_label.update(f"Path: {message.new_path}")
         self.status_message = f"Loaded '{message.new_path}'"
-        self.query_one(FileList).action_cursor_down()
         self.current_mega_path = message.new_path
 
     def on_file_list_load_error(self, message: FileList.LoadError) -> None:
