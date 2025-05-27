@@ -75,8 +75,9 @@ class FileItem(Static):
         self._icon_str: str = "📄"
         # Size field empty if directory
         if self.mega_item.is_file():
-            fsize_float, fsize_unit_enum = self.mega_item.get_size()
-            fsize_base = f"{fsize_float:.2f} {fsize_unit_enum.get_unit_str()}"
+            fsize_float = self.mega_item.size
+            fsize_unit = self.mega_item.size_unit
+            fsize_base = f"{fsize_float:.2f} {fsize_unit.unit_str()}"
         else:
             self._icon_str = "📁"
             fsize_base = ""

@@ -2,7 +2,7 @@
 from typing import override
 
 import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItems, MegaItem
+from megatui.mega.megacmd import MegaCmdError, MegaItems, MegaItem, MegaSizeUnits
 
 from textual import (
     work,
@@ -14,7 +14,6 @@ from textual.app import ComposeResult
 from textual.message import Message
 from textual.widgets import ListItem, ListView, DataTable
 from textual.worker import Worker  # Import worker types
-from megatui.ui.fileitem import FileItem
 
 
 ###########################################################################
@@ -112,8 +111,8 @@ class FileList(DataTable[Text]):
             mtime_str = item_data.mtime  # Assuming mtime is already a string
 
             if item_data.is_file():
-                fsize_float, fsize_unit_enum = item_data.get_size()
-                fsize_str = f"{fsize_float:.2f} {fsize_unit_enum.get_unit_str()}"
+                fsize_float = item_data.size
+                fsize_str = f"{fsize_float:.2f} {item_data.size_unit.unit_str()}"
             else:
                 fsize_str = ""
 
