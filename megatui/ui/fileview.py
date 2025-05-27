@@ -106,8 +106,10 @@ class FileList(DataTable[Text]):
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
+            name_str : Text = Text(item_data.name)
+            mtime_str : Text = Text(item_data.mtime)
+            icon_str : Text = Text("📁" if item_data.is_dir() else "📄")
             fsize_str: Text
-
             if item_data.is_file():
                 fsize_str = Text(
                     f"{item_data.size:.2f} {item_data.size_unit.unit_str()}"
@@ -121,13 +123,14 @@ class FileList(DataTable[Text]):
 
             # Pass data as individual arguments for each column
             self.add_row(
-                Text("📁" if item_data.is_dir() else "📄"),
-                Text(item_data.name),
-                Text(item_data.mtime),
+                icon_str,
+                name_str,
+                mtime_str,
                 fsize_str,
                 key=row_key,
             )
-            self._row_data_map[row_key] = item_data  # Store the MegaItem
+            # Store the MegaItem
+            self._row_data_map[row_key] = item_data
 
         self.border_subtitle = f"{len(fetched_items)} items"
         self.post_message(self.LoadSuccess(path))

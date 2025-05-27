@@ -249,6 +249,7 @@ class MegaAppTUI(App[str]):
     # Message Handlers ###########################################################
     """
 
+    @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
         path_label = self.query_one("#status-path", Label)
@@ -256,6 +257,7 @@ class MegaAppTUI(App[str]):
         self.status_message = f"Loaded '{message.new_path}'"
         self.current_mega_path = message.new_path
 
+    @on(FileList.LoadError)
     def on_file_list_load_error(self, message: FileList.LoadError) -> None:
         """Handle errors during directory load."""
         self.status_message = f"Error loading: {message.error}"
@@ -263,5 +265,6 @@ class MegaAppTUI(App[str]):
         self.log.error(f"Error loading directory: {message.error}")
         # Maybe show a dialog or keep the status message updated
 
-    def on_file_list_empty_directory(self, message: FileList.EmptyDirectory) -> None:
+    @on(FileList.EmptyDirectory)
+    def on_file_list_empty_directory(self) -> None:
         self.status_message = "Empty directory."
