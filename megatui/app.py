@@ -155,12 +155,16 @@ class MegaAppTUI(App[str]):
         file_list = self.query_one(FileList)
         selected_item_data = file_list.get_selected_mega_item()
 
-        if (
-            selected_item_data is None or not selected_item_data.is_dir()
-        ):  # Check if it's a directory
-            self.log.debug(
-                "Navigate in: No directory selected or item is not a directory."
-            )
+        # Fail: Selected item is None.
+        if selected_item_data is None:
+            self.log.debug("Cannot enter directory, selected item is 'None'.")
+            self.status_message = "Cannot navigate into this!"
+            return
+
+        # Fail: Is a regular file
+        if selected_item_data.is_file():  # Check if it's a directory
+            self.log.debug("Cannot enter into a file.")
+            self.status_message = f"Node must be a directory to enter into it."
             return
 
         current_path: str = file_list.curr_path
