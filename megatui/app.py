@@ -167,27 +167,11 @@ class MegaAppTUI(App[str]):
             self.status_message = f"Node must be a directory to enter into it."
             return
 
-        current_path: str = file_list.curr_path
-        dir_name: str = selected_item_data.name
+        to_enter = selected_item_data.full_path
+        path_str: str = str(to_enter)
 
-        # Log values for debugging
-        self.app.log.info(
-            f"action_navigate_in: Current Path='{current_path}', Selected Dir='{dir_name}'"
-        )
-
-        if current_path == "/":
-            new_path = f"/{dir_name}"
-        else:
-            # Ensure current_path doesn't end with '/' before joining
-            clean_current_path = current_path.rstrip("/")
-            new_path = f"{clean_current_path}/{dir_name}"
-
-        # Log the constructed path
-        self.app.log.info(f"action_navigate_in: Constructed new_path='{new_path}'")
-
-        self.status_message = f"Entering '{new_path}'..."
-        await file_list.load_directory(new_path)
-        self.current_mega_path = new_path
+        await file_list.load_directory(path_str)
+        self.current_mega_path = path_str
 
     async def action_navigate_out(self) -> None:
         """
