@@ -180,21 +180,19 @@ class MegaAppTUI(App[str]):
 
         file_list = self.query_one(FileList)
         self.log.info(f"Navigating out of directory {self.current_mega_path}")
-        current_path = PurePath(self.current_mega_path)
+        curr_path : str = file_list.curr_path
+
 
         # Avoid going above root "/"
-        if str(current_path) == "/":
+        if curr_path == "/":
             self.status_message = "Already at root! Cannot navigate out."
             return
 
-        parent_path = str(current_path.parent)
-        # Ensure root path is represented as "/" not "."
-        if parent_path == ".":
-            parent_path = "/"
+        parent_path : PurePath = PurePath(curr_path).parent
 
         self.status_message = f"Entering '{parent_path}'..."
-        await file_list.load_directory(parent_path)
-        self.current_mega_path = parent_path
+        await file_list.load_directory(str(parent_path))
+        self.current_mega_path = str(parent_path)
 
     def action_toggle_darkmode(self) -> None:
         """Toggles darkmode."""
