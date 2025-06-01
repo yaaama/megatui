@@ -143,8 +143,6 @@ class FileList(DataTable[Text]):
         )
 
         self.log.info(f"Requesting load for directory: {path}")
-        self.border_title = f"MEGA: {path}"
-        self.border_subtitle = f"Loading '{path}'..."
         self._loading_path = path  # Track the path we are loading
 
         # Start the worker. Results handled by on_worker_state_changed.
