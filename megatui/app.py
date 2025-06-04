@@ -9,6 +9,7 @@ from textual.reactive import var
 from textual.widgets import Footer, Header, Label
 from megatui.ui.file_action import RenamePopup
 from megatui.ui.file_tree import FileTreeScreen
+from megatui.ui.screens.rename import RenameDialog
 
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
@@ -25,7 +26,7 @@ class MegaAppTUI(App[str]):
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
     ENABLE_COMMAND_PALETTE = True
-    SCREENS = {"filetree": FileTreeScreen}
+    # SCREENS = {"filetree": FileTreeScreen}
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -105,7 +106,13 @@ class MegaAppTUI(App[str]):
             self.log.error("No highlighted file to rename.")
             return
 
-        self.push_screen(RenamePopup(selected_item.name))
+        self.push_screen(
+            RenameDialog(
+                prompt=f"Rename {selected_item.name}",
+                initial=selected_item.name,
+                emoji=(":page_facing_up:" if selected_item.is_file() else ":file_folder:"),
+            )
+        )
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """

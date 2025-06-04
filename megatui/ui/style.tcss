@@ -48,6 +48,36 @@ Footer {
     /* layer: log_layer; */
 }
 
+/*****************************************************************************/
+/*                               Modal Screens                               */
+/*****************************************************************************/
+
+RenameDialog {
+    align: center middle;
+}
+
+RenameDialog > Vertical {
+    /* background: $panel; */
+    height: auto;
+    width: auto;
+    border: thick $primary;
+}
+
+RenameDialog > Vertical > * {
+    width: auto;
+    height: auto;
+}
+
+RenameDialog Input {
+    width: 40;
+    margin: 1;
+}
+
+RenameDialog Label {
+    margin-left: 2;
+}
+
+
 
 
 #file-list {
