@@ -6,7 +6,10 @@ from pathlib import PurePath, Path
 import logging
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    filename="megacmd.log",
+    filemode="a",
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -107,9 +110,7 @@ class MegaLibError(Exception):
     def __init__(self, message: str, fatal: bool = False):
         super().__init__(message)
         self.fatal: bool = fatal
-        logger.error(
-            f"MegaLibError: {message} (Fatal: {fatal})"
-        )
+        logger.error(f"MegaLibError: {message} (Fatal: {fatal})")
 
 
 class MegaCmdError(Exception):
@@ -352,9 +353,7 @@ def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """
 
     if not command:
-        logger.critical(
-            "Command tuple cannot be empty."
-        )
+        logger.critical("Command tuple cannot be empty.")
         raise MegaLibError("Command tuple cannot be empty.", fatal=True)
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
@@ -427,9 +426,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
                 stderr=stderr_str or stdout_str,  # Use stderr if available
             )
 
-        logger.debug(
-            f"Command '{' '.join(command)}' completed successfully."
-        )
+        logger.debug(f"Command '{' '.join(command)}' completed successfully.")
         return megacmd_obj
 
     except FileNotFoundError:
@@ -509,14 +506,10 @@ async def check_mega_login() -> tuple[bool, str | None]:
             )
             return False, f"Login status uncertain. Response: {response}"
     except MegaCmdError as e:
-        logger.error(
-            f"MegaCmdError during login check: {e}"
-        )
+        logger.error(f"MegaCmdError during login check: {e}")
         return False, f"Login check failed due to command error: {e.message}"
     except Exception as e:
-        logger.exception(
-            "An unexpected error occurred during login check."
-        )
+        logger.exception("An unexpected error occurred during login check.")
         return False, f"An unexpected error occurred: {e}"
 
 
@@ -676,9 +669,7 @@ async def mega_cd(target_path: str = "/"):
     """
     Change directories.
     """
-    logger.info(
-        f"Changing directory to {target_path}"
-    )
+    logger.info(f"Changing directory to {target_path}")
 
     cmd: list[str] = ["cd", target_path]
     try:
@@ -725,6 +716,7 @@ async def mega_pwd() -> str:
         logger.exception("An unexpected error occurred during mega_pwd.")
         return ""
 
+
 ###############################################################################
 async def mega_cd_ls(
     target_path: str | None = "/", ls_flags: tuple[str, ...] | None = None
@@ -737,7 +729,9 @@ async def mega_cd_ls(
 
     await mega_cd(effective_target_path)
     items = await mega_ls(effective_target_path, ls_flags)
-    logger.info(f"Finished cd and ls for {effective_target_path}. Found {len(items)} items.")
+    logger.info(
+        f"Finished cd and ls for {effective_target_path}. Found {len(items)} items."
+    )
 
     return items
 
@@ -756,14 +750,24 @@ async def mega_cp(file_path: str, target_path: str) -> None:
 
         if response.return_code != 0 or response.stderr:
             error_msg = response.stderr if response.stderr else response.stdout
-            logger.error(f"Error copying file '{file_path}' to '{target_path}': {error_msg}")
-            raise MegaCmdError("Error copying file '{file_path}' to '{target_path}'", response.return_code, response.stderr)
+            logger.error(
+                f"Error copying file '{file_path}' to '{target_path}': {error_msg}"
+            )
+            raise MegaCmdError(
+                "Error copying file '{file_path}' to '{target_path}'",
+                response.return_code,
+                response.stderr,
+            )
 
         logger.info(f"Successfully copied '{file_path}' to '{target_path}'")
     except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_cp from '{file_path}' to '{target_path}': {e}")
+        logger.error(
+            f"MegaCmdError during mega_cp from '{file_path}' to '{target_path}': {e}"
+        )
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_cp from '{file_path}' to '{target_path}'.")
+        logger.exception(
+            f"An unexpected error occurred during mega_cp from '{file_path}' to '{target_path}'."
+        )
 
 
 ###############################################################################
@@ -779,15 +783,21 @@ async def mega_mv(file_path: str, target_path: str) -> None:
 
         if response.return_code != 0 or response.stderr:
             error_msg = response.stderr if response.stderr else response.stdout
-            logger.error(f"Error moving file '{file_path}' to '{target_path}': {error_msg}")
+            logger.error(
+                f"Error moving file '{file_path}' to '{target_path}': {error_msg}"
+            )
             # TODO Make this raise an exception
             return
 
         logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
     except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_mv from '{file_path}' to '{target_path}': {e}")
+        logger.error(
+            f"MegaCmdError during mega_mv from '{file_path}' to '{target_path}': {e}"
+        )
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_mv from '{file_path}' to '{target_path}'.")
+        logger.exception(
+            f"An unexpected error occurred during mega_mv from '{file_path}' to '{target_path}'."
+        )
 
 
 ###############################################################################
@@ -810,14 +820,20 @@ async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
 
         if response.return_code != 0 or response.stderr:
             error_msg = response.stderr if response.stderr else response.stdout
-            logger.error(f"Error removing file '{file}' with flags '{flags}': {error_msg}")
+            logger.error(
+                f"Error removing file '{file}' with flags '{flags}': {error_msg}"
+            )
             return
 
         logger.info(f"Successfully removed '{file}' with flags '{flags}'")
     except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_rm for '{file}' with flags '{flags}': {e}")
+        logger.error(
+            f"MegaCmdError during mega_rm for '{file}' with flags '{flags}': {e}"
+        )
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_rm for '{file}' with flags '{flags}'.")
+        logger.exception(
+            f"An unexpected error occurred during mega_rm for '{file}' with flags '{flags}'."
+        )
 
 
 ###############################################################################
@@ -865,15 +881,22 @@ async def mega_put(
 
         if response.return_code != 0 or response.stderr:
             error_msg = response.stderr if response.stderr else response.stdout
-            logger.error(f"Error uploading files '{local_path}' to '{target_path}': {error_msg}")
+            logger.error(
+                f"Error uploading files '{local_path}' to '{target_path}': {error_msg}"
+            )
             return
 
-        logger.info(f"Successfully initiated upload of '{local_path}' to '{target_path}'")
+        logger.info(
+            f"Successfully initiated upload of '{local_path}' to '{target_path}'"
+        )
     except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_put from '{local_path}' to '{target_path}': {e}")
+        logger.error(
+            f"MegaCmdError during mega_put from '{local_path}' to '{target_path}': {e}"
+        )
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_put from '{local_path}' to '{target_path}'.")
-
+        logger.exception(
+            f"An unexpected error occurred during mega_put from '{local_path}' to '{target_path}'."
+        )
 
 
 ###############################################################################
@@ -907,12 +930,13 @@ async def mega_get(
 
     if is_dir and merge:
         cmd.append("-m")
-        logger.info(f"Downloading directory '{remote_path}' to '{target_path}' with merge option.")
+        logger.info(
+            f"Downloading directory '{remote_path}' to '{target_path}' with merge option."
+        )
     elif is_dir:
         logger.info(f"Downloading directory '{remote_path}' to '{target_path}'.")
     else:
         logger.info(f"Downloading file '{remote_path}' to '{target_path}'.")
-
 
     # Append remote path
     cmd.append(remote_path)
@@ -920,7 +944,9 @@ async def mega_get(
     # TODO Check that the path is writable and has the correct permissions
     if not target_path:
         target_path = str(Path.home())
-        logger.info(f"Target local path not specified, defaulting to home directory: {target_path}")
+        logger.info(
+            f"Target local path not specified, defaulting to home directory: {target_path}"
+        )
 
     cmd.append(target_path)
 
@@ -932,8 +958,14 @@ async def mega_get(
             logger.error(f"Error downloading in '{target_path}': {error_msg}")
             return
 
-        logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
+        logger.info(
+            f"Successfully initiated download of '{remote_path}' to '{target_path}'"
+        )
     except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_get from '{remote_path}' to '{target_path}': {e}")
+        logger.error(
+            f"MegaCmdError during mega_get from '{remote_path}' to '{target_path}': {e}"
+        )
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'.")
+        logger.exception(
+            f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'."
+        )
