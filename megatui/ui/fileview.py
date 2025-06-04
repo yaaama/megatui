@@ -51,17 +51,30 @@ class FileList(DataTable[Text]):
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
         self.show_header = True  # Or False, depending on your preference
+        self.zebra_stripes = True
         self.show_cursor = True
         self.cursor_type = "row"  # Highlight the whole row
+        # self.fixed_columns = len(self.COLUMNS)
 
+        column_definitions = {
+            "Icon": {"label": "", "width": 2}, # Icon column takes 4 chars (e.g., "📁 ")
+            "Name": {"label": "Name", "width": 50}, # 1 fractional unit means it takes all available space
+            "Modified": {"label": "Modified", "width": 20,}, # e.g., "2023-10-27 15:30:00"
+            "Size": {"label": "Size", "width": 10}, # e.g., "10.24 GB"
+        }
 
-        # Add columns during initialisation
+        # Add columns during initialisation with specified widths
         for col_name in self.COLUMNS:
-            if col_name == "Icon":
-                self.add_column(label="", key=col_name.lower())
-                continue
+            config = column_definitions.get(col_name)
 
-            self.add_column(label=col_name, key=col_name.lower())
+            if config:
+                self.add_column(
+                    label=str(config["label"]),
+                    key=col_name.lower(),
+                    width=int(config["width"]), # Apply the width here
+                )
+            else:
+                self.add_column(label=col_name, key=col_name.lower())
 
 
     ###################################################################
@@ -106,9 +119,9 @@ class FileList(DataTable[Text]):
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
-            name_str : Text = Text(item_data.name)
+            name_str : Text = Text(item_data.name, overflow="ellipsis")
             mtime_str : Text = Text(item_data.mtime)
-            icon_str : Text = Text("📁" if item_data.is_dir() else "📄")
+            icon_str : Text = Text("📁" if item_data.is_dir() else "📄",)
             fsize_str: Text
             if item_data.is_file():
                 fsize_str = Text(
@@ -138,7 +151,7 @@ class FileList(DataTable[Text]):
 
     async def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
-        self.app.log.info(
+        self.log.info(
             f"FileList.load_directory: Received request for path='{path}'"
         )
 

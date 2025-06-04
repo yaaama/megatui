@@ -4,24 +4,6 @@ Screen {
     layers: base status; /* Define layers */
 }
 
-#main-container {
-    /* Occupies the main screen area */
-    width: 1fr;
-    height: 1fr;
-    /* layer: base; */
-    /* Use grid for layout */
-    grid-size: 2; /* For two columns like ranger */
-    grid-gutter: 1 2;
-}
-
-#file-list {
-    width: 1fr; /* Take full width for now */
-    /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
-    height: 100%; /* Fill the container height */
-    border: round $accent; /* Add a border */
-    /* layer: base; /\* Belongs to the base layer *\/ */
-}
-
 #status-bar {
     /* dock: top; */
     height: 1;
@@ -66,76 +48,52 @@ Footer {
     /* layer: log_layer; */
 }
 
-/* FileList (DataTable) Styling */
+
+
+#file-list {
+    width: 1fr; /* Take full width for now */
+    /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
+    height: 1fr; /* Fill the container height */
+    border: round $primary; /* Add a border */
+    /* layer: base; /\* Belongs to the base layer *\/ */
+    padding: 0 0;
+}
+
+/* Target the FileList widget itself if you want to style its overall container */
 FileList {
+    /* background: #1e1e1e; /\* Dark background *\/ */
+    /* border: heavy steelblue; */
+    border-title-align: left;
+    width: 1fr; /* Occupy available width */
+    height: 1fr; /* Occupy available height */
+}
+
+/* --- DataTable Header Styling --- */
+
+/* Target the entire header row container within a FileList */
+FileList > .DataTable-header {
+    background: #005f87; /* A nice dark blue for the header background */
+    color: white; /* White text for headers */
+    height: 1; /* Keep the header compact, one line tall */
     width: 1fr;
-    height: 1fr;
-    border: round $primary; /* Use a variable from your app's theme or a direct color */
-    /* Add some internal padding to the DataTable itself if needed,
-        though cell padding is usually more effective for row content. */
-    /* padding: 0 1; */
+    align-vertical: middle; /* Vertically align text in the middle */
+    border-bottom: heavy dodgerblue; /* A strong line under the header */
 }
 
-FileList .datatable--header {
-    background: $primary-background;
-    color: $text;
-    text-style: bold;
-    /* Add padding to header cells */
-    padding: 0 1; /* Vertical padding 0, Horizontal padding 1 */
+
+/* Target each individual column header cell */
+FileList > .DataTable-header > .DataTable-column-header {
+    background: #0077ab; /* Slightly lighter blue for individual cells */
+    color: #e0e0e0; /* Off-white text */
+    text-align: center; /* Center the text in each header cell */
+    text-style: bold; /* Make the header text bold */
+    padding: 0 1; /* Add some horizontal padding */
+    width: 1fr;
+    border-right: thick #005f87; /* A subtle separator between columns */
 }
 
-FileList .datatable--header-key--selected {
-    background: $primary-darken-2; /* Or another distinct color for sorted column */
+/* Optional: Style the last column header differently (no right border) */
+FileList > .DataTable-header > .DataTable-column-header:last-child {
+    border-right: none;
 }
 
-/* Styling for ALL data rows */
-FileList .datatable--row {
-    /* background: $surface-lighten-1; */ /* Example background for rows */
-    /* color: $text; */
-    /*
-        Instead of padding the whole row, we'll pad individual cells.
-        This gives more control if some cells need different padding.
-        */
-}
-
-/* Styling for the CURSOR row (selected row) */
-FileList .datatable--row.--cursor {
-    background: $secondary; /* A distinct background for the cursor */
-    color: $text-accent; /* Ensure text is readable on the cursor background */
-    text-style: bold;
-}
-
-/* --- Styling for individual cells for better spacing --- */
-/* Default padding for all data cells */
-FileList .datatable--cell {
-    padding: 0 1; /* Vertical padding 0, Horizontal padding 1. Adjust as needed. */
-    /* Try `padding: 0 2;` for more horizontal space. */
-}
-
-/* Icon column */
-FileList .datatable--cell-icon {
-    width: 2; /* Icon (1) + space (1) + padding (1+1) = 4. Or just `width: auto;` and let padding control it. */
-    /* If using `width: auto;`, ensure icon itself doesn't cause too much width. */
-    text-align: right;
-    /* Override default cell padding if needed, e.g., less horizontal padding for icon */
-    /* padding: 0 0 0 1; */ /* Example: only left padding */
-}
-
-/* Name column - let it take up flexible space */
-FileList .datatable--cell-name {
-    width: 1fr; /* Takes remaining available width */
-}
-
-/* Modified column */
-FileList .datatable--cell-modified {
-    width: 22; /* Increased width to accommodate "DDMonYYYY HH:MM:SS" and padding */
-    /* e.g., "22Jan2025 14:08:10" is 18 chars. Add padding (1+1)*2 = 4. Total ~22 */
-    text-align: left; /* Or center, or right, depending on preference */
-}
-
-/* Size column */
-FileList .datatable--cell-size {
-    width: 15; /* Increased width for "XX.YY UU" (e.g., "100.00 MB") and padding */
-    /* e.g., "123.45 GB" is 9 chars. Add padding (1+1)*2 = 4. Total ~13-15 */
-    text-align: right;
-}

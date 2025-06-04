@@ -57,8 +57,7 @@ class MegaAppTUI(App[str]):
                 yield Label(f"Path: {self.current_mega_path}", id="status-path")
                 yield Label(self.status_message, id="status-message")
 
-            with Horizontal(id="main-container"):
-                yield FileList(id="file-list")
+            yield FileList(id="file-list")
                 # Placeholder for preview
                 # yield Static("Preview", id="preview-pane")
 
