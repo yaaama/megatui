@@ -308,9 +308,6 @@ class MegaCmdResponse:
         return False
 
 
-# Alias
-MCResponse = MegaCmdResponse
-
 # Default 'ls -l --show-handles' regular expression.
 LS_REGEXP = re.compile(
     r"^([^\s]{4})\s+"  #  Flags: Can be either alphabetical or a hyphen
@@ -517,7 +514,7 @@ async def mega_ls(
 
     cmd.append(target_path)
 
-    response: MCResponse = await run_megacmd(tuple(cmd))
+    response: MegaCmdResponse = await run_megacmd(tuple(cmd))
 
     if response.return_code != 0 or response.stderr:
         error_msg = response.stderr if response.stderr else response.stdout
