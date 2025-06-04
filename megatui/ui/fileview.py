@@ -5,7 +5,7 @@ import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItems, MegaItem, MegaSizeUnits
 
 from textual import (
-    work,
+    work
 )
 import asyncio
 from typing import Generic, Any
@@ -51,16 +51,19 @@ class FileList(DataTable[Text]):
         self.border_subtitle = "Initializing..."
         self._loading_path = "/"
         self.show_header = True  # Or False, depending on your preference
-        self.zebra_stripes = True
+        self.zebra_stripes = False
         self.show_cursor = True
         self.cursor_type = "row"  # Highlight the whole row
         # self.fixed_columns = len(self.COLUMNS)
 
         column_definitions = {
-            "Icon": {"label": "", "width": 2}, # Icon column takes 4 chars (e.g., "📁 ")
-            "Name": {"label": "Name", "width": 50}, # 1 fractional unit means it takes all available space
-            "Modified": {"label": "Modified", "width": 20,}, # e.g., "2023-10-27 15:30:00"
-            "Size": {"label": "Size", "width": 10}, # e.g., "10.24 GB"
+            "Icon": {"label": "", "width": 2},
+            "Name": {"label": "Name", "width": 50},
+            "Modified": {
+                "label": "Modified",
+                "width": 20,
+            },
+            "Size": {"label": "Size", "width": 10},
         }
 
         # Add columns during initialisation with specified widths
@@ -71,11 +74,10 @@ class FileList(DataTable[Text]):
                 self.add_column(
                     label=str(config["label"]),
                     key=col_name.lower(),
-                    width=int(config["width"]), # Apply the width here
+                    width=int(config["width"]),  # Apply the width here
                 )
             else:
                 self.add_column(label=col_name, key=col_name.lower())
-
 
     ###################################################################
     @work(
@@ -119,17 +121,21 @@ class FileList(DataTable[Text]):
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
-            name_str : Text = Text(item_data.name, overflow="ellipsis")
-            mtime_str : Text = Text(item_data.mtime)
-            icon_str : Text = Text("📁" if item_data.is_dir() else "📄",)
+            name_str: Text = Text(item_data.name, overflow="ellipsis")
+            mtime_str: Text = Text(item_data.mtime)
+            icon_str: Text = Text(
+                "📁" if item_data.is_dir() else "📄",
+            )
             fsize_str: Text
             if item_data.is_file():
                 fsize_str = Text(
-                    f"{item_data.size:.2f} {item_data.size_unit.unit_str()}"
+                  f"{item_data.size:.1f} {item_data.size_unit.unit_str()} "
                 )
+
             else:
                 fsize_str = Text("")
 
+            fsize_str.align("left", 10)
             # Add row to DataTable. The values must match the order of COLUMNS.
             # FIXME Using index as row key
             row_key = str(index)
@@ -151,9 +157,7 @@ class FileList(DataTable[Text]):
 
     async def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
-        self.log.info(
-            f"FileList.load_directory: Received request for path='{path}'"
-        )
+        self.log.info(f"FileList.load_directory: Received request for path='{path}'")
 
         self.log.info(f"Requesting load for directory: {path}")
         self._loading_path = path  # Track the path we are loading
@@ -191,7 +195,7 @@ class FileList(DataTable[Text]):
         if file_count == 0:
             self.post_message(self.EmptyDirectory())
 
-    def get_selected_mega_item(self) -> MegaItem | None:
+    def get_highlighted_megaitem(self) -> MegaItem | None:
         """
         Return the MegaItem corresponding to the currently highlighted row.
         """

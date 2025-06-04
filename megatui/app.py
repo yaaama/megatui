@@ -58,8 +58,8 @@ class MegaAppTUI(App[str]):
                 yield Label(self.status_message, id="status-message")
 
             yield FileList(id="file-list")
-                # Placeholder for preview
-                # yield Static("Preview", id="preview-pane")
+            # Placeholder for preview
+            # yield Static("Preview", id="preview-pane")
 
         # Why does the footer create so many event messages?
         # yield Footer(disabled=True)
@@ -99,7 +99,7 @@ class MegaAppTUI(App[str]):
         self.log.info("Renaming file")
 
         file_list = self.query_one(FileList)
-        selected_item = file_list.get_selected_mega_item()
+        selected_item = file_list.get_highlighted_megaitem()
 
         if not selected_item:
             self.log.error("No highlighted file to rename.")
@@ -134,9 +134,7 @@ class MegaAppTUI(App[str]):
         TODO: Display download status
         """
         file_list = self.query_one(FileList)
-        selected_item_data: MegaItem | None = (
-            file_list.get_selected_mega_item()
-        )  # NEW way to get item
+        selected_item_data: MegaItem | None = file_list.get_highlighted_megaitem()
 
         if selected_item_data is None:
             self.log.debug("Download failed as no file is currently highlighted.")
@@ -152,7 +150,7 @@ class MegaAppTUI(App[str]):
 
     async def action_navigate_in(self) -> None:
         file_list = self.query_one(FileList)
-        selected_item_data = file_list.get_selected_mega_item()
+        selected_item_data = file_list.get_highlighted_megaitem()
 
         # Fail: Selected item is None.
         if selected_item_data is None:
@@ -179,15 +177,14 @@ class MegaAppTUI(App[str]):
 
         file_list = self.query_one(FileList)
         self.log.info(f"Navigating out of directory {self.current_mega_path}")
-        curr_path : str = file_list.curr_path
-
+        curr_path: str = file_list.curr_path
 
         # Avoid going above root "/"
         if curr_path == "/":
             self.status_message = "Already at root! Cannot navigate out."
             return
 
-        parent_path : PurePath = PurePath(curr_path).parent
+        parent_path: PurePath = PurePath(curr_path).parent
 
         self.status_message = f"Entering '{parent_path}'..."
         await file_list.load_directory(str(parent_path))

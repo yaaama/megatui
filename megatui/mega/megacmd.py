@@ -162,6 +162,7 @@ class MegaItem:
     __slots__ = (
         "name",
         "parent_path",
+        "path",
         "bytes",
         "size",
         "size_unit",
@@ -176,6 +177,9 @@ class MegaItem:
 
     parent_path: str
     """ Path of parent directory of file/directory. """
+
+    path : str
+    """ Full path of item. """
 
     bytes: int
     """ Size of file in BYTES, will be 0 for dirs."""
@@ -209,7 +213,6 @@ class MegaItem:
         handle: str,
     ):
 
-        from math import log
 
         self.name = name
         self.parent_path = parent_path
@@ -219,10 +222,18 @@ class MegaItem:
         self.version = version
         self.handle = handle
 
+        self.path = str(self.full_path)
+
+
+        # Human friendly sizing #############################################################
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
             self.size = 0.0
             self.size_unit = MegaSizeUnits.B
             return
+
+
+        # Import log
+        from math import log
 
         # Calculate human friendly sizing
         unit_index: int = min(int(log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
@@ -260,6 +271,7 @@ class MegaItem:
 
     def is_dir(self) -> bool:
         return self.ftype == MegaFileTypes.DIRECTORY
+
 
     @property
     def full_path(self) -> PurePath:
