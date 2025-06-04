@@ -1,24 +1,17 @@
 from pathlib import Path, PurePath
 from typing import override
 
-from textual import log, on, work, messages
+from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import var
-from textual.widgets import Footer, Header, Label
-from megatui.ui.file_action import RenamePopup
-from megatui.ui.file_tree import FileTreeScreen
-from megatui.ui.screens.rename import RenameDialog
+from textual.widgets import Header, Label
 
+from megatui.mega.megacmd import MegaItem, mega_get
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
-
-from megatui.mega.megacmd import (
-    MegaItem,
-    MegaItems,
-    mega_get,
-)
+from megatui.ui.screens.rename import RenameDialog
 
 
 class MegaAppTUI(App[str]):

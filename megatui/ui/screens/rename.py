@@ -6,7 +6,6 @@ from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
-from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
@@ -20,7 +19,7 @@ class RenameDialog(ModalScreen[str]):
     ]
 
     def __init__(
-        self, prompt: str, initial: str | None = None, emoji: str = ":page_facing_up"
+            self, prompt: str, emoji: str, initial: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
 

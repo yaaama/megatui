@@ -24,24 +24,6 @@ Screen {
     content-align: left middle;
 }
 
-/* --- Style the Log Pane --- */
-#log-pane {
-    /* Dock below main content, above status bar/footer */
-    dock: bottom;
-    /* Height: Fixed 10 lines, adjust as needed */
-    height: 10;
-    border: thick $primary;
-    /* Use a higher layer so it docks *above* the status bar */
-    /* layer: log_layer; */
-    /* Start hidden */
-    display: none;
-    /* Add some scrollbar margin if desired */
-    /* scrollbar-gutter: stable; */
-}
-/* --- Class to make the log pane visible --- */
-#log-pane.visible {
-    display: block; /* Change display to make it visible */
-}
 Footer {
     /* Ensure footer is also on a high layer if needed,
            but docking usually handles it */
@@ -79,6 +61,9 @@ RenameDialog Label {
 
 
 
+/*****************************************************************************/
+/*                                 File List                                 */
+/*****************************************************************************/
 
 #file-list {
     width: 1fr; /* Take full width for now */
