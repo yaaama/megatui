@@ -77,6 +77,7 @@ MEGA_COMMANDS_ALL: set[str] = {
     "fuse-enable",
     "preview",
     "whoami",
+    "sync",
 }
 
 MEGA_COMMANDS_SUPPORTED: set[str] = {
