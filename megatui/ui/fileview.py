@@ -14,6 +14,7 @@ from textual.app import ComposeResult
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
+from textual.binding import Binding, BindingType
 
 
 ###########################################################################
@@ -44,6 +45,21 @@ class FileList(DataTable[Text]):
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
 
+    FILE_ACTION_BINDINGS : list[BindingType] = [
+        Binding(key="r", action="refresh", description="Refresh", show=True),
+        Binding(key="R", action="rename_file", description="Rename a file", show=True),
+        Binding(key="space", action="select_node", description="Select file", show=True),
+    ]
+
+    NAVIGATION_BINDINGS : list[BindingType] = [
+        Binding("j", "cursor_down", "Cursor Down", key_display="j"),
+        Binding("k", "cursor_up", "Cursor Up", key_display="k"),
+        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
+        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
+    ]
+
+
+    BINDINGS = NAVIGATION_BINDINGS + FILE_ACTION_BINDINGS
 
     @override
     def on_mount(self) -> None:
@@ -123,8 +139,8 @@ class FileList(DataTable[Text]):
             # Prepare data for each cell in the row
             name_str: Text = Text(item_data.name, overflow="ellipsis")
             mtime_str: Text = Text(item_data.mtime)
-            icon_str: Text = Text(
-                "📁" if item_data.is_dir() else "📄",
+            icon_str: Text = Text.from_markup(
+                ":file_folder:" if item_data.is_dir() else ":page_facing_up:",
             )
             fsize_str: Text
             if item_data.is_file():

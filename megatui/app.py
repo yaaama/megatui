@@ -23,16 +23,7 @@ class MegaAppTUI(App[str]):
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
-        Binding("r", "refresh", "Refresh List", key_display="r"),
-        Binding("R", "rename_file", "rename", key_display="R"),
-        Binding("j", "cursor_down", "Cursor Down", key_display="j"),
-        Binding("k", "cursor_up", "Cursor Up", key_display="k"),
-        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
-        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
-        Binding("f3", "download", "download", key_display="f3"),
-        Binding("f", "push_screen('filetree')", "filetree"),
-        # Add other bindings
     ]
 
     status_message: var[str] = var("Logged in.")
@@ -102,8 +93,8 @@ class MegaAppTUI(App[str]):
         self.push_screen(
             RenameDialog(
                 prompt=f"Rename {selected_item.name}",
-                initial=selected_item.name,
                 emoji=(":page_facing_up:" if selected_item.is_file() else ":file_folder:"),
+                initial=selected_item.name,
             )
         )
 
