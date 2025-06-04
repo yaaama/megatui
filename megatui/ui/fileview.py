@@ -2,15 +2,16 @@
 from pathlib import PurePath
 from typing import override
 
-import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.ui.screens.rename import RenameDialog
 from rich.text import Text
 from textual import work
 from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
+
+import megatui.mega.megacmd as m
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from megatui.ui.screens.rename import RenameDialog
 
 
 ###########################################################################

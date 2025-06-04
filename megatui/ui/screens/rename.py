@@ -12,14 +12,16 @@ from textual.widgets import Input, Label
 
 
 class RenameDialog(ModalScreen[str]):
-
     BINDINGS = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),
     ]
 
     def __init__(
-            self, prompt: str, emoji: str, initial: str | None = None,
+        self,
+        prompt: str,
+        emoji: str,
+        initial: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
 

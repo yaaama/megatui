@@ -1,9 +1,9 @@
 import asyncio
+import logging
 import re
 import subprocess
 from enum import Enum
-from pathlib import PurePath, Path
-import logging
+from pathlib import Path, PurePath
 
 logging.basicConfig(
     filename="megacmd.log",
@@ -178,7 +178,7 @@ class MegaItem:
     parent_path: str
     """ Path of parent directory of file/directory. """
 
-    path : str
+    path: str
     """ Full path of item. """
 
     bytes: int
@@ -212,8 +212,6 @@ class MegaItem:
         version: int,
         handle: str,
     ):
-
-
         self.name = name
         self.parent_path = parent_path
         self.bytes = size
@@ -224,13 +222,11 @@ class MegaItem:
 
         self.path = str(self.full_path)
 
-
         # Human friendly sizing #############################################################
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
             self.size = 0.0
             self.size_unit = MegaSizeUnits.B
             return
-
 
         # Import log
         from math import log
@@ -272,10 +268,8 @@ class MegaItem:
     def is_dir(self) -> bool:
         return self.ftype == MegaFileTypes.DIRECTORY
 
-
     @property
     def full_path(self) -> PurePath:
-
         folder: PurePath = PurePath(self.parent_path)
         path: PurePath = folder / self.name
         return path
@@ -318,7 +312,6 @@ class MegaMediaInfo:
 
 # Response from running mega commands.
 class MegaCmdResponse:
-
     __slots__ = ("stdout", "stderr", "return_code")
 
     stdout: str
@@ -614,7 +607,6 @@ async def mega_ls(
 
     # Parse the lines we receive
     for line in lines:
-
         parsed_tuple = parse_ls_output(line)
         if parsed_tuple is None:
             logger.warning(f"Warning: Could not parse ls line: '{line}'")
@@ -697,7 +689,7 @@ async def mega_cd(target_path: str = "/"):
         logger.info(f"Successfully changed directory to '{target_path}'")
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during mega_cd for '{target_path}': {e}")
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_cd for '{target_path}'."
         )
@@ -724,7 +716,7 @@ async def mega_pwd() -> str:
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during mega_pwd: {e}")
         return ""
-    except Exception as e:
+    except Exception:
         logger.exception("An unexpected error occurred during mega_pwd.")
         return ""
 
@@ -776,7 +768,7 @@ async def mega_cp(file_path: str, target_path: str) -> None:
         logger.error(
             f"MegaCmdError during mega_cp from '{file_path}' to '{target_path}': {e}"
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_cp from '{file_path}' to '{target_path}'."
         )
@@ -806,7 +798,7 @@ async def mega_mv(file_path: str, target_path: str) -> None:
         logger.error(
             f"MegaCmdError during mega_mv from '{file_path}' to '{target_path}': {e}"
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_mv from '{file_path}' to '{target_path}'."
         )
@@ -842,7 +834,7 @@ async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
         logger.error(
             f"MegaCmdError during mega_rm for '{file}' with flags '{flags}': {e}"
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_rm for '{file}' with flags '{flags}'."
         )
@@ -905,7 +897,7 @@ async def mega_put(
         logger.error(
             f"MegaCmdError during mega_put from '{local_path}' to '{target_path}': {e}"
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_put from '{local_path}' to '{target_path}'."
         )
@@ -977,7 +969,7 @@ async def mega_get(
         logger.error(
             f"MegaCmdError during mega_get from '{remote_path}' to '{target_path}': {e}"
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'."
         )

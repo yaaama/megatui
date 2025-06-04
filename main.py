@@ -4,6 +4,7 @@ import sys
 from megatui.app import MegaAppTUI  # Import the main App class
 from megatui.mega.megacmd import check_mega_login  # Import login check
 
+
 async def run_app() -> None:
     """Checks login and runs the Textual app."""
     # Check login status before starting TUI
@@ -23,6 +24,7 @@ async def run_app() -> None:
     # Start the TUI
     app = MegaAppTUI()
     await app.run_async()
+
 
 if __name__ == "__main__":
     try:
