@@ -1,19 +1,16 @@
 # UI Components Related to Files
+from pathlib import PurePath
 from typing import override
 
 import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItems, MegaItem, MegaSizeUnits
-from pathlib import PurePath
-
-from textual import work
-import asyncio
-from typing import Generic, Any
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from megatui.ui.screens.rename import RenameDialog
 from rich.text import Text
-from textual.app import ComposeResult
+from textual import work
+from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
-from textual.binding import Binding, BindingType
 
 
 ###########################################################################
@@ -134,6 +131,39 @@ class FileList(DataTable[Text]):
         # TODO: Make this send a message to display in the status bar
         # self.status_message = f"Entering '{parent_path}'..."
         await self.load_directory(str(parent_path))
+
+    async def action_refresh(self) -> None:
+        """
+        Refreshes the current working directory.
+        """
+        # TODO Make this send a message to display in the status bar
+        # self.status_message = f"Refreshing '{file_list.curr_path}'..."
+        await self.load_directory(self.curr_path)
+
+    def action_rename_file(self) -> None:
+        """
+        Rename a file.
+        Popup will be shown to prompt the user for the new name.
+
+        TODO: Make this actually rename the file.
+        """
+        self.log.info("Renaming file")
+
+        selected_item = self.get_highlighted_megaitem()
+
+        if not selected_item:
+            self.log.error("No highlighted file to rename.")
+            return
+
+        self.app.push_screen(
+            RenameDialog(
+                prompt=f"Rename {selected_item.name}",
+                emoji=(
+                    ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
+                ),
+                initial=selected_item.name,
+            )
+        )
 
     ###################################################################
     @work(

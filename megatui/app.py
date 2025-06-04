@@ -16,6 +16,7 @@ from megatui.ui.screens.rename import RenameDialog
 
 
 class MegaAppTUI(App[str]):
+
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -65,41 +66,6 @@ class MegaAppTUI(App[str]):
     """
     Actions #############################################################
     """
-
-    async def action_refresh(self) -> None:
-        """
-        Refreshes the current working directory.
-        """
-        file_list = self.query_one(FileList)
-        self.status_message = f"Refreshing '{file_list.curr_path}'..."
-        await file_list.load_directory(file_list.curr_path)
-
-    def action_rename_file(self) -> None:
-        """
-        Rename a file.
-        Popup will be shown to prompt the user for the new name.
-
-        TODO: Make this actually rename the file.
-        TODO: Add keybindings for the new screen.
-        """
-        self.log.info("Renaming file")
-
-        file_list = self.query_one(FileList)
-        selected_item = file_list.get_highlighted_megaitem()
-
-        if not selected_item:
-            self.log.error("No highlighted file to rename.")
-            return
-
-        self.push_screen(
-            RenameDialog(
-                prompt=f"Rename {selected_item.name}",
-                emoji=(
-                    ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
-                ),
-                initial=selected_item.name,
-            )
-        )
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """
