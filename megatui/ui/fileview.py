@@ -3,10 +3,9 @@ from typing import override
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItems, MegaItem, MegaSizeUnits
+from pathlib import PurePath
 
-from textual import (
-    work
-)
+from textual import work
 import asyncio
 from typing import Generic, Any
 from rich.text import Text
@@ -45,19 +44,20 @@ class FileList(DataTable[Text]):
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
 
-    FILE_ACTION_BINDINGS : list[BindingType] = [
+    FILE_ACTION_BINDINGS: list[BindingType] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
         Binding(key="R", action="rename_file", description="Rename a file", show=True),
-        Binding(key="space", action="select_node", description="Select file", show=True),
+        Binding(
+            key="space", action="select_node", description="Select file", show=True
+        ),
     ]
 
-    NAVIGATION_BINDINGS : list[BindingType] = [
+    NAVIGATION_BINDINGS: list[BindingType] = [
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
         Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
     ]
-
 
     BINDINGS = NAVIGATION_BINDINGS + FILE_ACTION_BINDINGS
 
@@ -94,6 +94,46 @@ class FileList(DataTable[Text]):
                 )
             else:
                 self.add_column(label=col_name, key=col_name.lower())
+
+    async def action_navigate_in(self) -> None:
+        """
+        Navigate into a directory.
+        """
+
+        selected_item_data = self.get_highlighted_megaitem()
+        # Fail: Selected item is None.
+        if selected_item_data is None:
+            self.log.debug("Cannot enter directory, selected item is 'None'.")
+            return
+
+        # Fail: Is a regular file
+        if selected_item_data.is_file():  # Check if it's a directory
+            self.log.debug("Cannot enter into a file.")
+            return
+
+        to_enter = selected_item_data.full_path
+        path_str: str = str(to_enter)
+
+        await self.load_directory(path_str)
+
+    async def action_navigate_out(self) -> None:
+        """
+        Navigate to parent directory.
+        """
+        self.log.info(f"Navigating out of directory {self.curr_path}")
+        curr_path: str = self.curr_path
+
+        # Avoid going above root "/"
+        if curr_path == "/":
+            # TODO: Make this send a message to display in the status bar
+            # self.status_message = "Already at root! Cannot navigate out."
+            return
+
+        parent_path: PurePath = PurePath(curr_path).parent
+
+        # TODO: Make this send a message to display in the status bar
+        # self.status_message = f"Entering '{parent_path}'..."
+        await self.load_directory(str(parent_path))
 
     ###################################################################
     @work(
@@ -145,7 +185,7 @@ class FileList(DataTable[Text]):
             fsize_str: Text
             if item_data.is_file():
                 fsize_str = Text(
-                  f"{item_data.size:.1f} {item_data.size_unit.unit_str()} "
+                    f"{item_data.size:.1f} {item_data.size_unit.unit_str()} "
                 )
 
             else:
@@ -168,8 +208,6 @@ class FileList(DataTable[Text]):
             self._row_data_map[row_key] = item_data
 
         self.border_subtitle = f"{len(fetched_items)} items"
-        self.post_message(self.LoadSuccess(path))
-        self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
     async def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""
@@ -208,8 +246,13 @@ class FileList(DataTable[Text]):
         )
         # Call the UI update method on the main thread
         self._update_list_on_success(self._loading_path, fetched_items)
+
         if file_count == 0:
             self.post_message(self.EmptyDirectory())
+            return
+
+        self.post_message(self.LoadSuccess(path))
+        self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
     def get_highlighted_megaitem(self) -> MegaItem | None:
         """

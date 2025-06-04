@@ -9,6 +9,7 @@ from textual.reactive import var
 from textual.widgets import Header, Label
 
 from megatui.mega.megacmd import MegaItem, mega_get
+
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
 from megatui.ui.screens.rename import RenameDialog
@@ -93,7 +94,9 @@ class MegaAppTUI(App[str]):
         self.push_screen(
             RenameDialog(
                 prompt=f"Rename {selected_item.name}",
-                emoji=(":page_facing_up:" if selected_item.is_file() else ":file_folder:"),
+                emoji=(
+                    ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
+                ),
                 initial=selected_item.name,
             )
         )
@@ -139,60 +142,10 @@ class MegaAppTUI(App[str]):
         self.status_message = f"Downloading '{selected_item_data.name}'"
         await self.download_files(download_items)
 
-    async def action_navigate_in(self) -> None:
-        file_list = self.query_one(FileList)
-        selected_item_data = file_list.get_highlighted_megaitem()
-
-        # Fail: Selected item is None.
-        if selected_item_data is None:
-            self.log.debug("Cannot enter directory, selected item is 'None'.")
-            self.status_message = "Cannot navigate into this!"
-            return
-
-        # Fail: Is a regular file
-        if selected_item_data.is_file():  # Check if it's a directory
-            self.log.debug("Cannot enter into a file.")
-            self.status_message = f"Node must be a directory to enter into it."
-            return
-
-        to_enter = selected_item_data.full_path
-        path_str: str = str(to_enter)
-
-        await file_list.load_directory(path_str)
-        self.current_mega_path = path_str
-
-    async def action_navigate_out(self) -> None:
-        """
-        Navigate to parent directory.
-        """
-
-        file_list = self.query_one(FileList)
-        self.log.info(f"Navigating out of directory {self.current_mega_path}")
-        curr_path: str = file_list.curr_path
-
-        # Avoid going above root "/"
-        if curr_path == "/":
-            self.status_message = "Already at root! Cannot navigate out."
-            return
-
-        parent_path: PurePath = PurePath(curr_path).parent
-
-        self.status_message = f"Entering '{parent_path}'..."
-        await file_list.load_directory(str(parent_path))
-        self.current_mega_path = str(parent_path)
-
     def action_toggle_darkmode(self) -> None:
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
-
-    def action_cursor_up(self) -> None:
-        """Move the cursor up in the file list."""
-        self.query_one(FileList).action_cursor_up()
-
-    def action_cursor_down(self) -> None:
-        """Move the cursor down in the file list."""
-        self.query_one(FileList).action_cursor_down()
 
     """
     # Watchers ################################################################
