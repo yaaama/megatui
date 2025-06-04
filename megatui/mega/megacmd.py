@@ -777,7 +777,7 @@ async def mega_get(
 
     if not remote_path:
         print("Error! We need a remote path.")
-        return
+        raise MegaLibError("Remote path not specified!", fatal=False)
 
     # Optional args
     if queue:
