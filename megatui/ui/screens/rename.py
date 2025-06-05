@@ -9,9 +9,17 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
+from megatui.mega.megacmd import MegaItem
+from typing import TypedDict
 
 
-class RenameDialog(ModalScreen[str]):
+class NodeInfoDict(TypedDict):
+    name: str
+    path: str
+    handle: str
+
+
+class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
     BINDINGS = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),
@@ -19,27 +27,33 @@ class RenameDialog(ModalScreen[str]):
 
     def __init__(
         self,
-        prompt: str,
-        emoji: str,
-        initial: str | None = None,
+        popup_prompt: str,
+        emoji_markup_prepended: str,
+        node_info: NodeInfoDict,
+        initial_input: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
 
         Args:
-            prompt: The prompt for the input.
-            initial: The initial value for the input.
+            popup_prompt: The prompt for the input.
+            emoji_prepended: Emoji to prepend the prompt.
+            item_info: A dictionary containing 'name', 'handle', and 'path' for the item.
+            initial_input: The initial value for the input box.
         """
         super().__init__()
-        self._emoji = emoji
+        self._emoji = emoji_markup_prepended
         """ Emoji to prepend the prompt. """
-        self._prompt = prompt
+        self._prompt = popup_prompt
         """ Label to display above input box. """
-        self._initial = initial
+        self._initial = initial_input
         """ The initial value to use for the input."""
 
         txt = f"{self._emoji} {self._prompt}"
         self.prompt: Text = Text.from_markup(txt)
         """ Calculated prompt text. """
+
+        self._node_info = node_info
+
 
     @override
     def compose(self) -> ComposeResult:
@@ -55,9 +69,10 @@ class RenameDialog(ModalScreen[str]):
             )
 
     @on(Input.Submitted, "#input-rename-file")
-    def action_submit_rename(self) -> str | None:
+    def action_submit_rename(self) -> tuple[str, NodeInfoDict] | None:
         if value := self.query_one(Input).value.strip():
-            self.dismiss(result=value)
+            self.dismiss(result=(value, self._node_info))
+
 
     def action_close_window(self) -> None:
         self.app.pop_screen()

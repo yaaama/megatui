@@ -142,14 +142,20 @@ class FileList(DataTable[Text]):
         self.post_message(StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0))
         await self.load_directory(self.curr_path)
 
-    def action_rename_file(self) -> None:
+    @work(
+        exclusive=True,
+        group="megacmd",
+        name="file_rename",
+        description="Renaming file.",
+    )
+    async def action_rename_file(self) -> None:
         """
         Rename a file.
         Popup will be shown to prompt the user for the new name.
 
         TODO: Make this actually rename the file.
         """
-        self.log.info("Renaming file")
+        self.log.info("Renaming file.")
 
         selected_item = self.get_highlighted_megaitem()
 
@@ -157,14 +163,44 @@ class FileList(DataTable[Text]):
             self.log.error("No highlighted file to rename.")
             return
 
-        self.app.push_screen(
+        node_path: str = selected_item.path
+
+        assert node_path != "/", "Cannot rename the root directory."
+
+        # Build our dict of information about file being renamed
+        node_info: NodeInfoDict = {
+            "name": selected_item.name,
+            "path": selected_item.path,
+            "handle": selected_item.handle,
+        }
+
+        async def file_rename(result: tuple[str, NodeInfoDict] | None) -> None:
+            if not result:
+                self.log.error("Invalid result!")
+                return
+            if not result[0] or not result[1]:
+                self.log.error("Invalid result!")
+                return
+
+            new_name: str
+            node: NodeInfoDict
+            new_name, node = result
+            assert new_name and node, f"Empty name {new_name} or empty node: {node}."
+            self.log.info(f"Renaming file `{node["name"]}` to `{new_name}`")
+            file_path: str = node["path"]
+            await m.node_rename(file_path, new_name)
+            await self.action_refresh()
+
+        await self.app.push_screen(
             RenameDialog(
-                prompt=f"Rename {selected_item.name}",
-                emoji=(
+                popup_prompt=f"Rename {selected_item.name}",
+                node_info=node_info,
+                emoji_markup_prepended=(
                     ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
                 ),
-                initial=selected_item.name,
-            )
+                initial_input=selected_item.name,
+            ),
+            callback=file_rename,
         )
 
     ###################################################################
