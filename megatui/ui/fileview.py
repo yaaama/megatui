@@ -9,7 +9,9 @@ from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
 
+
 import megatui.mega.megacmd as m
+from megatui.messages import UpdateStatusMsg
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.ui.screens.rename import RenameDialog
 
@@ -123,22 +125,23 @@ class FileList(DataTable[Text]):
 
         # Avoid going above root "/"
         if curr_path == "/":
-            # TODO: Make this send a message to display in the status bar
-            # self.status_message = "Already at root! Cannot navigate out."
+            self.post_message(
+                UpdateStatusMsg(
+                    "Cannot navigate out any further, you're already at '/'"
+                )
+            )
             return
 
         parent_path: PurePath = PurePath(curr_path).parent
 
-        # TODO: Make this send a message to display in the status bar
-        # self.status_message = f"Entering '{parent_path}'..."
+        self.post_message(UpdateStatusMsg(f"Entering '{parent_path}'..."))
         await self.load_directory(str(parent_path))
 
     async def action_refresh(self) -> None:
         """
         Refreshes the current working directory.
         """
-        # TODO Make this send a message to display in the status bar
-        # self.status_message = f"Refreshing '{file_list.curr_path}'..."
+        self.post_message(UpdateStatusMsg(f"Refreshing '{self.curr_path}'..."))
         await self.load_directory(self.curr_path)
 
     def action_rename_file(self) -> None:
@@ -290,6 +293,7 @@ class FileList(DataTable[Text]):
         Return the MegaItem corresponding to the currently highlighted row.
         """
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
+            self.log.info("No highlighted item available to return.")
             return None
         try:
             # DataTable's coordinate system is (row, column)

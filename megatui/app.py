@@ -7,11 +7,13 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import var
 from textual.widgets import Header, Label
+from rich.text import Text
 
 from megatui.mega.megacmd import MegaItem, mega_get
 
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
+from megatui.messages import UpdateStatusMsg
 
 
 class MegaAppTUI(App[str]):
@@ -123,7 +125,7 @@ class MegaAppTUI(App[str]):
         # Use query to find the label and update it
         try:
             status_label = self.query_one("#status-message", Label)
-            status_label.update(new_message)
+            status_label.update(Text.from_markup(new_message))
             status_label.set_timer(delay=6, callback=self.clear_status_message)
         except Exception:
             # Do nothing
@@ -138,6 +140,11 @@ class MegaAppTUI(App[str]):
     """
     # Message Handlers ###########################################################
     """
+
+    @on(UpdateStatusMsg)
+    def update_status_message(self, message: UpdateStatusMsg):
+        self.status_message = message.message
+
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:

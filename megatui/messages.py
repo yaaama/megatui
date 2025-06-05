@@ -9,6 +9,6 @@ class UpdateStatusMsg(Message):
     Message for a widget to update status bar.
     """
 
-    def __init__(self, message : str | Text) -> None:
+    def __init__(self, message : str) -> None:
         super().__init__()
         self.message = message
