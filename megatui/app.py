@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import override
 
+from rich.style import Style
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.reactive import var
+from textual.reactive import var, reactive
 from textual.widgets import Header, Label
 from rich.text import Text
 
@@ -13,7 +14,7 @@ from megatui.mega.megacmd import MegaItem, mega_get
 
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
-from megatui.messages import UpdateStatusMsg
+from megatui.messages import StatusUpdate
 
 
 class MegaAppTUI(App[str]):
@@ -41,8 +42,8 @@ class MegaAppTUI(App[str]):
         with Vertical():
             yield Header()
             with Horizontal(id="status-bar"):
-                yield Label(f"Path: {self.current_mega_path}", id="status-path")
-                yield Label(self.status_message, id="status-message")
+                yield Label(f"Path: {self.current_mega_path}", id="label-path")
+                yield Label(self.status_message, id="label-status-msg")
 
             yield FileList(id="file-list")
             # Placeholder for preview
@@ -119,39 +120,50 @@ class MegaAppTUI(App[str]):
 
     # Watch reactive variables and update UI elements accordingly
     def watch_status_message(self, new_message: str) -> None:
-        """
-        Refresh UI when status bar is updated.
-        """
-        # Use query to find the label and update it
-        try:
-            status_label = self.query_one("#status-message", Label)
-            status_label.update(Text.from_markup(new_message))
-            status_label.set_timer(delay=6, callback=self.clear_status_message)
-        except Exception:
-            # Do nothing
-            pass
+        pass
 
     def clear_status_message(self) -> None:
         """
         Helper to clear the status message.
         """
         self.status_message = ""
+        status_label : Label = self.query_one("#label-status-msg", Label)
+        status_label.update()
+
 
     """
     # Message Handlers ###########################################################
     """
 
-    @on(UpdateStatusMsg)
-    def update_status_message(self, message: UpdateStatusMsg):
+    @on(StatusUpdate)
+    def update_status_message(self, message: StatusUpdate):
+        """
+        Refresh UI when status bar is updated.
+        """
         self.status_message = message.message
 
+        # Use query to find the label and update it
+        try:
+            status_label : Label = self.query_one("#label-status-msg", Label)
+            new_txt: Text = Text.from_markup(self.status_message)
+            new_txt.stylize(Style(italic=True, blink=True))
+
+            status_label.update(new_txt)
+            status_label.set_timer(
+                delay=message.timeout if message.timeout > 0 else 10,
+                callback=self.clear_status_message,
+            )
+
+
+        except Exception:
+            # Do nothing
+            pass
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
-        path_label = self.query_one("#status-path", Label)
-        path_label.update(f"Path: {message.new_path}")
-        self.status_message = f"Loaded '{message.new_path}'"
+        path_label = self.query_one("#label-path", Label)
+        path_label.update(f"{message.new_path}")
         self.current_mega_path = message.new_path
 
     @on(FileList.LoadError)
@@ -164,4 +176,4 @@ class MegaAppTUI(App[str]):
 
     @on(FileList.EmptyDirectory)
     def on_file_list_empty_directory(self) -> None:
-        self.status_message = "Empty directory."
+        self.status_message = "Empty directory!"

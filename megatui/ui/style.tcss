@@ -17,10 +17,10 @@ Screen {
 #status-bar Label {
     width: 1fr; /* Make labels fill available space */
 }
-#status-message {
-    content-align: right middle;
+#label-status-msg {
+    content-align: center middle;
 }
-#status-path {
+#label-path {
     content-align: left middle;
 }
 
