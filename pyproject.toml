@@ -8,9 +8,7 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-asyncio>=1.0.0",
     "pytest-mock>=3.14.1",
-    "scalene>=1.5.51",
     "textual-dev>=1.7.0",
-    "textual[dev]>=3.1.0",
 ]
 
 # Add this section to explicitly tell setuptools where to find your package(s)
@@ -58,7 +56,7 @@ line-ending = "auto"
 #
 # This is currently disabled by default, but it is planned for this
 # to be opt-out in the future.
-docstring-code-format = false
+docstring-code-format = true
 
 # Set the line length limit used when formatting code snippets in
 # docstrings.
