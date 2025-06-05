@@ -11,9 +11,9 @@ from textual.worker import Worker  # Import worker types
 
 
 import megatui.mega.megacmd as m
-from megatui.messages import UpdateStatusMsg
+from megatui.messages import StatusUpdate
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.ui.screens.rename import RenameDialog
+from megatui.ui.screens.rename import RenameDialog, NodeInfoDict
 
 
 ###########################################################################
@@ -114,6 +114,7 @@ class FileList(DataTable[Text]):
         to_enter = selected_item_data.full_path
         path_str: str = str(to_enter)
 
+        self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
         await self.load_directory(path_str)
 
     async def action_navigate_out(self) -> None:
@@ -126,22 +127,19 @@ class FileList(DataTable[Text]):
         # Avoid going above root "/"
         if curr_path == "/":
             self.post_message(
-                UpdateStatusMsg(
-                    "Cannot navigate out any further, you're already at '/'"
-                )
+                StatusUpdate("Cannot navigate out any further, you're already at '/'")
             )
             return
 
         parent_path: PurePath = PurePath(curr_path).parent
 
-        self.post_message(UpdateStatusMsg(f"Entering '{parent_path}'..."))
         await self.load_directory(str(parent_path))
 
     async def action_refresh(self) -> None:
         """
         Refreshes the current working directory.
         """
-        self.post_message(UpdateStatusMsg(f"Refreshing '{self.curr_path}'..."))
+        self.post_message(StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0))
         await self.load_directory(self.curr_path)
 
     def action_rename_file(self) -> None:
@@ -281,12 +279,14 @@ class FileList(DataTable[Text]):
         # Call the UI update method on the main thread
         self._update_list_on_success(self._loading_path, fetched_items)
 
+        # We have successfully loaded the path
+        # self.post_message(self.LoadSuccess(path))
+        # Path *successfully* changed
+        self.post_message(self.PathChanged(path))
+
+        # If the count is 0 send a status update
         if file_count == 0:
             self.post_message(self.EmptyDirectory())
-            return
-
-        self.post_message(self.LoadSuccess(path))
-        self.post_message(self.PathChanged(path))  # Path *successfully* changed
 
     def get_highlighted_megaitem(self) -> MegaItem | None:
         """
