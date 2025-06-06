@@ -654,7 +654,7 @@ async def mega_ls(
 
 ###############################################################################
 async def mega_du(
-    dir: str = "/",
+    dir_path: str = "/",
     recurse: bool = True,
     units: MegaSizeUnits = MegaSizeUnits.MB,
 ):
