@@ -1,8 +1,6 @@
 # Global Messages
 #
 from textual.message import Message
-from rich.text import Text
-
 
 NOTIF_TYPES: set[str] = {"info", "err", "warn", "op", "done"}
 
@@ -30,7 +28,6 @@ class Notification(Message):
         markup: bool = False,
         timeout: int | None = None,
     ):
-
         super().__init__()
         # Assign notification kind, defaults to "info" if bad value
         if notif_type in NOTIF_TYPES:

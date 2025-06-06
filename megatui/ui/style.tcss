@@ -1,5 +1,30 @@
 /* ;;; -*- mode: css-ts; -*- * */
 
+/* Colours:
+ * $primary
+The primary color, can be considered the branding color. Typically used for titles, and backgrounds for strong emphasis.
+ * $secondary
+An alternative branding color, used for similar purposes as $primary, where an app needs to differentiate something from the primary color.
+ * $foreground
+The default text color, which should be legible on $background, $surface, and $panel.
+ * $background
+A color used for the background, where there is no content. Used as the default background color for screens.
+ * $surface
+The default background color of widgets, typically sitting on top of $background.
+ * $panel
+A color used to differentiate a part of the UI form the main content. Used sparingly in Textual itself.
+ * $boost
+A color with alpha that can be used to create layers on a background.
+ * $warning
+Indicates a warning. Typically used as a background color. $text-warning can be used for foreground.
+ * $error
+Indicates an error. Typically used as a background color. $text-error can be used for foreground.
+ * $success
+Used to indicate success. Typically used as a background color. $text-success can be used for foreground.
+ * $accent
+Used sparingly to draw attention. Typically contrasts with $primary and $secondary.
+*/
+
 Screen {
     layers: base status; /* Define layers */
 }
@@ -8,7 +33,7 @@ Screen {
     /* dock: top; */
     height: 1;
     background: initial;
-    /* color: blue; */
+    color: $panel;
     padding: 0 1;
     /* layer: status; /\* Belongs to the status layer *\/ */
     width: 100%; /* Ensure it spans the width */
@@ -16,9 +41,12 @@ Screen {
 }
 #status-bar Label {
     width: 1fr; /* Make labels fill available space */
+    color: $panel;
 }
 #label-status-msg {
     content-align: center middle;
+    color: $primary;
+    foreground: $foreground;
 }
 #label-path {
     content-align: left middle;
@@ -59,8 +87,6 @@ RenameDialog Label {
     margin-left: 2;
 }
 
-
-
 /*****************************************************************************/
 /*                                 File List                                 */
 /*****************************************************************************/
@@ -95,7 +121,6 @@ FileList > .DataTable-header {
     border-bottom: heavy dodgerblue; /* A strong line under the header */
 }
 
-
 /* Target each individual column header cell */
 FileList > .DataTable-header > .DataTable-column-header {
     background: #0077ab; /* Slightly lighter blue for individual cells */
@@ -111,4 +136,3 @@ FileList > .DataTable-header > .DataTable-column-header {
 FileList > .DataTable-header > .DataTable-column-header:last-child {
     border-right: none;
 }
-

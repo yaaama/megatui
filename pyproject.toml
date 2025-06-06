@@ -67,7 +67,11 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/rules/
-select = ["E", "F", "W", "C", "I"]
+# General
+select = ["E", "F", "I", "C4", "C", "SIM",  "B", "A", "ASYNC", "PERF", "RUF"]
+# Extra long
+# select = ["ASYNC", "B", "A", "C4", "Q", "RET", "SIM", "SLOT", "TD", "TC",
+# "PERF", "I", "D", "DOC", "F", "PL", "UP", "FURB", "RUF", "TRY"]
 ignore = [
     "C901",  # McCabe complexity warning
     "E501",  # Line too long
@@ -89,13 +93,14 @@ exclude = ["**/node_modules",
     "src/typestubs"
 ]
 # ignore = ["src/oldstuff"]
-defineConstant = { DEBUG = true }
 # stubPath = "src/stubs"
 
+defineConstant = { DEBUG = true }
 reportMissingImports = "error"
 reportMissingTypeStubs = false
 reportUnusedCallResult = false
 reportUnannotatedClassAttribute = false
+reportUnreachable = false
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"

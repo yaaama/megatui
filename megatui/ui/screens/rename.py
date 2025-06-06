@@ -1,5 +1,5 @@
 # Rename popup
-from typing import override
+from typing import TypedDict, override
 
 from rich.text import Text
 from textual import on
@@ -9,8 +9,6 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
-from megatui.mega.megacmd import MegaItem
-from typing import TypedDict
 
 
 class NodeInfoDict(TypedDict):
@@ -53,7 +51,7 @@ class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
         """ Calculated prompt text. """
 
         self._node_info = node_info
-
+        """ Information about the node being renamed. """
 
     @override
     def compose(self) -> ComposeResult:
@@ -72,7 +70,6 @@ class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
     def action_submit_rename(self) -> tuple[str, NodeInfoDict] | None:
         if value := self.query_one(Input).value.strip():
             self.dismiss(result=(value, self._node_info))
-
 
     def action_close_window(self) -> None:
         self.app.pop_screen()

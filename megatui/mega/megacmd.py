@@ -86,7 +86,6 @@ MEGA_COMMANDS_ALL: set[str] = {
     "fuse-enable",
     "preview",
     "whoami",
-    "sync",
 }
 
 MEGA_COMMANDS_SUPPORTED: set[str] = {
@@ -160,16 +159,16 @@ class MegaSizeUnits(Enum):
 class MegaItem:
     # Class Variables #################################################
     __slots__ = (
+        "bytes",
+        "ftype",
+        "handle",
+        "mtime",
         "name",
         "parent_path",
         "path",
-        "bytes",
         "size",
         "size_unit",
-        "mtime",
-        "ftype",
         "version",
-        "handle",
     )
 
     name: str  # Name of item
@@ -289,6 +288,8 @@ class MegaItem:
             case MegaSizeUnits.TB:
                 return self.bytes >> 40
 
+        return self.bytes
+
 
 # Alias
 MegaItems = list[MegaItem]
@@ -312,7 +313,7 @@ class MegaMediaInfo:
 
 # Response from running mega commands.
 class MegaCmdResponse:
-    __slots__ = ("stdout", "stderr", "return_code")
+    __slots__ = ("return_code", "stderr", "stdout")
 
     stdout: str
     stderr: str | None
@@ -803,35 +804,31 @@ async def mega_mv(file_path: str, target_path: str) -> None:
             f"An unexpected error occurred during mega_mv from '{file_path}' to '{target_path}'."
         )
 
-async def node_exists(file_path : str) -> bool:
+
+async def node_exists(file_path: str) -> bool:
     ls_result = await mega_ls(path=file_path)
 
-    if len(ls_result) > 0:
-        return True
-
-    return False
+    return len(ls_result) > 0
 
 
-async def node_rename (file_path : str, new_name : str) -> None:
-    assert (file_path and new_name), f"Cannot have empty args: `{file_path}`, `{new_name}`"
+async def node_rename(file_path: str, new_name: str) -> None:
+    assert file_path and new_name, (
+        f"Cannot have empty args: `{file_path}`, `{new_name}`"
+    )
 
-    assert (node_exists (file_path)), f"Node path does not exist: `{file_path}`"
+    assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
-    fpath_pure : PurePath = PurePath(file_path)
+    fpath_pure: PurePath = PurePath(file_path)
 
     # Check if we are at the root path
     if str(fpath_pure) == "/":
         logger.error("Cannot rename root directory!")
-        assert False, "Cannot rename root directory!"
+        raise AssertionError("Cannot rename root directory!")
         return
 
-    fpath_parent : PurePath = fpath_pure.parent
-    new_path : PurePath = PurePath(fpath_pure.parent / new_name)
+    new_path: PurePath = PurePath(fpath_pure.parent / new_name)
 
     await mega_mv(file_path, str(new_path))
-
-
-
 
 
 ###############################################################################
@@ -844,10 +841,7 @@ async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
 
     cmd: tuple[str, ...]
 
-    if flags:
-        cmd = ("rm", file, *flags)
-    else:
-        cmd = ("rm", file)
+    cmd = ("rm", file, *flags) if flags else ("rm", file)
 
     try:
         response = await run_megacmd(cmd)

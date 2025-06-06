@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from megatui.app import MegaAppTUI  # Import the main App class
+from megatui.app import MegaAppTUI
 from megatui.mega.megacmd import check_mega_login  # Import login check
 
 
@@ -23,7 +23,8 @@ async def run_app() -> None:
 
     # Start the TUI
     app = MegaAppTUI()
-    await app.run_async()
+
+    await app.run_async(mouse=False)
 
 
 if __name__ == "__main__":

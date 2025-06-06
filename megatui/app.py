@@ -2,19 +2,19 @@ from pathlib import Path
 from typing import override
 
 from rich.style import Style
+from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.reactive import var, reactive
+from textual.reactive import var
 from textual.widgets import Header, Label
-from rich.text import Text
 
 from megatui.mega.megacmd import MegaItem, mega_get
+from megatui.messages import StatusUpdate
 
 # from megatui.ui.fileitem import FileItem
 from megatui.ui.fileview import FileList
-from megatui.messages import StatusUpdate
 
 
 class MegaAppTUI(App[str]):
@@ -22,7 +22,17 @@ class MegaAppTUI(App[str]):
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
     ENABLE_COMMAND_PALETTE = True
+
     # SCREENS = {"filetree": FileTreeScreen}
+
+    # Causes the app to crash
+    # ansi_color = True
+
+    # Will add css class to our app depending on size of terminal
+    # Up to 80 cells wide, the app has the class "-normal"
+    # 80 - 119 cells wide, the app has the class "-wide"
+    # 120 cells or wider, the app has the class "-very-wide"
+    # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -31,6 +41,8 @@ class MegaAppTUI(App[str]):
 
     status_message: var[str] = var("Logged in.")
     current_mega_path: var[str] = var("/")
+
+    MAX_FPS = 30
 
     # --- UI Composition ---
     @override
@@ -55,8 +67,12 @@ class MegaAppTUI(App[str]):
     async def on_mount(self) -> None:
         """
         Called when the app is mounted.
-        Performs initial load.
+        Performs initial load and some initialisation.
         """
+        # Disable mouse events
+        self.capture_mouse(None)
+        self.theme = "gruvbox"
+
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
 
@@ -127,9 +143,8 @@ class MegaAppTUI(App[str]):
         Helper to clear the status message.
         """
         self.status_message = ""
-        status_label : Label = self.query_one("#label-status-msg", Label)
+        status_label: Label = self.query_one("#label-status-msg", Label)
         status_label.update()
-
 
     """
     # Message Handlers ###########################################################
@@ -144,16 +159,15 @@ class MegaAppTUI(App[str]):
 
         # Use query to find the label and update it
         try:
-            status_label : Label = self.query_one("#label-status-msg", Label)
+            status_label: Label = self.query_one("#label-status-msg", Label)
             new_txt: Text = Text.from_markup(self.status_message)
-            new_txt.stylize(Style(italic=True, blink=True))
+            new_txt.stylize(Style(italic=True))
 
             status_label.update(new_txt)
             status_label.set_timer(
                 delay=message.timeout if message.timeout > 0 else 10,
                 callback=self.clear_status_message,
             )
-
 
         except Exception:
             # Do nothing

@@ -9,11 +9,10 @@ from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
 
-
 import megatui.mega.megacmd as m
-from megatui.messages import StatusUpdate
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.ui.screens.rename import RenameDialog, NodeInfoDict
+from megatui.messages import StatusUpdate
+from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 
 ###########################################################################
@@ -186,7 +185,7 @@ class FileList(DataTable[Text]):
             node: NodeInfoDict
             new_name, node = result
             assert new_name and node, f"Empty name {new_name} or empty node: {node}."
-            self.log.info(f"Renaming file `{node["name"]}` to `{new_name}`")
+            self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
             file_path: str = node["path"]
             await m.node_rename(file_path, new_name)
             await self.action_refresh()
