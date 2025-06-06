@@ -5,6 +5,7 @@ import subprocess
 from enum import Enum
 from pathlib import Path, PurePath
 
+
 logging.basicConfig(
     filename="megacmd.log",
     filemode="a",
@@ -289,7 +290,8 @@ class MegaItem:
 
 
 # Alias
-MegaItems = list[MegaItem]
+# MegaItems = list[MegaItem]
+type MegaItems = list[MegaItem]
 
 
 # TODO
@@ -517,6 +519,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
 
 
 ###########################################################################
+
 
 async def mega_ls(
     path: str | None = "/", flags: tuple[str, ...] | None = None
@@ -802,9 +805,9 @@ async def node_exists(file_path: str) -> bool:
 
 
 async def node_rename(file_path: str, new_name: str) -> None:
-    assert file_path and new_name, (
-        f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    )
+    assert (
+        file_path and new_name
+    ), f"Cannot have empty args: `{file_path}`, `{new_name}`"
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
