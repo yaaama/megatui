@@ -3,8 +3,10 @@ from pathlib import PurePath
 from typing import override
 
 from rich.text import Text
+
 from textual import work
 from textual.binding import Binding, BindingType
+from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
@@ -18,7 +20,7 @@ from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 ###########################################################################
 # FileList
 ###########################################################################
-class FileList(DataTable[Text]):
+class FileList(DataTable[Content]):
     """
     A DataTable widget to display multiple FileItems
     """
@@ -32,16 +34,14 @@ class FileList(DataTable[Text]):
     border_subtitle: str
     """ Border subtitle. """
 
-    curr_path: str = "/"
+    curr_path: str
     """ Current path we are in. """
 
-    _loading_path: str = "/"
-    """ Path we are loading. """
+    _loading_path: str
+    """ Path we are currently loading. """
 
     # TODO We will map items by their 'Handle'
     _row_data_map: dict[str, MegaItem] = {}
-
-    COLUMNS = ["Icon", "Name", "Modified", "Size"]
 
     FILE_ACTION_BINDINGS: list[BindingType] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
@@ -58,20 +58,25 @@ class FileList(DataTable[Text]):
         Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
     ]
 
+    # Assign our binds
     BINDINGS = NAVIGATION_BINDINGS + FILE_ACTION_BINDINGS
 
-    @override
-    def on_mount(self) -> None:
-        self.border_title = "MEGA"
-        self.border_subtitle = "Initializing..."
-        self._loading_path = "/"
-        self.show_header = True  # Or False, depending on your preference
-        self.zebra_stripes = False
-        self.show_cursor = True
-        self.cursor_type = "row"  # Highlight the whole row
+    COLUMNS = ["Icon", "Name", "Modified", "Size"]
+
+    def __init__(self, **args):
+        # Initialise the DataTable widget
+        super().__init__(
+            cursor_type="row",
+            show_cursor=True,
+            show_header=True,
+            zebra_stripes=False,
+            cell_padding=1,
+        )
+
         # self.fixed_columns = len(self.COLUMNS)
 
-        column_definitions = {
+        # Initialise the columns displayed Column and their respective formatting
+        column_formatting = {
             "Icon": {"label": "", "width": 2},
             "Name": {"label": "Name", "width": 50},
             "Modified": {
@@ -82,17 +87,31 @@ class FileList(DataTable[Text]):
         }
 
         # Add columns during initialisation with specified widths
-        for col_name in self.COLUMNS:
-            config = column_definitions.get(col_name)
+        for column in self.COLUMNS:
+            fmt = column_formatting.get(column)
 
-            if config:
+            # If there is a configuration for our column name
+            if fmt:
                 self.add_column(
-                    label=str(config["label"]),
-                    key=col_name.lower(),
-                    width=int(config["width"]),  # Apply the width here
+                    label=str(fmt["label"]),
+                    key=column.lower(),
+                    width=int(fmt["width"]),  # Apply the width here
                 )
+
             else:
-                self.add_column(label=col_name, key=col_name.lower())
+                self.add_column(label=column, key=column.lower())
+
+        # Extra UI Elements
+
+        # TODO: Think of something useful to add here
+        # self.border_title = "MEGA"
+        self.border_subtitle = "Initializing view..."
+        self.curr_path = "/"
+        self._loading_path = self.curr_path
+
+    @override
+    def on_mount(self) -> None:
+        pass
 
     async def action_navigate_in(self) -> None:
         """
