@@ -518,37 +518,6 @@ async def check_mega_login() -> tuple[bool, str | None]:
 
 ###########################################################################
 
-
-def parse_ls_output(line: str) -> tuple[MegaFileTypes, tuple[str, ...]] | None:
-    """
-    Parse output of 'mega-ls' and return a tuple of data.
-    Returned tuple will have first field as 'True' if the file is a directory, else false.
-    Other fields
-
-    """
-    _line: str = line.strip()
-
-    fields: re.Match[str] | None = LS_REGEXP.match(_line)
-
-    if not fields:
-        logger.debug(f"Line did not match LS_REGEXP: '{_line}'")
-        return None
-
-    # Get field values from our regexp matches
-    file_info: tuple[str, ...]
-    file_info = fields.groups()
-    # _flags, _vers, _size, _date, _time, _handle, _name = fields.groups()
-
-    # If flags (first elem) contains 'd' as first elem, then return True
-    if file_info[0][0] == "d":
-        logger.debug(f"Parsed directory: {file_info[-1]}")
-        return (MegaFileTypes.DIRECTORY, file_info)
-
-    else:
-        logger.debug(f"Parsed file: {file_info[-1]}")
-        return (MegaFileTypes.FILE, file_info)
-
-
 async def mega_ls(
     path: str | None = "/", flags: tuple[str, ...] | None = None
 ) -> MegaItems:
@@ -605,10 +574,29 @@ async def mega_ls(
 
     # Parse the lines we receive
     for line in lines:
-        parsed_tuple = parse_ls_output(line)
-        if parsed_tuple is None:
-            logger.warning(f"Warning: Could not parse ls line: '{line}'")
-            continue
+        parsed_tuple : tuple[MegaFileTypes, tuple[str, ...]]
+
+        __line: str = line.strip()
+
+        __fields: re.Match[str] | None = LS_REGEXP.match(__line)
+
+        if not __fields:
+            logger.debug(f"Line did not match LS_REGEXP: '{__line}'")
+            continue;
+
+        # Get field values from our regexp matches
+        __file_info: tuple[str, ...]
+        __file_info = __fields.groups()
+        # _flags, _vers, _size, _date, _time, _handle, _name = fields.groups()
+
+        # If flags (first elem) contains 'd' as first elem, then return True
+        if __file_info[0][0] == "d":
+            logger.debug(f"Parsed directory: {__file_info[-1]}")
+            parsed_tuple = (MegaFileTypes.DIRECTORY, __file_info)
+
+        else:
+            logger.debug(f"Parsed file: {__file_info[-1]}")
+            parsed_tuple = (MegaFileTypes.FILE, __file_info)
 
         _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
 
