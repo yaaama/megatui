@@ -119,3 +119,15 @@ pythonPlatform = "Linux"
 # Local Variables:
 # eval: (jinx-mode 0)
 # End:
+[tool.pyrefly]
+project_excludes = [
+    "**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs",
+]
+python_platform = "linux"
+python_version = "3.13.0"
+
+[tool.pyrefly.errors]
+import-error = true

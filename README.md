@@ -21,30 +21,36 @@ The UI and bindings are inspired by [ranger](https://github.com/ranger/ranger) a
 
 ![megatui screenshot](./assets/screenshot.png)
 
+## Showcase
+
+### Renaming a file
+
+![Renaming a file demonstration](./assets/demo/rename-file.gif)
+
 ## 🪷 Features
 
-As of writing this (_Mon Apr 14 20:27:56 2025_), this project is just a few days
-old. New features will be added very soon!
+As of writing this (_2025-06-06_), work is still ongoing and active.
 
 - **Browse Files:** Navigate through your MEGA cloud drive folders.
 - **Basic Navigation:** Use intuitive keybindings (like `j`/`k`, `h`/`l`, `Enter`/`Backspace`) to move up, down, into, and out of directories.
 - **Directory Listing:** View files and directories within the current path.
 - **Status Bar:** See information about the currently selected item.
 - **Refresh:** Update the current directory view.
+- **Rename file/directories:** Rename files via the app.
 - **Login Check:** Verifies your MEGAcmd login status on startup.
 
 ## ✏️ (Planned / TODO)
 
-- Implement file operations (Get, Put, Rename, Delete, Copy, Move) based on supported `mega-*` commands.
-- Search functionality.
-- Multi-pane views.
-- Caching to improve performance.
-- File Previews (basic info, potentially text content).
-- Display detailed directory/account usage (total storage usage, account details, etc).
-- Robust error handling.
-- Configuration options.
-- Background transfer monitoring.
-- Logging in (with 2FA support), and logging out.
+- [x] Implement file operations (Get, Put, Rename, Delete, Copy, Move) based on supported `mega-*` commands.
+- [ ] Search functionality.
+- [ ] Multi-pane views.
+- [ ] Caching to improve performance.
+- [ ] File Previews (basic info, potentially text content).
+- [ ] Display detailed directory/account usage (total storage usage, account details, etc).
+- [ ] Robust error handling.
+- [ ] Configuration options.
+- [ ] Background transfer monitoring.
+- [ ] Logging in (with 2FA support), and logging out.
 
 ## ⚙️ Installation (Development Only)
 

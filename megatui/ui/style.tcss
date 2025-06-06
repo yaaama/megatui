@@ -46,7 +46,7 @@ Screen {
 #label-status-msg {
     content-align: center middle;
     color: $primary;
-    foreground: $foreground;
+    /* foreground: $foreground; */
 }
 #label-path {
     content-align: left middle;
