@@ -574,38 +574,46 @@ async def mega_ls(
 
     # Parse the lines we receive
     for line in lines:
-        parsed_tuple : tuple[MegaFileTypes, tuple[str, ...]]
 
+        """Parse each line of the ls output"""
+        parsed_tuple: tuple[MegaFileTypes, tuple[str, ...]]
+
+        # Stripped line
         __line: str = line.strip()
 
+        # Fields matched from regular expression
         __fields: re.Match[str] | None = LS_REGEXP.match(__line)
 
+        # If we don't have any values, then we have failed this line
         if not __fields:
             logger.debug(f"Line did not match LS_REGEXP: '{__line}'")
-            continue;
+            continue
 
         # Get field values from our regexp matches
-        __file_info: tuple[str, ...]
-        __file_info = __fields.groups()
-        # _flags, _vers, _size, _date, _time, _handle, _name = fields.groups()
+        __file_info: tuple[str, ...] = __fields.groups()
 
-        # If flags (first elem) contains 'd' as first elem, then return True
+        # If flags (first elem) contains 'd' as first elem, then we have a directory
         if __file_info[0][0] == "d":
             logger.debug(f"Parsed directory: {__file_info[-1]}")
             parsed_tuple = (MegaFileTypes.DIRECTORY, __file_info)
 
         else:
+            # Else it is a regular file
             logger.debug(f"Parsed file: {__file_info[-1]}")
             parsed_tuple = (MegaFileTypes.FILE, __file_info)
 
+        # Tuple values
         _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
+
+        # Parse the handle
+        handle_str: str = _handle[2:] if _handle.startswith("H:") else _handle
 
         # Values to convert
         mtime_str: str = f"{_date} {_time}"
-        handle_str: str
-        item_size: int = 0
-        version: int = 0
+        item_size: int
+        version: int
 
+        # If we have a regular file
         if _file_type == MegaFileTypes.FILE:
             try:
                 item_size = int(_size)
@@ -617,13 +625,10 @@ async def mega_ls(
                 item_size = 0
                 version = 0
 
-        # This must be a directory
+        # Node must be a directory then and so we have no size or version counter
         else:
             item_size = 0
             version = 0
-
-        # Parse the handle
-        handle_str = _handle[2:] if _handle.startswith("H:") else _handle
 
         items.append(
             MegaItem(
