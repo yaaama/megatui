@@ -234,13 +234,10 @@ class MegaItem:
         unit_index: int = min(int(log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
 
         divisor: int
-        if unit_index == 0:
-            divisor = 1
-        else:
-            # calculate 1024^unit_index using shifts
-            # 1 << 10 is 1024 (2^10)
-            # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
-            divisor = 1 << (10 * unit_index)
+        # calculate 1024^unit_index using shifts
+        # 1 << 10 is 1024 (2^10)
+        # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
+        divisor = 1 if (unit_index == 0) else (1 << (10 * unit_index))
 
         # Perform floating point division for the final readable value
         self.size = float(self.bytes) / divisor
