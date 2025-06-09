@@ -26,7 +26,12 @@ Used sparingly to draw attention. Typically contrasts with $primary and $seconda
 */
 
 Screen {
-    layers: base status; /* Define layers */
+    /* layers: base status; /\* Define layers *\/ */
+}
+
+#main {
+    height: 1fr;
+    width: 1fr;
 }
 
 #status-bar {
@@ -43,6 +48,7 @@ Screen {
     width: 1fr; /* Make labels fill available space */
     color: $panel;
 }
+
 #label-status-msg {
     content-align: center middle;
     color: $primary;
@@ -91,48 +97,72 @@ RenameDialog Label {
 /*                                 File List                                 */
 /*****************************************************************************/
 
-#file-list {
-    width: 1fr; /* Take full width for now */
+#file_list {
     /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
-    height: 1fr; /* Fill the container height */
-    border: round $primary; /* Add a border */
     /* layer: base; /\* Belongs to the base layer *\/ */
-    padding: 0 0;
-}
+    /* padding: 0 1; */
 
-/* Target the FileList widget itself if you want to style its overall container */
-FileList {
     /* background: #1e1e1e; /\* Dark background *\/ */
     /* border: heavy steelblue; */
+    border: round $primary; /* Add a border */
     border-title-align: left;
     width: 1fr; /* Occupy available width */
     height: 1fr; /* Occupy available height */
+    border-title-style: bold;
+    border-title-color: $primary; /* Color for the border title */
+    border-subtitle-style: italic;
+    border-subtitle-color: $secondary; /* Slightly dimmer color for subtitle */
 }
 
-/* --- DataTable Header Styling --- */
+#file_list > .datatable--header {
+    /* color: white; */
+    /* border: none; */
+    background: $surface;
 
-/* Target the entire header row container within a FileList */
-FileList > .DataTable-header {
-    background: #005f87; /* A nice dark blue for the header background */
-    color: white; /* White text for headers */
-    height: 1; /* Keep the header compact, one line tall */
-    width: 1fr;
-    align-vertical: middle; /* Vertically align text in the middle */
-    border-bottom: heavy dodgerblue; /* A strong line under the header */
 }
 
-/* Target each individual column header cell */
-FileList > .DataTable-header > .DataTable-column-header {
-    background: #0077ab; /* Slightly lighter blue for individual cells */
-    color: #e0e0e0; /* Off-white text */
-    text-align: center; /* Center the text in each header cell */
-    text-style: bold; /* Make the header text bold */
-    padding: 0 1; /* Add some horizontal padding */
-    width: 1fr;
-    border-right: thick #005f87; /* A subtle separator between columns */
+/* Styling all cells within the header */
+#file_list > .datatable--header .table--cell {
+    text-style: bold; /* Make header text bold */
 }
 
-/* Optional: Style the last column header differently (no right border) */
-FileList > .DataTable-header > .DataTable-column-header:last-child {
-    border-right: none;
+/* Example: Center the 'Icon' column header (if it had text) */
+/* #file_list > .datatable--header .column-key--icon {
+    text-align: center;
+} */
+
+/* Styling the cursor row (the currently selected row) */
+#file_list > .datatable--cursor {
+ /* Highlight background color for the cursor */
+    /* background: $secondary; */
+/* Text color for the cursor row, ensure good contrast */
+    color: $text;
+    /* Optionally, make text on cursor row bold */
+    text-style: bold;
+
+}
+
+/* Styling for the content of cells in the 'Icon' column (data rows) */
+/* This targets the Static widget wrapper within each cell of the 'icon' column */
+#file_list .table--row .column-key--icon {
+    /* Center-aligns the icon */
+
+    content-align: center middle;
+    text-align: center;
+    /* Ensure text-align works as expected */
+    width: 10%;
+    background: green;
+    color: green;
+}
+
+/* Example: Styling 'Name' column cells (data rows) */
+#file_list .table--row .column-key--name {
+    color: $warning;
+}
+
+/* General styling for all data cells (cells within .table--row) */
+#file_list .table--row .table--cell {
+    /* You could add padding here, but self.cell_padding in __init__ handles it */
+    /* padding: 0 1; */
+    /* height: 1; /* Rows are typically 1 line high by default */
 }

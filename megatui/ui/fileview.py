@@ -1,6 +1,6 @@
 # UI Components Related to Files
 from pathlib import PurePath
-from typing import override
+from typing import ClassVar, override, Literal, LiteralString
 
 from rich.text import Text
 
@@ -8,6 +8,7 @@ from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
+from textual.widget import Widget
 from textual.widgets import DataTable
 from textual.worker import Worker  # Import worker types
 
@@ -43,7 +44,12 @@ class FileList(DataTable[Content]):
     # TODO We will map items by their 'Handle'
     _row_data_map: dict[str, MegaItem] = {}
 
-    FILE_ACTION_BINDINGS: list[BindingType] = [
+    FILE_ICON_MARKUP : ClassVar[LiteralString] = ":page_facing_up:"
+    """ Markup used for file icon. """
+    DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
+    """ Markup used for directory icon. """
+
+    _FILE_ACTION_BINDINGS: list[BindingType] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
         Binding(key="R", action="rename_file", description="Rename a file", show=True),
         Binding(
@@ -51,7 +57,7 @@ class FileList(DataTable[Content]):
         ),
     ]
 
-    NAVIGATION_BINDINGS: list[BindingType] = [
+    _NAVIGATION_BINDINGS: list[BindingType] = [
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
@@ -59,47 +65,23 @@ class FileList(DataTable[Content]):
     ]
 
     # Assign our binds
-    BINDINGS = NAVIGATION_BINDINGS + FILE_ACTION_BINDINGS
+    BINDINGS = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
 
-    def __init__(self, **args):
+    def __init__(self):
         # Initialise the DataTable widget
-        super().__init__(
-            cursor_type="row",
-            show_cursor=True,
-            show_header=True,
-            zebra_stripes=False,
-            cell_padding=1,
-        )
+        super().__init__()
+        self.id = "file_list"
+        self.cursor_type = "row"
+        self.show_cursor = True
+        self.show_header = True
+        self.header_height = 1
+        self.fixed_columns = len(self.COLUMNS)
+        self.zebra_stripes = False
+        self.cell_padding = 1
 
         # self.fixed_columns = len(self.COLUMNS)
-
-        # Initialise the columns displayed Column and their respective formatting
-        column_formatting = {
-            "Icon": {"label": "", "width": 2},
-            "Name": {"label": "Name", "width": 50},
-            "Modified": {
-                "label": "Modified",
-                "width": 20,
-            },
-            "Size": {"label": "Size", "width": 10},
-        }
-
-        # Add columns during initialisation with specified widths
-        for column in self.COLUMNS:
-            fmt = column_formatting.get(column)
-
-            # If there is a configuration for our column name
-            if fmt:
-                self.add_column(
-                    label=str(fmt["label"]),
-                    key=column.lower(),
-                    width=int(fmt["width"]),  # Apply the width here
-                )
-
-            else:
-                self.add_column(label=column, key=column.lower())
 
         # Extra UI Elements
 
@@ -111,12 +93,42 @@ class FileList(DataTable[Content]):
 
     @override
     def on_mount(self) -> None:
-        pass
+
+        # Initialise the columns displayed Column and their respective formatting
+        column_formatting = {
+            "Icon": {"label": " ", "width": 4},
+            "Name": {"label": "Name", "width": 50},
+            "Modified": {
+                "label": "Modified",
+                "width": 20,
+            },
+            "Size": {"label": "Size", "width": 8},
+        }
+
+        self.app.log.info("Adding columns to FileList")
+        label: str
+        width: int
+
+        # Add columns during initialisation with specified widths
+        for column_name in self.COLUMNS:
+            fmt = column_formatting.get(column_name)
+
+            # If there is a configuration for our column name
+            if fmt:
+                self.add_column(
+                    # column header label
+                    label=str(fmt["label"]),
+                    # Width of column header
+                    width=(int(fmt["width"]) if fmt["width"] else None),
+                    key=column_name.lower(),
+                )
+
+                self.app.log.debug(f"Column '{column_name}' fmt: '{fmt}'")
+            else:
+                self.add_column(label=column_name, key=column_name.lower(), width=None)
 
     async def action_navigate_in(self) -> None:
-        """
-        Navigate into a directory.
-        """
+        """Navigate into a directory."""
 
         selected_item_data = self.get_highlighted_megaitem()
         # Fail: Selected item is None.
@@ -193,6 +205,7 @@ class FileList(DataTable[Content]):
         }
 
         async def file_rename(result: tuple[str, NodeInfoDict] | None) -> None:
+            """Nested function to serve as callback."""
             if not result:
                 self.log.error("Invalid result!")
                 return
@@ -260,35 +273,42 @@ class FileList(DataTable[Content]):
 
         self.clear(columns=False)
         self._row_data_map.clear()  # Clear our internal mapping
+        icon_markup: str
+        height : int = 1
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
-            name_str: Text = Text(item_data.name, overflow="ellipsis")
-            mtime_str: Text = Text(item_data.mtime)
-            icon_str: Text = Text.from_markup(
-                ":file_folder:" if item_data.is_dir() else ":page_facing_up:",
-            )
-            fsize_str: Text
-            if item_data.is_file():
-                fsize_str = Text(
-                    f"{item_data.size:.1f} {item_data.size_unit.unit_str()} "
-                )
+            name_str: str = item_data.name
+            mtime_str: str = item_data.mtime
+
+            fsize_str: str
+            if item_data.is_dir():
+                icon_markup = self.DIR_ICON_MARKUP
+                fsize_str = ""
 
             else:
-                fsize_str = Text("")
+                icon_markup = self.FILE_ICON_MARKUP
+                fsize_str = f"{item_data.size:.1f} {item_data.size_unit.unit_str()}"
 
-            fsize_str.align("left", 10)
             # Add row to DataTable. The values must match the order of COLUMNS.
             # FIXME Using index as row key
             row_key = str(index)
 
+            icon_content = Text.from_markup(icon_markup)
             # Pass data as individual arguments for each column
             self.add_row(
-                icon_str,
-                name_str,
-                mtime_str,
-                fsize_str,
-                key=row_key,
+                # Icon
+                Content.from_rich_text(icon_content),
+                # Name of node
+                Content(text=name_str),
+                # Modification time
+                Content(text=mtime_str),
+                # Size of node
+                Content(text=fsize_str),
+                # Unique key to reference the node
+                key=str(index),
+                # Height of each row
+                height=height,
             )
             # Store the MegaItem
             self._row_data_map[row_key] = item_data
@@ -311,7 +331,7 @@ class FileList(DataTable[Content]):
         fetched_items: MegaItems | None = worker_obj.result
 
         if worker_obj.is_cancelled:
-            self.app.log.debug(f"Worker for path '{self._loading_path}' was cancelled.")
+            self.app.log.debug(f"Worker to fetch files for path '{self._loading_path}' was cancelled.")
             return
 
         # Failed

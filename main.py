@@ -29,7 +29,7 @@ async def run_app() -> None:
 
 if __name__ == "__main__":
     try:
-        asyncio.run(run_app())
+        asyncio.run(run_app(), debug=True)
     except KeyboardInterrupt:
         print("\nExiting MegaTUI...")
     except Exception as e:

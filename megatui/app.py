@@ -51,13 +51,13 @@ class MegaAppTUI(App[str]):
         Compose the basic UI for the application.
         """
 
-        with Vertical():
+        with Vertical(id="main"):
             yield Header()
             with Horizontal(id="status-bar"):
                 yield Label(f"Path: {self.current_mega_path}", id="label-path")
                 yield Label(self.status_message, id="label-status-msg")
 
-            yield FileList(id="file-list")
+            yield FileList()
             # Placeholder for preview
             # yield Static("Preview", id="preview-pane")
 
