@@ -4,12 +4,26 @@ from typing import ClassVar, override, Literal, LiteralString
 
 from rich.text import Text
 
-from textual import work
+from textual import work, on
+from textual._cells import cell_width_to_column_index
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
+from textual import events
+from textual.color import Color
 from textual.widget import Widget
+from textual.style import Style
 from textual.widgets import DataTable
+
+
+from textual.widgets._data_table import (
+    RowDoesNotExist,
+    RowKey,
+    Row,
+    Column,
+    ColumnDoesNotExist,
+    CellDoesNotExist,
+)
 from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
@@ -32,6 +46,8 @@ class FileList(DataTable[Content]):
     This can be used to cache directories.
     """
 
+    DEFAULT_CSS = """ """
+
     border_subtitle: str
     """ Border subtitle. """
 
@@ -44,20 +60,20 @@ class FileList(DataTable[Content]):
     # TODO We will map items by their 'Handle'
     _row_data_map: dict[str, MegaItem] = {}
 
-    FILE_ICON_MARKUP : ClassVar[LiteralString] = ":page_facing_up:"
+    FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
     DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
     """ Markup used for directory icon. """
 
-    _FILE_ACTION_BINDINGS: list[BindingType] = [
+    _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
         Binding(key="R", action="rename_file", description="Rename a file", show=True),
         Binding(
-            key="space", action="select_node", description="Select file", show=True
+            key="space", action="select_item", description="Select file", show=True
         ),
     ]
 
-    _NAVIGATION_BINDINGS: list[BindingType] = [
+    _NAVIGATION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
         Binding("k", "cursor_up", "Cursor Up", key_display="k"),
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
@@ -65,9 +81,17 @@ class FileList(DataTable[Content]):
     ]
 
     # Assign our binds
-    BINDINGS = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
+    BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
+    DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
+
+    # Define styles for selected and default states
+    SELECTED_STYLE: ClassVar[Style] = Style(
+        background=Color.parse("blue"), foreground=Color.parse("white")
+    )
+    # An empty style will revert to the DataTable's default styling for the row
+    DEFAULT_STYLE: ClassVar[Style] = Style()
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -77,11 +101,8 @@ class FileList(DataTable[Content]):
         self.show_cursor = True
         self.show_header = True
         self.header_height = 1
-        self.fixed_columns = len(self.COLUMNS)
         self.zebra_stripes = False
-        self.cell_padding = 1
-
-        # self.fixed_columns = len(self.COLUMNS)
+        # self.cell_padding = 0
 
         # Extra UI Elements
 
@@ -90,6 +111,78 @@ class FileList(DataTable[Content]):
         self.border_subtitle = "Initializing view..."
         self.curr_path = "/"
         self._loading_path = self.curr_path
+        self._selected_row_keys: set[RowKey] = set()
+
+    def get_column_widths(self):
+        """Get optimal widths for table columns.
+
+        Returns a tuple of widths.
+        """
+        pass
+
+    SELECTED_CELL_STYLE: ClassVar[Style] = Style(
+        background=Color.parse("red"), foreground=Color.parse("white"), strike=True
+    )  # Ensure fg contrasts with bg
+    # An empty style for default will let the DataTable's cell styling (zebra, etc.) take over.
+    DEFAULT_CELL_STYLE: ClassVar[Style] = Style()
+
+    def action_select_item(self) -> None:
+        """
+        Toggles the selection state of the currently hovered-over item (row).
+        Selected rows are visually highlighted.
+        """
+        current_row_key: RowKey | None = self.get_current_row_key()
+
+        if current_row_key is None:
+            self.log.debug("No current row key to select/deselect.")
+            return
+
+        try:
+            # Get the visual index of the row. This is needed for refresh_row.
+            row_index: int = self.get_row_index(current_row_key)
+        except RowDoesNotExist:
+            self.log.error(
+                f"Row with key '{current_row_key}' (value: {current_row_key.value}) does not exist. Cannot toggle selection."
+            )
+            return
+
+        # Access the internal Row object.
+        # self.rows is an OrderedDict[RowKey, Row]
+        try:
+            row_object: Row = self.rows[current_row_key]
+        except KeyError:
+            # This should ideally not happen if get_row_index succeeded and current_row_key is valid.
+            self.log.error(
+                f"Internal inconsistency: RowKey '{current_row_key}' not found in self.rows after index lookup."
+            )
+            return
+
+        is_currently_selected: bool = current_row_key in self._selected_row_keys
+        target_row_style: Style
+
+        if is_currently_selected:
+            self._selected_row_keys.remove(current_row_key)
+            old_contents = self.get_row(current_row_key)[0]
+            item = self.get_highlighted_megaitem()
+            if item is None:
+                return
+            icon = self.DIR_ICON_MARKUP if item.is_dir() else self.FILE_ICON_MARKUP
+            new = Text.from_markup(text=f"[r]{icon}[/r]")
+            self.update_cell(
+                current_row_key,
+                self.COLUMNS[0].lower(),
+                value=Content.from_rich_text(new),
+            )
+            self.log.info(f"Selected row: {current_row_key.value}")
+
+        else:
+            self._selected_row_keys.add(current_row_key)
+            old_contents = self.get_row(current_row_key)[0]
+            new = Content.from_markup(
+                markup="[b][r][$warning]*[/]$icon[/r][/b]", icon=old_contents.plain
+            )
+            self.update_cell(current_row_key, self.COLUMNS[0].lower(), value=new)
+            self.log.info(f"Deselected row: {current_row_key.value}")
 
     @override
     def on_mount(self) -> None:
@@ -274,7 +367,7 @@ class FileList(DataTable[Content]):
         self.clear(columns=False)
         self._row_data_map.clear()  # Clear our internal mapping
         icon_markup: str
-        height : int = 1
+        height: int = 1
 
         for index, item_data in enumerate(fetched_items):
             # Prepare data for each cell in the row
@@ -331,7 +424,9 @@ class FileList(DataTable[Content]):
         fetched_items: MegaItems | None = worker_obj.result
 
         if worker_obj.is_cancelled:
-            self.app.log.debug(f"Worker to fetch files for path '{self._loading_path}' was cancelled.")
+            self.app.log.debug(
+                f"Worker to fetch files for path '{self._loading_path}' was cancelled."
+            )
             return
 
         # Failed
@@ -361,6 +456,27 @@ class FileList(DataTable[Content]):
         # If the count is 0 send a status update
         if file_count == 0:
             self.post_message(self.EmptyDirectory())
+
+    def get_current_row_key(self) -> RowKey | None:
+
+        if self.cursor_row < 0 or not self.rows:  # No selection or empty table
+            self.log.info("No highlighted item available to return.")
+            return None
+        try:
+            # DataTable's coordinate system is (row, column)
+            # self.cursor_coordinate.row gives the visual row index
+            # We need the key of that row
+            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+
+            return row_key if row_key else None
+
+        except RowDoesNotExist:
+            self.log.error("Could not return any row.")
+            return None
+        except Exception as e:
+            # Catch potential errors if cursor is out of sync
+            self.log.error(f"Error getting current row. {e}")
+            return None
 
     def get_highlighted_megaitem(self) -> MegaItem | None:
         """

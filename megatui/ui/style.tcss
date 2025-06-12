@@ -70,27 +70,29 @@ Footer {
 
 RenameDialog {
     align: center middle;
-}
+    background: transparent;
 
-RenameDialog > Vertical {
-    /* background: $panel; */
-    height: auto;
-    width: auto;
-    border: thick $primary;
-}
+    Vertical {
+        /* background: $panel; */
+        height: auto;
+        width: auto;
+        border: round $primary;
+    }
 
-RenameDialog > Vertical > * {
-    width: auto;
-    height: auto;
-}
+    Vertical > * {
+        width: auto;
+        height: auto;
+    }
 
-RenameDialog Input {
-    width: 40;
-    margin: 1;
-}
+    Input {
+        width: 40;
+        margin: 1;
+    }
 
-RenameDialog Label {
-    margin-left: 2;
+    Label {
+        margin-left: 2;
+
+    }
 }
 
 /*****************************************************************************/
@@ -100,69 +102,31 @@ RenameDialog Label {
 #file_list {
     /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
     /* layer: base; /\* Belongs to the base layer *\/ */
-    /* padding: 0 1; */
+    padding: 0 1;
 
     /* background: #1e1e1e; /\* Dark background *\/ */
     /* border: heavy steelblue; */
     border: round $primary; /* Add a border */
-    border-title-align: left;
-    width: 1fr; /* Occupy available width */
+
+    width: 100%; /* Occupy available width */
     height: 1fr; /* Occupy available height */
-    border-title-style: bold;
-    border-title-color: $primary; /* Color for the border title */
-    border-subtitle-style: italic;
-    border-subtitle-color: $secondary; /* Slightly dimmer color for subtitle */
-}
+    /* border-title-style: bold;
+     * border-title-align: left;
+     * border-title-color: $primary; /\* Color for the border title *\/
+     * border-subtitle-style: italic;
+     * border-subtitle-color: $secondary; /\* Slightly dimmer color for subtitle *\/
+     * content-align: center middle;
+     *  align: center middle; */
 
-#file_list > .datatable--header {
-    /* color: white; */
-    /* border: none; */
-    background: $surface;
+    & > .datatable--header {
+        margin: 2 8;
+        padding: 2 8;
+        width: 100%;
+        text-style: bold;
+        /* background: $panel; */
+        color: $foreground;
+        border-bottom: thick red;
 
-}
-
-/* Styling all cells within the header */
-#file_list > .datatable--header .table--cell {
-    text-style: bold; /* Make header text bold */
-}
-
-/* Example: Center the 'Icon' column header (if it had text) */
-/* #file_list > .datatable--header .column-key--icon {
-    text-align: center;
-} */
-
-/* Styling the cursor row (the currently selected row) */
-#file_list > .datatable--cursor {
- /* Highlight background color for the cursor */
-    /* background: $secondary; */
-/* Text color for the cursor row, ensure good contrast */
-    color: $text;
-    /* Optionally, make text on cursor row bold */
-    text-style: bold;
-
-}
-
-/* Styling for the content of cells in the 'Icon' column (data rows) */
-/* This targets the Static widget wrapper within each cell of the 'icon' column */
-#file_list .table--row .column-key--icon {
-    /* Center-aligns the icon */
-
-    content-align: center middle;
-    text-align: center;
-    /* Ensure text-align works as expected */
-    width: 10%;
-    background: green;
-    color: green;
-}
-
-/* Example: Styling 'Name' column cells (data rows) */
-#file_list .table--row .column-key--name {
-    color: $warning;
-}
-
-/* General styling for all data cells (cells within .table--row) */
-#file_list .table--row .table--cell {
-    /* You could add padding here, but self.cell_padding in __init__ handles it */
-    /* padding: 0 1; */
-    /* height: 1; /* Rows are typically 1 line high by default */
+        /* background: $surface; */
+    }
 }
