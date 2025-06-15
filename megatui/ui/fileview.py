@@ -188,7 +188,7 @@ class FileList(DataTable[Content]):
             "Size": {"label": "Size", "width": 8},
         }
 
-        self.app.log.info("Adding columns to FileList")
+        self.log.info("Adding columns to FileList")
         label: str
         width: int
 
@@ -206,7 +206,7 @@ class FileList(DataTable[Content]):
                     key=column_name.lower(),
                 )
 
-                self.app.log.debug(f"Column '{column_name}' fmt: '{fmt}'")
+                self.log.debug(f"Column '{column_name}' fmt: '{fmt}'")
             else:
                 self.add_column(label=column_name, key=column_name.lower(), width=None)
 
@@ -339,19 +339,19 @@ class FileList(DataTable[Content]):
             return fetched_items or []
 
         except MegaCmdError as e:
-            self.app.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
+            self.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
             # Post error message from the worker (thread-safe)
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure by returning None
         except Exception as e:
-            self.app.log.error(f"FileList: Unexpected error loading path '{path}': {e}")
+            self.log.error(f"FileList: Unexpected error loading path '{path}': {e}")
             # Post error message from the worker (thread-safe)
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
-        self.app.log.debug(f"Updating UI for path: {path}")
+        self.log.debug(f"Updating UI for path: {path}")
         self.curr_path = path
 
         self.clear(columns=False)
@@ -413,7 +413,7 @@ class FileList(DataTable[Content]):
         fetched_items: MegaItems | None = worker_obj.result
 
         if worker_obj.is_cancelled:
-            self.app.log.debug(
+            self.log.debug(
                 f"Worker to fetch files for path '{self._loading_path}' was cancelled."
             )
             return
@@ -421,7 +421,7 @@ class FileList(DataTable[Content]):
         # Failed
         if fetched_items is None:
             # Worker succeeded but returned None
-            self.app.log.warning(
+            self.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
             self.border_subtitle = "Load Error!"
@@ -431,7 +431,7 @@ class FileList(DataTable[Content]):
         # Get number of files
         file_count: int = len(fetched_items)
 
-        self.app.log.debug(
+        self.log.debug(
             f"Worker success for path '{self._loading_path}', items: {file_count}"
         )
         # Call the UI update method on the main thread
