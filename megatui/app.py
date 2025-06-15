@@ -6,9 +6,12 @@ from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Center, Horizontal, Vertical
+from textual.css._style_properties import ScalarProperty, Unit
 from textual.reactive import var
 from textual.widgets import Header, Label
+import textual.style as Sty
+
 
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate
@@ -42,7 +45,6 @@ class MegaAppTUI(App[str]):
     status_message: var[str] = var("Logged in.")
     current_mega_path: var[str] = var("/")
 
-    MAX_FPS = 30
 
     # --- UI Composition ---
     @override
@@ -50,6 +52,11 @@ class MegaAppTUI(App[str]):
         """
         Compose the basic UI for the application.
         """
+        # Disable mouse events
+        self.capture_mouse(None)
+        self.theme = "gruvbox"
+
+        fileview = FileList()
 
         with Vertical(id="main"):
             yield Header()
@@ -57,7 +64,7 @@ class MegaAppTUI(App[str]):
                 yield Label(f"Path: {self.current_mega_path}", id="label-path")
                 yield Label(self.status_message, id="label-status-msg")
 
-            yield FileList()
+            yield fileview
             # Placeholder for preview
             # yield Static("Preview", id="preview-pane")
 
@@ -69,10 +76,6 @@ class MegaAppTUI(App[str]):
         Called when the app is mounted.
         Performs initial load and some initialisation.
         """
-        # Disable mouse events
-        self.capture_mouse(None)
-        self.theme = "gruvbox"
-
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
 

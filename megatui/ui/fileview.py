@@ -167,7 +167,8 @@ class FileList(DataTable[Content]):
             if item is None:
                 return
             icon = self.DIR_ICON_MARKUP if item.is_dir() else self.FILE_ICON_MARKUP
-            new = Text.from_markup(text=f"[r]{icon}[/r]")
+            # FIXME This does not actually markup anything
+            new = Text.from_markup(text=f"[r][b][s]{icon}[/][/][/r]")
             self.update_cell(
                 current_row_key,
                 self.COLUMNS[0].lower(),
