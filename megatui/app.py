@@ -1,18 +1,15 @@
 from pathlib import Path
-from typing import override
+from typing import ClassVar, override
 
 from rich.style import Style
 from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
-from textual.binding import Binding
-from textual.containers import Center, Horizontal, Vertical
+from textual.binding import Binding, BindingType
+from textual.containers import Horizontal, Vertical
 from textual.content import Content
-from textual.css._style_properties import ScalarProperty, Unit
 from textual.reactive import var
 from textual.widgets import Header, Label
-import textual.style as Sty
-
 
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate
@@ -38,7 +35,7 @@ class MegaAppTUI(App[str]):
     # 120 cells or wider, the app has the class "-very-wide"
     # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
-    BINDINGS = [
+    BINDINGS : ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
     ]
@@ -192,7 +189,7 @@ class MegaAppTUI(App[str]):
 
         path_label.update(
             Content.from_markup(
-                f"[red bold] $count [/red bold] files selected.", count=message.count
+                "[red bold] $count [/red bold] files selected.", count=message.count
             )
         )
         self.log.info("Selection counter updated.")

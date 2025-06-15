@@ -1,28 +1,16 @@
 # UI Components Related to Files
 from pathlib import PurePath
-from typing import ClassVar, override, Literal, LiteralString
+from typing import ClassVar, LiteralString, override
 
 from rich.text import Text
-
-from textual import work, on
-from textual._cells import cell_width_to_column_index
+from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
-from textual import events
-from textual.color import Color
-from textual.widget import Widget
-from textual.style import Style
 from textual.widgets import DataTable
-
-
 from textual.widgets._data_table import (
     RowDoesNotExist,
     RowKey,
-    Row,
-    Column,
-    ColumnDoesNotExist,
-    CellDoesNotExist,
 )
 from textual.worker import Worker  # Import worker types
 
@@ -58,7 +46,7 @@ class FileList(DataTable[Content]):
     """ Path we are currently loading. """
 
     # TODO We will map items by their 'Handle'
-    _row_data_map: dict[str, MegaItem] = {}
+    _row_data_map: dict[str, MegaItem]
     _selected_items: set[str]
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
@@ -87,7 +75,7 @@ class FileList(DataTable[Content]):
     # Assign our binds
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
-    COLUMNS = ["Icon", "Name", "Modified", "Size"]
+    COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
     def __init__(self):
@@ -108,85 +96,21 @@ class FileList(DataTable[Content]):
         self.border_subtitle = "Initializing view..."
         self.curr_path = "/"
         self._loading_path = self.curr_path
+        self._row_data_map = {}
         self._selected_items = set()
-
-    def get_column_widths(self):
-        """Get optimal widths for table columns.
-
-        Returns a tuple of widths.
-        """
-        pass
-
-    def action_select_item(self) -> None:
-        """
-        Toggles the selection state of the currently hovered-over item (row).
-        Selected rows are MEANT to be visually highlighted.
-        """
-        current_row_key: RowKey | None = self.get_current_row_key()
-
-        assert (
-            current_row_key and current_row_key.value
-        ), "No current row key to select/deselect."
-
-        try:
-            # Get the visual index of the row. This is needed for refresh_row.
-            row_index: int = self.get_row_index(current_row_key)
-        except RowDoesNotExist:
-            self.log.error(
-                f"Row with key '{current_row_key}' (value: {current_row_key.value}) does not exist. Cannot toggle selection."
-            )
-            return
-
-        row_item = self._row_data_map.get(current_row_key.value)
-        assert row_item
-
-        item_handle = row_item.handle
-
-        already_selected: bool = item_handle in self._selected_items
-
-        # Current cell contents
-        old_contents = self.get_row(current_row_key)[0]
-
-        row_icon = (
-            f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
-        )
-
-        if already_selected:
-            # Remove item from set of selected items
-            self._selected_items.remove(item_handle)
-
-            # FIXME This does not actually markup anything
-            new_content = Text.from_markup(text=f"{row_icon}")
-            self.update_cell(
-                current_row_key,
-                self.COLUMNS[0].lower(),
-                value=Content.from_rich_text(new_content),
-            )
-            self.log.info(f"Selected row: {current_row_key.value}")
-
-        else:
-            self._selected_items.add(item_handle)
-            new_content = Text.from_markup(text=f"{row_icon}*")
-            self.update_cell(
-                current_row_key,
-                self.COLUMNS[0].lower(),
-                value=Content.from_rich_text(new_content),
-            )
-            self.log.info(f"Deselected row: {current_row_key.value}")
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     @override
     def on_mount(self) -> None:
 
         # Initialise the columns displayed Column and their respective formatting
         column_formatting = {
-            "Icon": {"label": " ", "width": 4},
-            "Name": {"label": "Name", "width": 50},
-            "Modified": {
+            "icon": {"label": " ", "width": 4},
+            "name": {"label": "Name", "width": 50},
+            "modified": {
                 "label": "Modified",
                 "width": 20,
             },
-            "Size": {"label": "Size", "width": 8},
+            "size": {"label": "Size", "width": 8},
         }
 
         self.log.info("Adding columns to FileList")
@@ -317,6 +241,64 @@ class FileList(DataTable[Content]):
             ),
             callback=file_rename,
         )
+
+    def action_select_item(self) -> None:
+        """
+        Toggles the selection state of the currently hovered-over item (row).
+        Selected rows are MEANT to be visually highlighted.
+        """
+        current_row_key: RowKey | None = self.get_current_row_key()
+
+        assert (
+            current_row_key and current_row_key.value
+        ), "No current row key to select/deselect."
+
+        try:
+            # Get the visual index of the row. This is needed for refresh_row.
+            row_index: int = self.get_row_index(current_row_key)
+        except RowDoesNotExist:
+            self.log.error(
+                f"Row with key '{current_row_key}' (value: {current_row_key.value}) does not exist. Cannot toggle selection."
+            )
+            return
+
+        row_item = self._row_data_map.get(current_row_key.value)
+        assert row_item
+
+        item_handle = row_item.handle
+
+        already_selected: bool = item_handle in self._selected_items
+
+        # Current cell contents
+        old_contents = self.get_row(current_row_key)[0]
+
+        row_icon = (
+            f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
+        )
+
+        if already_selected:
+            # Remove item from set of selected items
+            self._selected_items.remove(item_handle)
+
+            # FIXME This does not actually markup anything
+            new_content = Text.from_markup(text=f"[red bold]{row_icon}[/red bold]")
+            self.update_cell(
+                current_row_key,
+                self.COLUMNS[0],
+                value=Content.from_text(new_content),
+            )
+            self.log.info(f"Selected row: {current_row_key.value}")
+
+        else:
+            self._selected_items.add(item_handle)
+            new_content = Text.from_markup(text=f"{row_icon}*")
+            self.update_cell(
+                current_row_key,
+                self.COLUMNS[0].lower(),
+                value=Content.from_rich_text(new_content),
+            )
+            self.log.info(f"Deselected row: {current_row_key.value}")
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     ###################################################################
     @work(
@@ -489,6 +471,13 @@ class FileList(DataTable[Content]):
         except Exception as e:  # Catch potential errors if cursor is out of sync
             self.log.error(f"Error getting selected mega item: {e}")
             return None
+
+    def get_column_widths(self):
+        """Get optimal widths for table columns.
+
+        Returns a tuple of widths.
+        """
+        pass
 
     # Messages ################################################################
     class ToggledSelection(Message):

@@ -1,10 +1,10 @@
 # Rename popup
-from typing import TypedDict, override
+from typing import ClassVar, TypedDict, override
 
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.validation import Regex
@@ -18,7 +18,7 @@ class NodeInfoDict(TypedDict):
 
 
 class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),
     ]

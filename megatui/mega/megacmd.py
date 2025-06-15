@@ -5,7 +5,6 @@ import subprocess
 from enum import Enum
 from pathlib import Path, PurePath
 
-
 logging.basicConfig(
     filename="megacmd.log",
     filemode="a",
