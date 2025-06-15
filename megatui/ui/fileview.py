@@ -59,12 +59,14 @@ class FileList(DataTable[Content]):
 
     # TODO We will map items by their 'Handle'
     _row_data_map: dict[str, MegaItem] = {}
+    _selected_items: set[str]
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
     DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
     """ Markup used for directory icon. """
 
+    ## Bindings
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
         Binding(key="R", action="rename_file", description="Rename a file", show=True),
@@ -72,6 +74,7 @@ class FileList(DataTable[Content]):
             key="space", action="select_item", description="Select file", show=True
         ),
     ]
+    """ Binds that deal with files. """
 
     _NAVIGATION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding("j", "cursor_down", "Cursor Down", key_display="j"),
@@ -79,19 +82,13 @@ class FileList(DataTable[Content]):
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
         Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
     ]
+    """ Binds related to navigation. """
 
     # Assign our binds
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
     COLUMNS = ["Icon", "Name", "Modified", "Size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
-
-    # Define styles for selected and default states
-    SELECTED_STYLE: ClassVar[Style] = Style(
-        background=Color.parse("blue"), foreground=Color.parse("white")
-    )
-    # An empty style will revert to the DataTable's default styling for the row
-    DEFAULT_STYLE: ClassVar[Style] = Style()
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -111,7 +108,7 @@ class FileList(DataTable[Content]):
         self.border_subtitle = "Initializing view..."
         self.curr_path = "/"
         self._loading_path = self.curr_path
-        self._selected_row_keys: set[RowKey] = set()
+        self._selected_items = set()
 
     def get_column_widths(self):
         """Get optimal widths for table columns.
@@ -120,22 +117,16 @@ class FileList(DataTable[Content]):
         """
         pass
 
-    SELECTED_CELL_STYLE: ClassVar[Style] = Style(
-        background=Color.parse("red"), foreground=Color.parse("white"), strike=True
-    )  # Ensure fg contrasts with bg
-    # An empty style for default will let the DataTable's cell styling (zebra, etc.) take over.
-    DEFAULT_CELL_STYLE: ClassVar[Style] = Style()
-
     def action_select_item(self) -> None:
         """
         Toggles the selection state of the currently hovered-over item (row).
-        Selected rows are visually highlighted.
+        Selected rows are MEANT to be visually highlighted.
         """
         current_row_key: RowKey | None = self.get_current_row_key()
 
-        if current_row_key is None:
-            self.log.debug("No current row key to select/deselect.")
-            return
+        assert (
+            current_row_key and current_row_key.value
+        ), "No current row key to select/deselect."
 
         try:
             # Get the visual index of the row. This is needed for refresh_row.
@@ -146,43 +137,41 @@ class FileList(DataTable[Content]):
             )
             return
 
-        # Access the internal Row object.
-        # self.rows is an OrderedDict[RowKey, Row]
-        try:
-            row_object: Row = self.rows[current_row_key]
-        except KeyError:
-            # This should ideally not happen if get_row_index succeeded and current_row_key is valid.
-            self.log.error(
-                f"Internal inconsistency: RowKey '{current_row_key}' not found in self.rows after index lookup."
-            )
-            return
+        row_item = self._row_data_map.get(current_row_key.value)
+        assert row_item
 
-        is_currently_selected: bool = current_row_key in self._selected_row_keys
-        target_row_style: Style
+        item_handle = row_item.handle
 
-        if is_currently_selected:
-            self._selected_row_keys.remove(current_row_key)
-            old_contents = self.get_row(current_row_key)[0]
-            item = self.get_highlighted_megaitem()
-            if item is None:
-                return
-            icon = self.DIR_ICON_MARKUP if item.is_dir() else self.FILE_ICON_MARKUP
+        already_selected: bool = item_handle in self._selected_items
+
+        # Current cell contents
+        old_contents = self.get_row(current_row_key)[0]
+
+        row_icon = (
+            f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
+        )
+
+        if already_selected:
+            # Remove item from set of selected items
+            self._selected_items.remove(item_handle)
+
             # FIXME This does not actually markup anything
-            new = Text.from_markup(text=f"[r][b][s]{icon}[/][/][/r]")
+            new_content = Text.from_markup(text=f"{row_icon}")
             self.update_cell(
                 current_row_key,
                 self.COLUMNS[0].lower(),
-                value=Content.from_rich_text(new),
+                value=Content.from_rich_text(new_content),
             )
             self.log.info(f"Selected row: {current_row_key.value}")
 
         else:
-            self._selected_row_keys.add(current_row_key)
-            old_contents = self.get_row(current_row_key)[0]
-            new = Content.from_markup(
-                markup="[b][r][$warning]*[/]$icon[/r][/b]", icon=old_contents.plain
+            self._selected_items.add(item_handle)
+            new_content = Text.from_markup(text=f"{row_icon}*")
+            self.update_cell(
+                current_row_key,
+                self.COLUMNS[0].lower(),
+                value=Content.from_rich_text(new_content),
             )
-            self.update_cell(current_row_key, self.COLUMNS[0].lower(), value=new)
             self.log.info(f"Deselected row: {current_row_key.value}")
 
     @override
@@ -367,45 +356,44 @@ class FileList(DataTable[Content]):
 
         self.clear(columns=False)
         self._row_data_map.clear()  # Clear our internal mapping
-        icon_markup: str
+
         height: int = 1
 
-        for index, item_data in enumerate(fetched_items):
+        fsize_str: str
+        selected: str = "*"
+
+        # Go through each item and create new row for them
+        for node in fetched_items:
             # Prepare data for each cell in the row
-            name_str: str = item_data.name
-            mtime_str: str = item_data.mtime
 
-            fsize_str: str
-            if item_data.is_dir():
-                icon_markup = self.DIR_ICON_MARKUP
+            if node.is_dir():
                 fsize_str = ""
-
+                icon_content = self.DIR_ICON_MARKUP
             else:
-                icon_markup = self.FILE_ICON_MARKUP
-                fsize_str = f"{item_data.size:.1f} {item_data.size_unit.unit_str()}"
+                fsize_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
+                icon_content = self.FILE_ICON_MARKUP
 
-            # Add row to DataTable. The values must match the order of COLUMNS.
-            # FIXME Using index as row key
-            row_key = str(index)
+            icon_content = Text.from_markup(
+                f"{icon_content}{selected if (node.handle in self._selected_items) else ''}"
+            )
 
-            icon_content = Text.from_markup(icon_markup)
             # Pass data as individual arguments for each column
             self.add_row(
                 # Icon
                 Content.from_rich_text(icon_content),
                 # Name of node
-                Content(text=name_str),
+                Content(text=node.name),
                 # Modification time
-                Content(text=mtime_str),
+                Content(text=node.mtime),
                 # Size of node
                 Content(text=fsize_str),
                 # Unique key to reference the node
-                key=str(index),
+                key=node.handle,
                 # Height of each row
                 height=height,
             )
             # Store the MegaItem
-            self._row_data_map[row_key] = item_data
+            self._row_data_map[node.handle] = node
 
         self.border_subtitle = f"{len(fetched_items)} items"
 
