@@ -114,8 +114,6 @@ class FileList(DataTable[Content]):
         }
 
         self.log.info("Adding columns to FileList")
-        label: str
-        width: int
 
         # Add columns during initialisation with specified widths
         for column_name in self.COLUMNS:
@@ -128,12 +126,12 @@ class FileList(DataTable[Content]):
                     label=str(fmt["label"]),
                     # Width of column header
                     width=(int(fmt["width"]) if fmt["width"] else None),
-                    key=column_name.lower(),
+                    key=column_name,
                 )
 
                 self.log.debug(f"Column '{column_name}' fmt: '{fmt}'")
             else:
-                self.add_column(label=column_name, key=column_name.lower(), width=None)
+                self.add_column(label=column_name, key=column_name, width=None)
 
     async def action_navigate_in(self) -> None:
         """Navigate into a directory."""
@@ -249,18 +247,13 @@ class FileList(DataTable[Content]):
         """
         current_row_key: RowKey | None = self.get_current_row_key()
 
-        assert (
-            current_row_key and current_row_key.value
-        ), "No current row key to select/deselect."
-
-        try:
-            # Get the visual index of the row. This is needed for refresh_row.
-            row_index: int = self.get_row_index(current_row_key)
-        except RowDoesNotExist:
-            self.log.error(
-                f"Row with key '{current_row_key}' (value: {current_row_key.value}) does not exist. Cannot toggle selection."
-            )
+        if not current_row_key:
+            self.log.info("No current row key to select/deselect.")
             return
+
+        assert (
+            current_row_key.value
+        ), "Row key value SHOULD always exist when row key is not None."
 
         row_item = self._row_data_map.get(current_row_key.value)
         assert row_item
@@ -268,9 +261,6 @@ class FileList(DataTable[Content]):
         item_handle = row_item.handle
 
         already_selected: bool = item_handle in self._selected_items
-
-        # Current cell contents
-        old_contents = self.get_row(current_row_key)[0]
 
         row_icon = (
             f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
@@ -454,23 +444,12 @@ class FileList(DataTable[Content]):
         """
         Return the MegaItem corresponding to the currently highlighted row.
         """
-        if self.cursor_row < 0 or not self.rows:  # No selection or empty table
-            self.log.info("No highlighted item available to return.")
-            return None
-        try:
-            # DataTable's coordinate system is (row, column)
-            # self.cursor_coordinate.row gives the visual row index
-            # We need the key of that row
-            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
 
-            if row_key.value is None:
-                return None
+        row_key = self.get_current_row_key()
 
-            return self._row_data_map.get(row_key.value)
+        assert row_key and row_key.value, "Invalid row key!"
 
-        except Exception as e:  # Catch potential errors if cursor is out of sync
-            self.log.error(f"Error getting selected mega item: {e}")
-            return None
+        return self._row_data_map.get(row_key.value)
 
     def get_column_widths(self):
         """Get optimal widths for table columns.
