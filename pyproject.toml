@@ -8,6 +8,7 @@ dependencies = [
     "pytest>=8.3.5",
     "pytest-asyncio>=1.0.0",
     "pytest-mock>=3.14.1",
+    "textual>=3.4.0",
     "textual-dev>=1.7.0",
 ]
 
@@ -112,13 +113,6 @@ pythonPlatform = "Linux"
   # { root = "src" }
 # ]
 
-
-
-
-
-# Local Variables:
-# eval: (jinx-mode 0)
-# End:
 [tool.pyrefly]
 project_excludes = [
     "**/node_modules",
@@ -131,3 +125,11 @@ python_version = "3.13.0"
 
 [tool.pyrefly.errors]
 import-error = true
+
+
+
+
+
+# Local Variables:
+# eval: (jinx-mode 0)
+# End:

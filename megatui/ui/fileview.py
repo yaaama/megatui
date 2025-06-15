@@ -2,22 +2,18 @@
 from pathlib import PurePath
 from typing import ClassVar, LiteralString, override
 
+import megatui.mega.megacmd as m
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from megatui.messages import StatusUpdate
+from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 from rich.text import Text
 from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import (
-    RowDoesNotExist,
-    RowKey,
-)
+from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
-
-import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.messages import StatusUpdate
-from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 
 ###########################################################################
@@ -53,6 +49,8 @@ class FileList(DataTable[Content]):
     """ Markup used for file icon. """
     DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
     """ Markup used for directory icon. """
+    SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
+    """ Character to indicate a file has been selected. """
 
     ## Bindings
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
@@ -87,6 +85,8 @@ class FileList(DataTable[Content]):
         self.show_header = True
         self.header_height = 1
         self.zebra_stripes = False
+        self.cursor_foreground_priority = ("renderable",)
+        self.cursor_background_priority = ("renderable",)
         # self.cell_padding = 0
 
         # Extra UI Elements
@@ -114,8 +114,6 @@ class FileList(DataTable[Content]):
         }
 
         self.log.info("Adding columns to FileList")
-        label: str
-        width: int
 
         # Add columns during initialisation with specified widths
         for column_name in self.COLUMNS:
@@ -128,12 +126,55 @@ class FileList(DataTable[Content]):
                     label=str(fmt["label"]),
                     # Width of column header
                     width=(int(fmt["width"]) if fmt["width"] else None),
-                    key=column_name.lower(),
+                    key=column_name,
                 )
 
-                self.log.debug(f"Column '{column_name}' fmt: '{fmt}'")
+                self.log.debug(f"Column: '{column_name}', fmt: '{fmt}'")
             else:
-                self.add_column(label=column_name, key=column_name.lower(), width=None)
+                self.add_column(label=column_name, key=column_name, width=None)
+
+    """
+    # Messages ################################################################
+    """
+
+    class ToggledSelection(Message):
+        """Message sent after item is selected by user."""
+
+        def __init__(self, count: int) -> None:
+            self.count: int = count
+            super().__init__()
+
+    class PathChanged(Message):
+        """Message for when the path has changed."""
+
+        def __init__(self, new_path: str) -> None:
+            self.new_path: str = new_path
+            super().__init__()
+
+    class LoadSuccess(Message):
+        """Message sent when items are loaded successfully."""
+
+        def __init__(self, path: str) -> None:
+            self.path: str = path
+            super().__init__()
+
+    class LoadError(Message):
+        """Message sent when loading items fails."""
+
+        def __init__(self, path: str, error: Exception) -> None:
+            self.path: str = path
+            self.error: Exception = error  # Include the error
+            super().__init__()
+
+    class EmptyDirectory(Message):
+        """Message to signal the entered directory is empty."""
+
+        def __init__(self) -> None:
+            super().__init__()
+
+    """
+    # Actions #########################################################
+    """
 
     async def action_navigate_in(self) -> None:
         """Navigate into a directory."""
@@ -173,7 +214,7 @@ class FileList(DataTable[Content]):
 
         await self.load_directory(str(parent_path))
 
-    async def action_refresh(self) -> None:
+    async def action_refresh(self, quiet: bool = False) -> None:
         """
         Refreshes the current working directory.
         """
@@ -224,7 +265,9 @@ class FileList(DataTable[Content]):
             new_name: str
             node: NodeInfoDict
             new_name, node = result
-            assert new_name and node, f"Empty name {new_name} or empty node: {node}."
+            assert (
+                new_name and node
+            ), f"Empty name: '{new_name}' or empty node: '{node}'."
             self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
             file_path: str = node["path"]
             await m.node_rename(file_path, new_name)
@@ -249,18 +292,13 @@ class FileList(DataTable[Content]):
         """
         current_row_key: RowKey | None = self.get_current_row_key()
 
-        assert (
-            current_row_key and current_row_key.value
-        ), "No current row key to select/deselect."
-
-        try:
-            # Get the visual index of the row. This is needed for refresh_row.
-            row_index: int = self.get_row_index(current_row_key)
-        except RowDoesNotExist:
-            self.log.error(
-                f"Row with key '{current_row_key}' (value: {current_row_key.value}) does not exist. Cannot toggle selection."
-            )
+        if not current_row_key:
+            self.log.info("No current row key to select/deselect.")
             return
+
+        assert (
+            current_row_key.value
+        ), "Row key value SHOULD always exist when row key is not None."
 
         row_item = self._row_data_map.get(current_row_key.value)
         assert row_item
@@ -268,9 +306,6 @@ class FileList(DataTable[Content]):
         item_handle = row_item.handle
 
         already_selected: bool = item_handle in self._selected_items
-
-        # Current cell contents
-        old_contents = self.get_row(current_row_key)[0]
 
         row_icon = (
             f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
@@ -281,23 +316,35 @@ class FileList(DataTable[Content]):
             self._selected_items.remove(item_handle)
 
             # FIXME This does not actually markup anything
-            new_content = Text.from_markup(text=f"[red bold]{row_icon}[/red bold]")
-            self.update_cell(
-                current_row_key,
-                self.COLUMNS[0],
-                value=Content.from_text(new_content),
+            new_content = Text.from_markup(
+                text=f"[red bold italic]{row_icon}[/red bold italic]"
             )
-            self.log.info(f"Selected row: {current_row_key.value}")
+            self.log.info(f"Deselected row: {current_row_key.value}")
 
         else:
             self._selected_items.add(item_handle)
-            new_content = Text.from_markup(text=f"{row_icon}*")
-            self.update_cell(
-                current_row_key,
-                self.COLUMNS[0].lower(),
-                value=Content.from_rich_text(new_content),
+            new_content = Text.from_markup(
+                text=f"[red bold italic]{row_icon}{self.SELECTION_INDICATOR}[/red bold italic]"
             )
-            self.log.info(f"Deselected row: {current_row_key.value}")
+            self.log.info(f"Selected row: {current_row_key.value}")
+
+        self.update_cell(
+            current_row_key,
+            self.COLUMNS[0],
+            value=Content.from_rich_text(new_content),
+        )
+
+        # NOTE: REMOVE LATER XXXXXXXXXXX
+        # XXX This does not markup anything...?
+        new_name = Text.from_markup(
+            text=f"[red bold italic]{row_item.name}[/red bold italic]"
+        )
+        self.update_cell(
+            current_row_key, self.COLUMNS[1], value=Content.from_rich_text(new_name)
+        )
+        self.refresh_row(row_index=self.get_row_index(current_row_key))
+        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     ###################################################################
@@ -343,7 +390,6 @@ class FileList(DataTable[Content]):
         height: int = 1
 
         fsize_str: str
-        selected: str = "*"
 
         # Go through each item and create new row for them
         for node in fetched_items:
@@ -357,7 +403,7 @@ class FileList(DataTable[Content]):
                 icon_content = self.FILE_ICON_MARKUP
 
             icon_content = Text.from_markup(
-                f"{icon_content}{selected if (node.handle in self._selected_items) else ''}"
+                f"{icon_content}{self.SELECTION_INDICATOR if (node.handle in self._selected_items) else ''}"
             )
 
             # Pass data as individual arguments for each column
@@ -390,6 +436,8 @@ class FileList(DataTable[Content]):
         # Start the worker. Results handled by on_worker_state_changed.
         worker_obj: Worker[MegaItems | None]
         worker_obj = self.fetch_files(path)
+        # self.loading=True
+        # self.refresh()
 
         await worker_obj.wait()
 
@@ -417,6 +465,8 @@ class FileList(DataTable[Content]):
         self.log.debug(
             f"Worker success for path '{self._loading_path}', items: {file_count}"
         )
+        # self.loading=False
+        # self.refresh()
         # Call the UI update method on the main thread
         self._update_list_on_success(self._loading_path, fetched_items)
 
@@ -454,23 +504,12 @@ class FileList(DataTable[Content]):
         """
         Return the MegaItem corresponding to the currently highlighted row.
         """
-        if self.cursor_row < 0 or not self.rows:  # No selection or empty table
-            self.log.info("No highlighted item available to return.")
-            return None
-        try:
-            # DataTable's coordinate system is (row, column)
-            # self.cursor_coordinate.row gives the visual row index
-            # We need the key of that row
-            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
 
-            if row_key.value is None:
-                return None
+        row_key = self.get_current_row_key()
 
-            return self._row_data_map.get(row_key.value)
+        assert row_key and row_key.value, "Invalid row key!"
 
-        except Exception as e:  # Catch potential errors if cursor is out of sync
-            self.log.error(f"Error getting selected mega item: {e}")
-            return None
+        return self._row_data_map.get(row_key.value)
 
     def get_column_widths(self):
         """Get optimal widths for table columns.
@@ -478,37 +517,3 @@ class FileList(DataTable[Content]):
         Returns a tuple of widths.
         """
         pass
-
-    # Messages ################################################################
-    class ToggledSelection(Message):
-        def __init__(self, count: int) -> None:
-            self.count: int = count
-            super().__init__()
-
-    class PathChanged(Message):
-        """Message for when the path has changed."""
-
-        def __init__(self, new_path: str) -> None:
-            self.new_path: str = new_path
-            super().__init__()
-
-    class LoadSuccess(Message):
-        """Message sent when items are loaded successfully."""
-
-        def __init__(self, path: str) -> None:
-            self.path: str = path
-            super().__init__()
-
-    class LoadError(Message):
-        """Message sent when loading items fails."""
-
-        def __init__(self, path: str, error: Exception) -> None:
-            self.path: str = path
-            self.error: Exception = error  # Include the error
-            super().__init__()
-
-    class EmptyDirectory(Message):
-        """Message to signal the entered directory is empty."""
-
-        def __init__(self) -> None:
-            super().__init__()

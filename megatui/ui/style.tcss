@@ -133,8 +133,8 @@ RenameDialog {
         padding: 2 2;
         width: 100%;
         text-style: bold;
-        background: $panel;
-        color: $foreground;
+        /* background: $panel; */
+        /* color: $foreground; */
         /* content-align: left middle; */
         /* text-align: center; */
         /* border-bottom: thick red; */
