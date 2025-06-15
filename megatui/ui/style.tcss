@@ -58,6 +58,10 @@ Screen {
     content-align: left middle;
 }
 
+
+#label-selected-count {
+}
+
 Footer {
     /* Ensure footer is also on a high layer if needed,
            but docking usually handles it */
@@ -100,33 +104,40 @@ RenameDialog {
 /*****************************************************************************/
 
 #file_list {
+
+    /* align: center middle; */
     /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
     /* layer: base; /\* Belongs to the base layer *\/ */
-    padding: 0 1;
+    padding: 0 0;
+    margin: 0 0;
 
+    border: round $primary; /* Add a border */
+    /* border: solid $secondary; /\* Add a border *\/ */
     /* background: #1e1e1e; /\* Dark background *\/ */
     /* border: heavy steelblue; */
-    border: round $primary; /* Add a border */
 
-    width: 100%; /* Occupy available width */
+    width: 1fr; /* Occupy available width */
     height: 1fr; /* Occupy available height */
     /* border-title-style: bold;
      * border-title-align: left;
      * border-title-color: $primary; /\* Color for the border title *\/
      * border-subtitle-style: italic;
      * border-subtitle-color: $secondary; /\* Slightly dimmer color for subtitle *\/
-     * content-align: center middle;
-     *  align: center middle; */
+     * content-align: center middle; */
+    /* align: center middle; */
+    align-vertical: top;
 
-    & > .datatable--header {
-        margin: 2 8;
-        padding: 2 8;
+
+    & > .data_table--header {
+        margin: 2 2;
+        padding: 2 2;
         width: 100%;
         text-style: bold;
-        /* background: $panel; */
+        background: $panel;
         color: $foreground;
-        border-bottom: thick red;
-
+        /* content-align: left middle; */
+        /* text-align: center; */
+        /* border-bottom: thick red; */
         /* background: $surface; */
     }
 }

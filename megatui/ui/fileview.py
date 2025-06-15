@@ -173,6 +173,7 @@ class FileList(DataTable[Content]):
                 value=Content.from_rich_text(new_content),
             )
             self.log.info(f"Deselected row: {current_row_key.value}")
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     @override
     def on_mount(self) -> None:
@@ -490,6 +491,11 @@ class FileList(DataTable[Content]):
             return None
 
     # Messages ################################################################
+    class ToggledSelection(Message):
+        def __init__(self, count: int) -> None:
+            self.count: int = count
+            super().__init__()
+
     class PathChanged(Message):
         """Message for when the path has changed."""
 

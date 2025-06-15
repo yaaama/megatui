@@ -7,6 +7,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Horizontal, Vertical
+from textual.content import Content
 from textual.css._style_properties import ScalarProperty, Unit
 from textual.reactive import var
 from textual.widgets import Header, Label
@@ -45,7 +46,6 @@ class MegaAppTUI(App[str]):
     status_message: var[str] = var("Logged in.")
     current_mega_path: var[str] = var("/")
 
-
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
@@ -67,6 +67,9 @@ class MegaAppTUI(App[str]):
             yield fileview
             # Placeholder for preview
             # yield Static("Preview", id="preview-pane")
+
+            # Selected files count
+            yield Label("", id="label-selected-count")
 
         # Why does the footer create so many event messages?
         # yield Footer(disabled=True)
@@ -176,11 +179,29 @@ class MegaAppTUI(App[str]):
             # Do nothing
             pass
 
+    @on(FileList.ToggledSelection)
+    def on_file_list_toggled_selection(
+        self, message: FileList.ToggledSelection
+    ) -> None:
+        """Update counter when selecting/unselecting an item."""
+        path_label = self.query_one("#label-selected-count", Label)
+        if message.count == 0:
+            path_label.update(Content.empty())
+            self.log.info("Selection counter is now cleared.")
+            return
+
+        path_label.update(
+            Content.from_markup(
+                f"[red bold] $count [/red bold] files selected.", count=message.count
+            )
+        )
+        self.log.info("Selection counter updated.")
+
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
         path_label = self.query_one("#label-path", Label)
-        path_label.update(f"{message.new_path}")
+        path_label.update(Content(f"{message.new_path}"))
         self.current_mega_path = message.new_path
 
     @on(FileList.LoadError)
