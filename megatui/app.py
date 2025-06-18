@@ -14,11 +14,10 @@ from textual.widgets import Header, Label
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate
 
-# from megatui.ui.fileitem import FileItem
-from megatui.ui.fileview import FileList
+from megatui.ui.filelist import FileList
 
 
-class MegaAppTUI(App[str]):
+class MegaAppTUI(App[None]):
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"

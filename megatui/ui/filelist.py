@@ -1,25 +1,27 @@
 # UI Components Related to Files
 from pathlib import PurePath
-from typing import ClassVar, LiteralString, override
+from typing import ClassVar, LiteralString, override, Any
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 from rich.text import Text
+from rich.style import Style
 from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import RowDoesNotExist, RowKey
+from textual.widgets._data_table import CellType, RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
+from megatui.ui.line import FileListRow
 
 
 ###########################################################################
 # FileList
 ###########################################################################
-class FileList(DataTable[Content]):
+class FileList(DataTable[Any], inherit_bindings=False):
     """
     A DataTable widget to display multiple FileItems
     """
@@ -75,6 +77,19 @@ class FileList(DataTable[Content]):
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
+    COMPONENT_CLASSES = {
+        "filelist--cursor",
+        "filelist--hover",
+        "filelist--fixed",
+        "filelist--fixed-cursor",
+        "filelist--header",
+        "filelist--header-cursor",
+        "filelist--header-hover",
+        "filelist--odd-row",
+        "filelist--even-row",
+        "filelist--icon",
+
+    }
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -87,6 +102,7 @@ class FileList(DataTable[Content]):
         self.zebra_stripes = False
         self.cursor_foreground_priority = ("renderable",)
         self.cursor_background_priority = ("renderable",)
+
         # self.cell_padding = 0
 
         # Extra UI Elements
@@ -336,20 +352,71 @@ class FileList(DataTable[Content]):
             value=Content.from_rich_text(new_content),
         )
 
-        # NOTE: REMOVE LATER XXXXXXXXXXX
-        # XXX This does not markup anything...?
-        new_name = Text.from_markup(
-            text=f"[red bold italic]{row_item.name}[/red bold italic]"
-        )
-        self.update_cell(
-            current_row_key, self.COLUMNS[1], value=Content.from_rich_text(new_name)
-        )
-        self.refresh_row(row_index=self.get_row_index(current_row_key))
-        # XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     ###################################################################
+
+    def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
+        """Updates state and UI after successful load. Runs on main thread."""
+        self.log.debug(f"Updating UI for path: {path}")
+        self.curr_path = path
+
+        self.clear(columns=False)
+        self._row_data_map.clear()  # Clear our internal mapping
+
+        height: int = 1
+
+        fsize_str: str
+
+        # Go through each item and create new row for them
+        for node in fetched_items:
+            # Prepare data for each cell in the row
+
+            if node.is_dir():
+                fsize_str = ""
+                icon_content = self.DIR_ICON_MARKUP
+            else:
+                fsize_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
+                icon_content = self.FILE_ICON_MARKUP
+
+            icon_content = Text.from_markup(
+                f"{icon_content}{self.SELECTION_INDICATOR if (node.handle in self._selected_items) else ''}"
+            )
+
+            cell_icon = Content.from_rich_text(icon_content)
+            cell_icon.stylize(style="reverse")
+            cell_content = Text(text=node.name, style="reverse", overflow="ellipsis")
+            cell_name = Content.from_rich_text(cell_content)
+            # Modification time
+            mtime_rich = Text(text=node.mtime, style="italic")
+            cell_mtime=    Content.from_rich_text(mtime_rich)
+            # Size of node
+            cell_size = Content(text=fsize_str),
+
+
+
+            # Pass data as individual arguments for each column
+            self.add_row(
+                # Icon
+                cell_icon,
+                # Content.from_rich_text(icon_content),
+                # Name of node
+                # Content(text=node.name),
+                cell_name,
+                # Modification time
+                cell_mtime,
+                # Size of node
+                Content(text=fsize_str),
+                # Unique key to reference the node
+                key=node.handle,
+                # Height of each row
+                height=height,
+            )
+            # Store the MegaItem
+            self._row_data_map[node.handle] = node
+
+        self.border_subtitle = f"{len(fetched_items)} items"
+
     @work(
         exclusive=True,
         group="megacmd",
@@ -380,53 +447,6 @@ class FileList(DataTable[Content]):
             # Post error message from the worker (thread-safe)
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
-
-    def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
-        """Updates state and UI after successful load. Runs on main thread."""
-        self.log.debug(f"Updating UI for path: {path}")
-        self.curr_path = path
-
-        self.clear(columns=False)
-        self._row_data_map.clear()  # Clear our internal mapping
-
-        height: int = 1
-
-        fsize_str: str
-
-        # Go through each item and create new row for them
-        for node in fetched_items:
-            # Prepare data for each cell in the row
-
-            if node.is_dir():
-                fsize_str = ""
-                icon_content = self.DIR_ICON_MARKUP
-            else:
-                fsize_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
-                icon_content = self.FILE_ICON_MARKUP
-
-            icon_content = Text.from_markup(
-                f"{icon_content}{self.SELECTION_INDICATOR if (node.handle in self._selected_items) else ''}"
-            )
-
-            # Pass data as individual arguments for each column
-            self.add_row(
-                # Icon
-                Content.from_rich_text(icon_content),
-                # Name of node
-                Content(text=node.name),
-                # Modification time
-                Content(text=node.mtime),
-                # Size of node
-                Content(text=fsize_str),
-                # Unique key to reference the node
-                key=node.handle,
-                # Height of each row
-                height=height,
-            )
-            # Store the MegaItem
-            self._row_data_map[node.handle] = node
-
-        self.border_subtitle = f"{len(fetched_items)} items"
 
     async def load_directory(self, path: str) -> None:
         """Initiates asynchronous loading using the worker."""

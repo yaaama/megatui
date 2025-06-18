@@ -32,6 +32,7 @@ Screen {
 #main {
     height: 1fr;
     width: 1fr;
+
 }
 
 #status-bar {
@@ -109,36 +110,57 @@ RenameDialog {
     /* align: center middle; */
     /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
     /* layer: base; /\* Belongs to the base layer *\/ */
-    padding: 0 0;
-    margin: 0 0;
-
-    border: round $primary; /* Add a border */
     /* border: solid $secondary; /\* Add a border *\/ */
     /* background: #1e1e1e; /\* Dark background *\/ */
     /* border: heavy steelblue; */
+    /* border-title-style: bold; */
+    /* border-title-align: left; */
+    /* border-title-color: $primary; */
+    /* border-subtitle-style: italic; */
+    /* border-subtitle-color: $secondary; */
+    /* Slightly dimmer color for subtitle */
+
+    /* padding: 0 0; */
+    /* margin: 0 0; */
+    box-sizing: border-box;
+    border: round $primary; /* Add a border */
 
     width: 1fr; /* Occupy available width */
     height: 1fr; /* Occupy available height */
-    /* border-title-style: bold;
-     * border-title-align: left;
-     * border-title-color: $primary; /\* Color for the border title *\/
-     * border-subtitle-style: italic;
-     * border-subtitle-color: $secondary; /\* Slightly dimmer color for subtitle *\/
-     * content-align: center middle; */
-    /* align: center middle; */
+    layout: horizontal;
+
+    align: center middle;
+    text-align: center;
+
+    content-align: right middle;
     align-vertical: top;
+    /* color: red; */
 
+    & > .datatable--cursor {
+        /* color: black;
+         * text-style: bold;
+         * width: 100%; */
 
-    & > .data_table--header {
-        margin: 1 1;
-        padding: 1 1;
-        width: 100%;
-        text-style: bold;
+    }
+    & > .datatable--fixed {
+        color: blue;
+
+    }
+   & > .datatable--header {
+       /* margin: 1 1; */
+       /* padding: 1 1; */
+       /* width: 100%; */
+       text-style: bold;
+
+       /* layout: horizontal; */
+       /* color: red; */
         /* background: $panel; */
         /* color: $foreground; */
-        /* content-align: left middle; */
-        /* text-align: center; */
-        /* border-bottom: thick red; */
-        /* background: $surface; */
+       /* content-align: right middle; */
+       /* text-align: center; */
+       /* border-bottom: thick red; */
+       /* background: $surface; */
     }
+
 }
+
