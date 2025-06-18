@@ -218,7 +218,9 @@ class FileList(DataTable[Content]):
         """
         Refreshes the current working directory.
         """
-        self.post_message(StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0))
+        if quiet == False:
+            self.post_message(StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0))
+
         await self.load_directory(self.curr_path)
 
     @work(
@@ -436,8 +438,6 @@ class FileList(DataTable[Content]):
         # Start the worker. Results handled by on_worker_state_changed.
         worker_obj: Worker[MegaItems | None]
         worker_obj = self.fetch_files(path)
-        # self.loading=True
-        # self.refresh()
 
         await worker_obj.wait()
 

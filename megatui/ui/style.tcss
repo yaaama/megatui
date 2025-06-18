@@ -60,6 +60,7 @@ Screen {
 
 
 #label-selected-count {
+
 }
 
 Footer {
@@ -129,8 +130,8 @@ RenameDialog {
 
 
     & > .data_table--header {
-        margin: 2 2;
-        padding: 2 2;
+        margin: 1 1;
+        padding: 1 1;
         width: 100%;
         text-style: bold;
         /* background: $panel; */
