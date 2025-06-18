@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import ClassVar, override
+from typing import ClassVar, LiteralString, override
 
-from rich.style import Style
-from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
@@ -13,11 +11,70 @@ from textual.widgets import Header, Label
 
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate
-
 from megatui.ui.filelist import FileList
 
 
+class TopStatusBar(Horizontal):
+
+    PATH_LABEL_ID: ClassVar[LiteralString] = "top-status-bar-path"
+    STATUS_MSG_ID: ClassVar[LiteralString] = "top-status-bar-msg"
+
+    path: var[str] = var("")
+    status_msg: var[str] = var("")
+
+    DEFAULT_CSS = f"""
+    TopStatusBar {{
+        height: 1;
+        background: $panel;
+    }}
+    #{PATH_LABEL_ID} {{
+        content-align: left middle;
+        width: 1fr;
+        margin: 0 1;
+
+    }}
+    #{STATUS_MSG_ID} {{
+        content-align: right middle;
+        min-width: 20%;
+        width: auto;
+        margin: 0 1;
+    }}
+    """
+
+    @override
+    def compose(self) -> ComposeResult:
+        """Create the child widgets"""
+        # Yield the labels. Their content will be set by the watch methods
+        # immediately after this, and then every time the reactive var changes.
+        yield Label(id=self.PATH_LABEL_ID)
+        yield Label(id=self.STATUS_MSG_ID)
+
+    def watch_path(self, new_path: str) -> None:
+        """Called when self.path is modified."""
+        path_label = self.query_one(f"#{self.PATH_LABEL_ID}", Label)
+        path_label.update(f"[b]Path:[/] [i]'{new_path}'[/]")
+
+    def watch_status_msg(self, new_status_msg: str) -> None:
+        """Called when self.status_msg is modified."""
+        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
+        status_msg_label.update(f"[reverse][b]{new_status_msg}[/b][/reverse]")
+        status_msg_label.visible = True
+
+    def hide_status_msg_label(self) -> None:
+        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
+        status_msg_label.visible = False
+
+    def signal_empty_dir(self) -> None:
+        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
+        status_msg_label.update("[b][red]Empty directory![/b][/red]")
+    def signal_error(self, err_msg : str):
+        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
+        status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
+
+
+
 class MegaAppTUI(App[None]):
+
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -34,13 +91,11 @@ class MegaAppTUI(App[None]):
     # 120 cells or wider, the app has the class "-very-wide"
     # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
-    BINDINGS : ClassVar[list[BindingType]] = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
     ]
 
-    status_message: var[str] = var("Logged in.")
-    current_mega_path: var[str] = var("/")
 
     # --- UI Composition ---
     @override
@@ -52,15 +107,13 @@ class MegaAppTUI(App[None]):
         self.capture_mouse(None)
         self.theme = "gruvbox"
 
-        fileview = FileList()
+        file_list = FileList()
+        top_status_bar = TopStatusBar()
 
         with Vertical(id="main"):
             yield Header()
-            with Horizontal(id="status-bar"):
-                yield Label(f"Path: {self.current_mega_path}", id="label-path")
-                yield Label(self.status_message, id="label-status-msg")
-
-            yield fileview
+            yield top_status_bar
+            yield file_list
             # Placeholder for preview
             # yield Static("Preview", id="preview-pane")
 
@@ -79,8 +132,7 @@ class MegaAppTUI(App[None]):
         # Get the FileList widget and load the root directory
 
         file_list = self.query_one(FileList)
-        # Start loading the root directory
-        await file_list.load_directory(self.current_mega_path)
+        await file_list.load_directory(file_list.curr_path)
 
     """
     Actions #############################################################
@@ -124,7 +176,7 @@ class MegaAppTUI(App[None]):
         self.app.log.info(
             f"action_download: Downloading file '{selected_item_data.name}'"
         )
-        self.status_message = f"Downloading '{selected_item_data.name}'"
+        self.top_status_bar().status_msg = f"Downloading '{selected_item_data.name}'"
         await self.download_files(download_items)
 
     def action_toggle_darkmode(self) -> None:
@@ -136,44 +188,10 @@ class MegaAppTUI(App[None]):
     # Watchers ################################################################
     """
 
-    # Watch reactive variables and update UI elements accordingly
-    def watch_status_message(self, new_message: str) -> None:
-        pass
-
-    def clear_status_message(self) -> None:
-        """
-        Helper to clear the status message.
-        """
-        self.status_message = ""
-        status_label: Label = self.query_one("#label-status-msg", Label)
-        status_label.update()
 
     """
     # Message Handlers ###########################################################
     """
-
-    @on(StatusUpdate)
-    def update_status_message(self, message: StatusUpdate):
-        """
-        Refresh UI when status bar is updated.
-        """
-        self.status_message = message.message
-
-        # Use query to find the label and update it
-        try:
-            status_label: Label = self.query_one("#label-status-msg", Label)
-            new_txt: Text = Text.from_markup(self.status_message)
-            new_txt.stylize(Style(italic=True))
-
-            status_label.update(new_txt)
-            status_label.set_timer(
-                delay=message.timeout if message.timeout > 0 else 10,
-                callback=self.clear_status_message,
-            )
-
-        except Exception:
-            # Do nothing
-            pass
 
     @on(FileList.ToggledSelection)
     def on_file_list_toggled_selection(
@@ -196,18 +214,38 @@ class MegaAppTUI(App[None]):
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
-        path_label = self.query_one("#label-path", Label)
-        path_label.update(Content(f"{message.new_path}"))
-        self.current_mega_path = message.new_path
-
-    @on(FileList.LoadError)
-    def on_file_list_load_error(self, message: FileList.LoadError) -> None:
-        """Handle errors during directory load."""
-        self.status_message = f"Error loading: {message.error}"
-        # Log the detailed error
-        self.log.error(f"Error loading directory: {message.error}")
-        # Maybe show a dialog or keep the status message updated
+        status_bar = self.query_one(TopStatusBar)
+        status_bar.path = message.path
 
     @on(FileList.EmptyDirectory)
-    def on_file_list_empty_directory(self) -> None:
-        self.status_message = "Empty directory!"
+    def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
+        self.top_status_bar().signal_empty_dir()
+
+
+    @on(FileList.LoadError)
+    def on_file_list_load_error(self, message: FileList.LoadError):
+        self.top_status_bar().signal_error(f"Failed to load path: {message.path}")
+        # Log the detailed error
+        self.log.error(f"Error loading directory: {message.error}")
+
+    @on(StatusUpdate)
+    def update_status_message(self, message: StatusUpdate):
+        """
+        Refresh UI when status bar is updated.
+        """
+        status_bar = self.query_one(TopStatusBar)
+        status_bar.status_msg = message.message
+
+        def clear_status_msg():
+            self.log.info("Clearing status message in top bar.")
+            status_bar.hide_status_msg_label()
+
+        status_bar.set_timer(
+            delay=message.timeout if message.timeout > 0 else 10,
+            callback=clear_status_msg,
+        )
+
+    """ Widget access. """
+
+    def top_status_bar(self):
+        return self.query_one(TopStatusBar)
