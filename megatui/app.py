@@ -94,8 +94,10 @@ class MegaAppTUI(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
+        Binding("f3", "download", "download file"),
     ]
 
+    DL_PATH = Path.home() / "megadl"
 
     # --- UI Composition ---
     @override
@@ -151,7 +153,7 @@ class MegaAppTUI(App[None]):
         for file in files:
             home = Path.home()
             await mega_get(
-                target_path=str(home),
+                target_path=str(self.DL_PATH),
                 remote_path=str(file.full_path),
                 is_dir=file.is_dir(),
             )
