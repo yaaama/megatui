@@ -1,21 +1,20 @@
 # UI Components Related to Files
 from pathlib import PurePath
-from typing import ClassVar, LiteralString, override, Any
+from typing import Any, ClassVar, LiteralString, override
 
-import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.messages import StatusUpdate
-from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 from rich.text import Text
-from rich.style import Style
 from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import CellType, RowDoesNotExist, RowKey
+from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
-from megatui.ui.line import FileListRow
+
+import megatui.mega.megacmd as m
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from megatui.messages import StatusUpdate
+from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 
 ###########################################################################
@@ -88,7 +87,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         "filelist--odd-row",
         "filelist--even-row",
         "filelist--icon",
-
     }
 
     def __init__(self):
@@ -117,7 +115,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     @override
     def on_mount(self) -> None:
-
         # Initialise the columns displayed Column and their respective formatting
         column_formatting = {
             "icon": {"label": " ", "width": 4},
@@ -161,26 +158,33 @@ class FileList(DataTable[Any], inherit_bindings=False):
             super().__init__()
 
     class PathChanged(Message):
-        """Message for when the path has changed."""
-
-        def __init__(self, new_path: str) -> None:
-            self.new_path: str = new_path
-            super().__init__()
-
-    class LoadSuccess(Message):
-        """Message sent when items are loaded successfully."""
+        """Message for when the path has changed.
+        'PathChanged.path': The path changed into.
+        """
 
         def __init__(self, path: str) -> None:
-            self.path: str = path
             super().__init__()
+            self.path: str = path
+
+    class LoadSuccess(Message):
+        """Message sent when items are loaded successfully.
+        'LoadSuccess.path': Newly loaded path.
+        """
+
+        def __init__(self, path: str) -> None:
+            super().__init__()
+            self.path: str = path
 
     class LoadError(Message):
-        """Message sent when loading items fails."""
+        """Message sent when loading items fails.
+        'LoadError.path': Path that failed to load.
+        'LoadError.error': An error message.
+        """
 
         def __init__(self, path: str, error: Exception) -> None:
+            super().__init__()
             self.path: str = path
             self.error: Exception = error  # Include the error
-            super().__init__()
 
     class EmptyDirectory(Message):
         """Message to signal the entered directory is empty."""
@@ -235,7 +239,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Refreshes the current working directory.
         """
         if quiet == False:
-            self.post_message(StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0))
+            self.post_message(
+                StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0)
+            )
 
         await self.load_directory(self.curr_path)
 
@@ -283,9 +289,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             new_name: str
             node: NodeInfoDict
             new_name, node = result
-            assert (
-                new_name and node
-            ), f"Empty name: '{new_name}' or empty node: '{node}'."
+            assert new_name and node, (
+                f"Empty name: '{new_name}' or empty node: '{node}'."
+            )
             self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
             file_path: str = node["path"]
             await m.node_rename(file_path, new_name)
@@ -314,9 +320,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.info("No current row key to select/deselect.")
             return
 
-        assert (
-            current_row_key.value
-        ), "Row key value SHOULD always exist when row key is not None."
+        assert current_row_key.value, (
+            "Row key value SHOULD always exist when row key is not None."
+        )
 
         row_item = self._row_data_map.get(current_row_key.value)
         assert row_item
@@ -389,11 +395,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             cell_name = Content.from_rich_text(cell_content)
             # Modification time
             mtime_rich = Text(text=node.mtime, style="italic")
-            cell_mtime=    Content.from_rich_text(mtime_rich)
+            cell_mtime = Content.from_rich_text(mtime_rich)
             # Size of node
-            cell_size = Content(text=fsize_str),
-
-
+            cell_size = (Content(text=fsize_str),)
 
             # Pass data as individual arguments for each column
             self.add_row(
@@ -500,7 +504,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.post_message(self.EmptyDirectory())
 
     def get_current_row_key(self) -> RowKey | None:
-
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
             self.log.info("No highlighted item available to return.")
             return None

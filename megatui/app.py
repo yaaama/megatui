@@ -15,7 +15,6 @@ from megatui.ui.filelist import FileList
 
 
 class TopStatusBar(Horizontal):
-
     PATH_LABEL_ID: ClassVar[LiteralString] = "top-status-bar-path"
     STATUS_MSG_ID: ClassVar[LiteralString] = "top-status-bar-msg"
 
@@ -67,14 +66,13 @@ class TopStatusBar(Horizontal):
     def signal_empty_dir(self) -> None:
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
         status_msg_label.update("[b][red]Empty directory![/b][/red]")
-    def signal_error(self, err_msg : str):
+
+    def signal_error(self, err_msg: str):
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
         status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
 
 
-
 class MegaAppTUI(App[None]):
-
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -190,7 +188,6 @@ class MegaAppTUI(App[None]):
     # Watchers ################################################################
     """
 
-
     """
     # Message Handlers ###########################################################
     """
@@ -222,7 +219,6 @@ class MegaAppTUI(App[None]):
     @on(FileList.EmptyDirectory)
     def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
         self.top_status_bar().signal_empty_dir()
-
 
     @on(FileList.LoadError)
     def on_file_list_load_error(self, message: FileList.LoadError):

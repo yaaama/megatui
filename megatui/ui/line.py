@@ -1,10 +1,8 @@
 from typing import override
-from textual.widget import Widget
-from textual.geometry import Size
-from textual.strip import Strip
-from textual.style import Style
+
 from rich.segment import Segment
-import rich.table as rt
+from textual.strip import Strip
+from textual.widget import Widget
 
 
 class FileListRow(Widget):
@@ -55,15 +53,9 @@ class FileListRow(Widget):
     def render_line(self, y: int) -> Strip:
         cells = [
             # Segment(icon_text, style=self.get_component_rich_style("fvitem--icon")),
-            Segment(
-                self.fname, style=self.get_component_rich_style("fvitem--name")
-            ),
-            Segment(
-                self.fsize, style=self.get_component_rich_style("fvitem--fsize")
-            ),
-            Segment(
-                self.mtime, style=self.get_component_rich_style("fvitem--mtime")
-            ),
+            Segment(self.fname, style=self.get_component_rich_style("fvitem--name")),
+            Segment(self.fsize, style=self.get_component_rich_style("fvitem--fsize")),
+            Segment(self.mtime, style=self.get_component_rich_style("fvitem--mtime")),
         ]
 
         icon_text: str
