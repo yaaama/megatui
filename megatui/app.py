@@ -8,10 +8,14 @@ from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
+import rich
+from rich.text import Text
 
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
+
+rc = rich.get_console()
 
 
 class TopStatusBar(Horizontal):
@@ -56,8 +60,8 @@ class TopStatusBar(Horizontal):
     def watch_status_msg(self, new_status_msg: str) -> None:
         """Called when self.status_msg is modified."""
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update(f"[reverse][b]{new_status_msg}[/b][/reverse]")
         status_msg_label.visible = True
+        status_msg_label.update(f"[b]{new_status_msg}[/b]")
 
     def hide_status_msg_label(self) -> None:
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
@@ -65,7 +69,7 @@ class TopStatusBar(Horizontal):
 
     def signal_empty_dir(self) -> None:
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update("[b][red]Empty directory![/b][/red]")
+        status_msg_label.update("[b][red]Empty directory[/b][/red]")
 
     def signal_error(self, err_msg: str):
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)

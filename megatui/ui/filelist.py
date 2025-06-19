@@ -14,6 +14,7 @@ from textual.worker import Worker  # Import worker types
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
+from megatui.app import rc
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 
@@ -314,7 +315,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Toggles the selection state of the currently hovered-over item (row).
         Selected rows are MEANT to be visually highlighted.
         """
-        current_row_key: RowKey | None = self.get_current_row_key()
+        current_row_key: RowKey | None = self._get_curr_row_key()
 
         if not current_row_key:
             self.log.info("No current row key to select/deselect.")
@@ -503,7 +504,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if file_count == 0:
             self.post_message(self.EmptyDirectory())
 
-    def get_current_row_key(self) -> RowKey | None:
+    def _get_curr_row_key(self) -> RowKey | None:
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
             self.log.info("No highlighted item available to return.")
             return None
@@ -528,7 +529,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Return the MegaItem corresponding to the currently highlighted row.
         """
 
-        row_key = self.get_current_row_key()
+        row_key = self._get_curr_row_key()
 
         assert row_key and row_key.value, "Invalid row key!"
 
