@@ -998,7 +998,7 @@ async def mega_get_handle(
 
     if merge:
         cmd.append("-m")
-        logger.debug(f"Merge option enabled ('-m')")
+        logger.debug("Merge option enabled ('-m')")
 
     cmd.append(handle)
 
