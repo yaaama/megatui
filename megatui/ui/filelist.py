@@ -540,3 +540,18 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Returns a tuple of widths.
         """
         pass
+
+    def selected_items(self) -> MegaItems:
+        """Return items that have been SELECTED."""
+
+        if len(self._selected_items) <= 0:
+            self.log.debug("No items selected for us to return.")
+            return []
+
+        selected: list[MegaItem] = []
+        for e in self._selected_items:
+            item = self._row_data_map[e]
+            selected.append(item)
+
+        self.log.info(f"Selected files: {rc.print(selected)}")
+        return selected if len(selected) > 0 else []

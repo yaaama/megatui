@@ -148,12 +148,20 @@ class MegaAppTUI(App[None]):
             self.log.warning("Did not receive any files to download!")
             return
 
-        for file in files:
-            home = Path.home()
+        dl_len = len(files)
+        for i, file in enumerate(files):
+            self.post_message(
+                StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
+            )
             await mega_get(
                 target_path=str(self.DL_PATH),
                 remote_path=str(file.full_path),
                 is_dir=file.is_dir(),
+            )
+            rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
+            title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
+            self.notify(
+                f"'{file.name}' finished downloading ", title=f"{title}", markup=True
             )
 
     async def action_download(self) -> None:
@@ -165,19 +173,21 @@ class MegaAppTUI(App[None]):
         TODO: Display download status
         """
         file_list = self.query_one(FileList)
-        selected_item_data: MegaItem | None = file_list.get_highlighted_megaitem()
+        dl_items = file_list.selected_items()
 
-        if selected_item_data is None:
-            self.log.debug("Download failed as no file is currently highlighted.")
-            return
+        # If dl_items is empty
+        if len(dl_items) == 0:
+            # Default to downloading the currently highlighted item
+            highlighted = file_list.get_highlighted_megaitem()
+            if not highlighted:
+                self.log.error("Could not default to highlighted item. Cancelling.")
+                return
 
-        download_items = [selected_item_data]
+            # Append highlighted item to the list
+            dl_items.append(highlighted)
 
-        self.app.log.info(
-            f"action_download: Downloading file '{selected_item_data.name}'"
-        )
-        self.top_status_bar().status_msg = f"Downloading '{selected_item_data.name}'"
-        await self.download_files(download_items)
+        self.app.log.info(f"action_download: Downloading files: '{rc.print(dl_items)}'")
+        await self.download_files(dl_items)
 
     def action_toggle_darkmode(self) -> None:
         """Toggles darkmode."""
