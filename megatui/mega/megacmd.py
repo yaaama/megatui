@@ -608,7 +608,7 @@ async def mega_ls(
         _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
 
         # Parse the handle
-        handle_str: str = _handle[2:] if _handle.startswith("H:") else _handle
+        handle_str: str = _handle
 
         # Values to convert
         mtime_str: str = f"{_date} {_time}"
