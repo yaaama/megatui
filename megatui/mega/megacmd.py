@@ -924,7 +924,7 @@ async def mega_get(
     remote_path: str,
     is_dir: bool,
     queue: bool = True,
-    merge: bool = True,
+    merge: bool = False,
 ):
     """
       Download a file from the remote system to a local path.
