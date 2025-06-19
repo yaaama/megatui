@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import ClassVar, LiteralString, override
 
+import rich
+from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
@@ -8,8 +10,6 @@ from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
-import rich
-from rich.text import Text
 
 from megatui.mega.megacmd import MegaItem, mega_get
 from megatui.messages import StatusUpdate

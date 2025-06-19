@@ -5,8 +5,10 @@ from typing import Any, ClassVar, LiteralString, override
 from rich.text import Text
 from textual import work
 from textual.binding import Binding, BindingType
+from textual.color import Color
 from textual.content import Content
 from textual.message import Message
+from textual.style import Style
 from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
@@ -14,7 +16,6 @@ from textual.worker import Worker  # Import worker types
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
-from megatui.app import rc
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 
@@ -99,8 +100,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.show_header = True
         self.header_height = 1
         self.zebra_stripes = False
-        self.cursor_foreground_priority = ("renderable",)
-        self.cursor_background_priority = ("renderable",)
+        # self.cursor_foreground_priority = ("renderable",)
+        # self.cursor_background_priority = ("renderable",)
+        self.show_row_labels = True
 
         # self.cell_padding = 0
 
@@ -113,6 +115,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._loading_path = self.curr_path
         self._row_data_map = {}
         self._selected_items = set()
+        self._selected_item_style: Style = Style(
+            foreground=Color.parse("red"), bold=True, italic=True
+        )
 
     @override
     def on_mount(self) -> None:
@@ -239,7 +244,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         Refreshes the current working directory.
         """
-        if quiet == False:
+        if not quiet:
             self.post_message(
                 StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0)
             )
@@ -290,9 +295,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             new_name: str
             node: NodeInfoDict
             new_name, node = result
-            assert new_name and node, (
-                f"Empty name: '{new_name}' or empty node: '{node}'."
-            )
+            assert (
+                new_name and node
+            ), f"Empty name: '{new_name}' or empty node: '{node}'."
             self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
             file_path: str = node["path"]
             await m.node_rename(file_path, new_name)
@@ -321,43 +326,43 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.info("No current row key to select/deselect.")
             return
 
-        assert current_row_key.value, (
-            "Row key value SHOULD always exist when row key is not None."
+        curr_index = self.get_row_index(current_row_key)
+
+        assert (
+            current_row_key.value
+        ), "Row key value SHOULD always exist when row key is not None."
+
+        cursor_y = self.cursor_coordinate.row
+        self.log.info(
+            f"Selecting row. Rowkey: '{current_row_key.value}', Row Index: '{curr_index}'"
         )
+        self.log.info(f"Cursor 'y' value: '{cursor_y}'")
 
-        row_item = self._row_data_map.get(current_row_key.value)
-        assert row_item
-
+        # Check if selected item has been selected already before
+        # Get the MegaItem
+        row_item: MegaItem = self._row_data_map[current_row_key.value]
+        # Get handle
         item_handle = row_item.handle
-
+        # Boolean expression to check if already selected
         already_selected: bool = item_handle in self._selected_items
 
-        row_icon = (
-            f"{self.DIR_ICON_MARKUP if row_item.is_dir() else self.FILE_ICON_MARKUP}"
-        )
-
-        if already_selected:
+        if not already_selected:
+            self._selected_items.add(item_handle)
+            select_txt = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            self.rows[current_row_key].label = select_txt
+            self.log.info(f"Selected row: {current_row_key.value}")
+        else:
+            self.rows[current_row_key].label = Text(" ")
             # Remove item from set of selected items
             self._selected_items.remove(item_handle)
-
-            # FIXME This does not actually markup anything
-            new_content = Text.from_markup(
-                text=f"[red bold italic]{row_icon}[/red bold italic]"
-            )
             self.log.info(f"Deselected row: {current_row_key.value}")
 
-        else:
-            self._selected_items.add(item_handle)
-            new_content = Text.from_markup(
-                text=f"[red bold italic]{row_icon}{self.SELECTION_INDICATOR}[/red bold italic]"
-            )
-            self.log.info(f"Selected row: {current_row_key.value}")
+        self.log.info("Updated row label")
 
-        self.update_cell(
-            current_row_key,
-            self.COLUMNS[0],
-            value=Content.from_rich_text(new_content),
-        )
+        # self.refresh_row(curr_index)
+        # self.refresh_line(self.cursor_coordinate.row)
+        self.refresh()
+        self._update_count += 1
 
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
@@ -372,8 +377,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._row_data_map.clear()  # Clear our internal mapping
 
         height: int = 1
-
         fsize_str: str
+        selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+        refresh: bool = False
 
         # Go through each item and create new row for them
         for node in fetched_items:
@@ -381,27 +387,24 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
             if node.is_dir():
                 fsize_str = ""
-                icon_content = self.DIR_ICON_MARKUP
+                _icon = self.DIR_ICON_MARKUP
             else:
                 fsize_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
-                icon_content = self.FILE_ICON_MARKUP
+                _icon = self.FILE_ICON_MARKUP
 
-            icon_content = Text.from_markup(
-                f"{icon_content}{self.SELECTION_INDICATOR if (node.handle in self._selected_items) else ''}"
+            cell_icon = Content.from_rich_text(Text.from_markup(f"{_icon}"))
+            cell_name = Content.from_rich_text(
+                Text(text=f"{node.name}", overflow="ellipsis", no_wrap=True)
             )
-
-            cell_icon = Content.from_rich_text(icon_content)
-            cell_icon.stylize(style="reverse")
-            cell_content = Text(text=node.name, style="reverse", overflow="ellipsis")
-            cell_name = Content.from_rich_text(cell_content)
             # Modification time
-            mtime_rich = Text(text=node.mtime, style="italic")
-            cell_mtime = Content.from_rich_text(mtime_rich)
+            cell_mtime = Content.from_rich_text(
+                Text(text=f"{node.mtime}", style="italic")
+            )
             # Size of node
-            cell_size = (Content(text=fsize_str),)
+            cell_size = Content(text=f"{fsize_str}")
 
             # Pass data as individual arguments for each column
-            self.add_row(
+            rowkey = self.add_row(
                 # Icon
                 cell_icon,
                 # Content.from_rich_text(icon_content),
@@ -411,15 +414,23 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 # Modification time
                 cell_mtime,
                 # Size of node
-                Content(text=fsize_str),
+                cell_size,
                 # Unique key to reference the node
                 key=node.handle,
                 # Height of each row
                 height=height,
+                label=" ",
             )
+            if node.handle in self._selected_items:
+                self.rows[rowkey].label = selection_label
+                refresh = True
+
             # Store the MegaItem
             self._row_data_map[node.handle] = node
 
+        if refresh:
+            self.refresh()
+            self._update_count += 1
         self.border_subtitle = f"{len(fetched_items)} items"
 
     @work(
@@ -490,9 +501,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.log.debug(
             f"Worker success for path '{self._loading_path}', items: {file_count}"
         )
-        # self.loading=False
-        # self.refresh()
-        # Call the UI update method on the main thread
+        # Update FileList
         self._update_list_on_success(self._loading_path, fetched_items)
 
         # We have successfully loaded the path
@@ -554,5 +563,5 @@ class FileList(DataTable[Any], inherit_bindings=False):
             item = self._row_data_map[e]
             selected.append(item)
 
-        self.log.info(f"Selected files: {rc.print(selected)}")
+        # self.log.info(f"Selected files: {rc.print(selected)}")
         return selected if len(selected) > 0 else []
