@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pathlib
 import re
 import subprocess
 from enum import Enum
@@ -915,6 +916,118 @@ async def mega_put(
     except Exception:
         logger.exception(
             f"An unexpected error occurred during mega_put from '{local_path}' to '{target_path}'."
+        )
+
+
+def verify_handle(handle: str) -> bool:
+    logger.info(f"Verifying handle: '{handle}'")
+
+    if not handle:
+        logger.error("Empty string cannot be a valid handle.")
+        return False
+
+    handle_len = len(handle)
+    if handle_len < 8:
+        logger.error("Handle should be longer than 8 characters.")
+        return False
+
+    if not handle.startswith("H:"):
+        logger.error("Handles should start with 'H:'")
+        return False
+
+    if not handle.isalnum():
+        logger.error("Handle received is not alpha-numerical.")
+        return False
+
+    return True
+
+
+async def path_from_handle(handle: str) -> PurePath | None:
+    assert verify_handle(handle), "Handle failed verification."
+
+    # cd to root
+    try:
+        await mega_cd("/")
+    except MegaCmdError as e:
+        logger.error(f"Could not navigate to root directory: {e}")
+        return None
+
+    # Have to use the 'ls' command to get the full path of a handle
+    cmd: list[str] = ["ls", handle]
+
+    try:
+        response = await run_megacmd(tuple(cmd))
+
+        if response.return_code != 0 or response.stderr:
+            error_msg = response.stderr if response.stderr else response.stdout
+            logger.error(f"Error verifying handle: '{handle}': {error_msg}")
+            return
+
+    except MegaCmdError as e:
+        logger.error(f"MegaCmdError raised whilst verifying '{handle}': {e}")
+        return None
+
+    # Parse result
+    try:
+        split = response.stdout.partition("\n")
+        # Parse Path
+        path = PurePath(split[0])
+    except pathlib.UnsupportedOperation as e:
+        logger.error(f"Failed to parse path: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Some other error occured: {e}")
+        return None
+
+    return path
+
+
+async def mega_get_handle(
+    target_path: str, handle: str, queue: bool = True, merge: bool = False
+):
+    """Download file using its HANDLE."""
+
+    assert target_path, "You must specify a 'target_path'"
+    assert handle, "'handle' not specified."
+    assert verify_handle(handle), "Handle verification failed."
+
+    cmd: list[str] = ["get"]
+    if queue:
+        cmd.append("-q")
+        logger.debug("Queuing option enabled ('-q')")
+
+    if merge:
+        cmd.append("-m")
+        logger.debug(f"Merge option enabled ('-m')")
+
+    cmd.append(handle)
+
+    io_path: Path = Path(target_path)
+
+    if not io_path.exists():
+        logger.info(f"Target path '{target_path}' does not exist, will create it.")
+        io_path.mkdir(exist_ok=False, parents=True)
+    else:
+        logger.info(f"Target path '{target_path}' exists.")
+
+    cmd.append(target_path)
+
+    try:
+        response = await run_megacmd(tuple(cmd))
+
+        if response.return_code != 0 or response.stderr:
+            error_msg = response.stderr if response.stderr else response.stdout
+            logger.error(f"Error downloading in '{target_path}': {error_msg}")
+            return
+
+        logger.info(f"Successfully initiated download of '{handle}' to '{target_path}'")
+    except MegaCmdError as e:
+        logger.error(
+            f"MegaCmdError during mega_get_handle for '{handle}' to '{target_path}': {e}"
+        )
+    except Exception:
+        logger.exception(
+            f"An unexpected error occurred during mega_get_handle for '{handle}' to '{target_path}'."
         )
 
 
