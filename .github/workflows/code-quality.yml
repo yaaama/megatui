@@ -28,7 +28,7 @@ jobs:
         pip install pylint ruff
     - name: Lint with ruff
       run: |
-        ruff lint
+        ruff check
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')
