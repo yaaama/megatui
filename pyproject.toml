@@ -102,6 +102,10 @@ reportMissingTypeStubs = false
 reportUnusedCallResult = false
 reportUnannotatedClassAttribute = false
 reportUnreachable = false
+reportExplicitAny = false
+reportAny = false
+reportUnnecessaryTypeIgnoreComment = false
+
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"
