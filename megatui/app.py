@@ -96,7 +96,7 @@ class MegaAppTUI(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
-        Binding("f3", "download", "download file"),
+        Binding("f3", "download", "download file", key_display="f3"),
     ]
 
     DL_PATH = Path.home() / "megadl"
@@ -111,7 +111,9 @@ class MegaAppTUI(App[None]):
         self.capture_mouse(None)
         self.theme = "gruvbox"
 
+        # Our file list
         file_list = FileList()
+        # Top status bar
         top_status_bar = TopStatusBar()
 
         with Vertical(id="main"):
@@ -211,15 +213,15 @@ class MegaAppTUI(App[None]):
         self, message: FileList.ToggledSelection
     ) -> None:
         """Update counter when selecting/unselecting an item."""
-        path_label = self.query_one("#label-selected-count", Label)
+        selection_label = self.query_one("#label-selected-count", Label)
         if message.count == 0:
-            path_label.update(Content.empty())
+            selection_label.update(Content.empty())
             self.log.info("Selection counter is now cleared.")
             return
 
-        path_label.update(
+        selection_label.update(
             Content.from_markup(
-                "[red bold] $count [/red bold] files selected.", count=message.count
+                "[red bold]$count[/red bold] files selected.", count=message.count
             )
         )
         self.log.info("Selection counter updated.")

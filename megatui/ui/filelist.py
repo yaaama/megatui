@@ -78,18 +78,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
-    COMPONENT_CLASSES = {
-        "filelist--cursor",
-        "filelist--hover",
-        "filelist--fixed",
-        "filelist--fixed-cursor",
-        "filelist--header",
-        "filelist--header-cursor",
-        "filelist--header-hover",
-        "filelist--odd-row",
-        "filelist--even-row",
-        "filelist--icon",
-    }
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -100,10 +88,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.show_header = True
         self.header_height = 1
         self.zebra_stripes = False
+        self.show_row_labels = True
         # self.cursor_foreground_priority = ("renderable",)
         # self.cursor_background_priority = ("renderable",)
-        self.show_row_labels = True
-
         # self.cell_padding = 0
 
         # Extra UI Elements

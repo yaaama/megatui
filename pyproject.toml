@@ -3,58 +3,55 @@ name = "megatui"
 version = "0.0.1"
 description = "Terminal user interface for MEGA"
 requires-python = ">=3.13"
-readme="README.md"
+readme = "README.md"
 dependencies = [
-    "pytest>=8.3.5",
-    "pytest-asyncio>=1.0.0",
-    "pytest-mock>=3.14.1",
-    "textual>=3.4.0",
-    "textual-dev>=1.7.0",
+  "pytest>=8.3.5",
+  # "pytest-asyncio>=1.0.0",
+  # "pytest-mock>=3.14.1",
+  "textual>=3.4.0",
+  "textual-dev>=1.7.0",
 ]
 
 # Add this section to explicitly tell setuptools where to find your package(s)
 [tool.setuptools.packages.find]
-where = ["."]  # Look in the current directory (project root)
-include = ["megatui*"] # Include 'megatui' and any sub-packages like megatui.mega
+where = ["."] # Look in the current directory (project root)
+include = [
+  "megatui*",
+] # Include 'megatui' and any sub-packages like megatui.mega
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra --color=yes" # Example: report all, quiet, with color
 testpaths = [
-    "tests", # Specify where your tests are located
-    # "another_test_dir",
+  "tests", # Specify where your tests are located
+  # "another_test_dir",
 ]
 
 python_files = ["test_*.py", "*_test.py"]
 
 
-asyncio_mode = "auto" # For pytest-asyncio
+asyncio_mode = "auto"                         # For pytest-asyncio
 asyncio_default_fixture_loop_scope = "module"
 # You can add markers, filterwarnings, etc. here
 markers = [
   #     "slow: marks tests as slow to run",
-#     "integration: marks integration tests",
-    "serial",  # used to indicate tests must not run in parallel
+  #     "integration: marks integration tests",
+  "serial", # used to indicate tests must not run in parallel
 ]
 
 
 [tool.ruff.format]
-# Like Black, use double quotes for strings.
+
+line-length = 100
+src = ["src", "tests"]
+target-version = "py310"
 # markers = []
 quote-style = "double"
-
-# Like Black, indent with spaces, rather than tabs.
 indent-style = "space"
-
-# Like Black, respect magic trailing commas.
 skip-magic-trailing-comma = false
-
-# Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
-
 # Enable auto-formatting of code examples in docstrings. Markdown,
 # reStructuredText code/literal blocks and doctests are all supported.
-#
 # This is currently disabled by default, but it is planned for this
 # to be opt-out in the future.
 docstring-code-format = true
@@ -69,14 +66,31 @@ docstring-code-line-length = "dynamic"
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/rules/
 # General
-select = ["E", "F", "I", "C4", "C", "SIM",  "B", "A", "ASYNC", "PERF", "RUF"]
+select = [
+  "E",
+  "E",     # pycodestyle
+  "W",     # pycodestyle
+  "D",     # pydocstyle
+  "PL",    # pylint
+  "F",
+  "I",
+  "C4",
+  "C",
+  "SIM",
+  "B",
+  "A",
+  "ASYNC",
+  "PERF",
+  "RUF",
+]
+
 # Extra long
 # select = ["ASYNC", "B", "A", "C4", "Q", "RET", "SIM", "SLOT", "TD", "TC",
 # "PERF", "I", "D", "DOC", "F", "PL", "UP", "FURB", "RUF", "TRY"]
 ignore = [
-    "C901",  # McCabe complexity warning
-    "E501",  # Line too long
-    "E722",  # Do not use bare `except`
+  "C901", # McCabe complexity warning
+  "E501", # Line too long
+  "E722", # Do not use bare `except`
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -88,10 +102,11 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 
 [tool.pyright]
-exclude = ["**/node_modules",
-    "**/__pycache__",
-    "src/experimental",
-    "src/typestubs"
+exclude = [
+  "**/node_modules",
+  "**/__pycache__",
+  "src/experimental",
+  "src/typestubs",
 ]
 # ignore = ["src/oldstuff"]
 # stubPath = "src/stubs"
@@ -111,27 +126,24 @@ pythonVersion = "3.13"
 pythonPlatform = "Linux"
 
 # executionEnvironments = [
-  # { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ], reportMissingImports = "warning" },
-  # { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
-  # { root = "src/tests", extraPaths = ["src/tests/e2e", "src/sdk" ]},
-  # { root = "src" }
+# { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ], reportMissingImports = "warning" },
+# { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
+# { root = "src/tests", extraPaths = ["src/tests/e2e", "src/sdk" ]},
+# { root = "src" }
 # ]
 
 [tool.pyrefly]
 project_excludes = [
-    "**/node_modules",
-    "**/__pycache__",
-    "src/experimental",
-    "src/typestubs",
+  "**/node_modules",
+  "**/__pycache__",
+  "src/experimental",
+  "src/typestubs",
 ]
 python_platform = "linux"
 python_version = "3.13.0"
 
 [tool.pyrefly.errors]
 import-error = true
-
-
-
 
 
 # Local Variables:

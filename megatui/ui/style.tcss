@@ -32,36 +32,38 @@ Screen {
 #main {
     height: 1fr;
     width: 1fr;
-
 }
 
 #status-bar {
-    /* dock: top; */
     height: 1;
-    background: initial;
-    color: $panel;
+    /* background: initial; */
     padding: 0 1;
-    /* layer: status; /\* Belongs to the status layer *\/ */
-    width: 100%; /* Ensure it spans the width */
+    /* width: 100%; /\* Ensure it spans the width *\/ */
     visibility: visible; /* Ensure it's visible */
-}
-#status-bar Label {
-    width: 1fr; /* Make labels fill available space */
-    color: $panel;
-}
 
-#label-status-msg {
-    content-align: center middle;
-    color: $primary;
-    /* foreground: $foreground; */
-}
-#label-path {
-    content-align: left middle;
-}
+    /* All Labels in the status Bar */
+    Label {
+        color: $panel;
+    }
 
+    #label-status-msg {
+        content-align: center middle;
+        color: $primary;
+        width: 20%;
+        /* foreground: $foreground; */
+    }
+    #label-path {
+        content-align: left middle;
+        width: 1fr; /* Make labels fill available space */
+        text-overflow: ellipsis;
+    }
+}
 
 #label-selected-count {
-
+    align: right middle;
+    content-align: right middle;
+    text-align: right;
+    width: auto;
 }
 
 Footer {
@@ -97,7 +99,6 @@ RenameDialog {
 
     Label {
         margin-left: 2;
-
     }
 }
 
@@ -106,61 +107,28 @@ RenameDialog {
 /*****************************************************************************/
 
 #file_list {
-
-    /* align: center middle; */
-    /* border-right: thick $accent; */ /* Uncomment if adding preview pane */
-    /* layer: base; /\* Belongs to the base layer *\/ */
-    /* border: solid $secondary; /\* Add a border *\/ */
-    /* background: #1e1e1e; /\* Dark background *\/ */
-    /* border: heavy steelblue; */
-    /* border-title-style: bold; */
-    /* border-title-align: left; */
-    /* border-title-color: $primary; */
-    /* border-subtitle-style: italic; */
-    /* border-subtitle-color: $secondary; */
-    /* Slightly dimmer color for subtitle */
-
-    /* padding: 0 0; */
-    /* margin: 0 0; */
-    box-sizing: border-box;
-    /* border: round $primary; /\* Add a border *\/ */
-
     width: 1fr; /* Occupy available width */
     height: 1fr; /* Occupy available height */
-    layout: horizontal;
-
-    align: center middle;
-    text-align: center;
-
-    content-align: right middle;
-    align-vertical: top;
-    /* color: red; */
 
     & > .datatable--cursor {
         /* color: black;
          * text-style: bold;
          * width: 100%; */
-
     }
     & > .datatable--fixed {
-        color: blue;
-
-    }
-   & > .datatable--header {
-       margin: 1 1;
-       /* padding: 1 1; */
-       /* width: 100%; */
-       text-style: bold;
-
-       /* layout: horizontal; */
-       /* color: red; */
-        /* background: $panel; */
-        /* color: $foreground; */
-       /* content-align: right middle; */
-       /* text-align: center; */
-       /* border-bottom: thick red; */
-       /* background: $surface; */
+        /* color: blue; */
     }
 
+    & > .datatable--header {
+        /* margin: 1 1; */
+        /* padding: 1 1; */
+        /* width: 100%; */
+        text-style: bold;
+        background: $panel;
+        /* layout: horizontal; */
+    }
 }
 
+* {
+    /* border: round red; */
+}

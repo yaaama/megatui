@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import pathlib
 import re
 import subprocess
@@ -228,11 +229,8 @@ class MegaItem:
             self.size_unit = MegaSizeUnits.B
             return
 
-        # Import log
-        from math import log
-
         # Calculate human friendly sizing
-        unit_index: int = min(int(log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
+        unit_index: int = min(int(math.log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
 
         divisor: int
         # calculate 1024^unit_index using shifts
@@ -804,9 +802,9 @@ async def node_exists(file_path: str) -> bool:
 
 
 async def node_rename(file_path: str, new_name: str) -> None:
-    assert file_path and new_name, (
-        f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    )
+    assert (
+        file_path and new_name
+    ), f"Cannot have empty args: `{file_path}`, `{new_name}`"
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
