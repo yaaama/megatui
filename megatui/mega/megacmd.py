@@ -803,9 +803,9 @@ async def node_exists(file_path: str) -> bool:
 
 
 async def node_rename(file_path: str, new_name: str) -> None:
-    assert file_path and new_name, (
-        f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    )
+    assert (
+        file_path and new_name
+    ), f"Cannot have empty args: `{file_path}`, `{new_name}`"
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
@@ -927,14 +927,15 @@ async def mega_get(
     merge: bool = True,
 ):
     """
-    Download a file from the remote system to a local path.
+      Download a file from the remote system to a local path.
 
-    Args:
-    'merge' == True means a folder of the same name on the local will be merged with
-    the remote folder being downloaded.
-    'is_dir' is a flag for whether the file downloaded is a directory or not.
-    'queue' will add it to the downloads queue.
-    'merge' will ensure local files are not overriden by the remote files and directories are merged instead.
+      Args:
+      'merge' == True means a folder of the same name on the local will be merged with
+      the remote folder being downloaded.
+      'is_dir' is a flag for whether the file downloaded is a directory or not.
+      'queue' will add it to the downloads queue.
+      'merge' will ensure local files are not overriden by the remote files and directories are merged instead.
+    'merge=True' is only useful when the 'target_path' on the local filesystem already exists.
     """
 
     cmd: list[str] = ["get"]
@@ -966,6 +967,13 @@ async def mega_get(
         logger.info(
             f"Target local path not specified, defaulting to home directory: {target_path}"
         )
+    io_path: Path = Path(target_path)
+
+    if not io_path.exists():
+        logger.info(f"Target path '{target_path}' does not exist, will create it.")
+        io_path.mkdir(exist_ok=False, parents=True)
+    else:
+        logger.info(f"Target path '{target_path}' exists.")
 
     cmd.append(target_path)
 
