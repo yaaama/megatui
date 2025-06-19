@@ -63,9 +63,9 @@ class TopStatusBar(Horizontal):
         status_msg_label.visible = True
         status_msg_label.update(f"[b]{new_status_msg}[/b]")
 
-    def hide_status_msg_label(self) -> None:
+    def clear_status_msg(self) -> None:
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.visible = False
+        status_msg_label.update()
 
     def signal_empty_dir(self) -> None:
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
@@ -143,6 +143,10 @@ class MegaAppTUI(App[None]):
     """
     Actions #############################################################
     """
+    def action_toggle_darkmode(self) -> None:
+        """Toggles darkmode."""
+        self.log.info("Toggling darkmode.")
+        self.action_toggle_dark()
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """
@@ -174,9 +178,9 @@ class MegaAppTUI(App[None]):
         """
         Download the currently highlighted file or a selection of files.
 
-        TODO: Can download multiple files using selection
         TODO: Ask for download path
         TODO: Display download status
+        TODO: Ask for confirmation with large files
         """
         file_list = self.query_one(FileList)
         dl_items = file_list.selected_items()
@@ -195,10 +199,23 @@ class MegaAppTUI(App[None]):
         self.app.log.info(f"action_download: Downloading files: '{rc.print(dl_items)}'")
         await self.download_files(dl_items)
 
-    def action_toggle_darkmode(self) -> None:
-        """Toggles darkmode."""
-        self.log.info("Toggling darkmode.")
-        self.action_toggle_dark()
+    async def action_cancel_download(self):
+        pass
+
+    async def action_pause_download(self):
+        pass
+
+    async def action_delete_file(self):
+        pass
+
+    async def action_view_transfer_list(self):
+        pass
+
+    async def action_move_files(self):
+        pass
+
+    async def action_upload_files(self):
+        pass
 
     """
     # Watchers ################################################################
@@ -252,7 +269,7 @@ class MegaAppTUI(App[None]):
 
         def clear_status_msg():
             self.log.info("Clearing status message in top bar.")
-            status_bar.hide_status_msg_label()
+            status_bar.clear_status_msg()
 
         status_bar.set_timer(
             delay=message.timeout if message.timeout > 0 else 10,

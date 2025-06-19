@@ -34,7 +34,7 @@ Screen {
     width: 1fr;
 }
 
-#status-bar {
+TopStatusBar {
     height: 1;
     /* background: initial; */
     padding: 0 1;
@@ -43,19 +43,23 @@ Screen {
 
     /* All Labels in the status Bar */
     Label {
-        color: $panel;
+        text-overflow: ellipsis;
     }
 
-    #label-status-msg {
-        content-align: center middle;
-        color: $primary;
-        width: 20%;
-        /* foreground: $foreground; */
-    }
-    #label-path {
+    #top-status-bar-path {
+        color: $accent;
         content-align: left middle;
         width: 1fr; /* Make labels fill available space */
         text-overflow: ellipsis;
+        margin: 0 1;
+    }
+
+    #top-status-bar-msg {
+        content-align: right middle;
+        color: $primary;
+        min-width: 20%;
+        width: auto;
+        margin: 0 1;
     }
 }
 
@@ -82,9 +86,9 @@ RenameDialog {
 
     Vertical {
         /* background: $panel; */
+        border: round $secondary;
         height: auto;
-        width: auto;
-        border: round $primary;
+        width: 50%;
     }
 
     Vertical > * {
@@ -93,12 +97,14 @@ RenameDialog {
     }
 
     Input {
-        width: 40;
         margin: 1;
+        width: 1fr;
+        color: $foreground;
     }
 
     Label {
         margin-left: 2;
+        color: $accent;
     }
 }
 
