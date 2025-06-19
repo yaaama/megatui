@@ -206,7 +206,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         to_enter = selected_item_data.full_path
         path_str: str = str(to_enter)
 
-        self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
+        # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
         await self.load_directory(path_str)
 
     async def action_navigate_out(self) -> None:
