@@ -60,7 +60,6 @@ class TopStatusBar(Horizontal):
     def watch_status_msg(self, new_status_msg: str) -> None:
         """Called when self.status_msg is modified."""
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.visible = True
         status_msg_label.update(f"[b]{new_status_msg}[/b]")
 
     def clear_status_msg(self) -> None:
