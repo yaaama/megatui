@@ -8,7 +8,7 @@ dependencies = [
   "pytest>=8.3.5",
   # "pytest-asyncio>=1.0.0",
   # "pytest-mock>=3.14.1",
-  "textual>=3.4.0",
+  "textual>=3.5.0",
   "textual-dev>=1.7.0",
 ]
 
