@@ -610,9 +610,6 @@ async def mega_ls(
         # Tuple values
         _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
 
-        # Parse the handle
-        handle_str: str = _handle
-
         # Values to convert
         mtime_str: str = f"{_date} {_time}"
         item_size: int
@@ -643,7 +640,7 @@ async def mega_ls(
                 mtime=mtime_str,
                 ftype=_file_type,
                 version=version,
-                handle=handle_str,
+                handle=_handle,
             )
         )
     logger.info(f"Successfully listed {len(items)} items in '{target_path}'.")
