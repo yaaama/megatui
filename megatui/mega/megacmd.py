@@ -269,20 +269,24 @@ class MegaItem:
         path: PurePath = folder / self.name
         return path
 
-    def get_size_in(self, unit: MegaSizeUnits) -> int:
-        """Returns size of file in specified unit."""
+    @staticmethod
+    def get_size_in(bytes: int, unit: MegaSizeUnits) -> int:
+        """Returns size of file in specified unit.
+        Args: 'bytes' Size of file in bytes.
+              'unit' Unit of size to convert bytes to.
+        """
         match unit:
             case MegaSizeUnits.B:
-                return self.bytes
+                return bytes
             # Bit shifting
             case MegaSizeUnits.KB:
-                return self.bytes >> 10
+                return bytes >> 10
             case MegaSizeUnits.MB:
-                return self.bytes >> 20
+                return bytes >> 20
             case MegaSizeUnits.GB:
-                return self.bytes >> 30
+                return bytes >> 30
             case MegaSizeUnits.TB:
-                return self.bytes >> 40
+                return bytes >> 40
 
         return self.bytes
 
