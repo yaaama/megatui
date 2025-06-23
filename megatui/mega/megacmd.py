@@ -396,10 +396,12 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     # Construct the actual executable name (e.g., "mega-ls")
     cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
     logger.info(f"Executing mega-cmd: {' '.join(cmd_to_exec)}")
+    cmd, *cmd_args = cmd_to_exec
 
     try:
         process = await asyncio.create_subprocess_exec(
-            *cmd_to_exec,
+            cmd,
+            *cmd_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
