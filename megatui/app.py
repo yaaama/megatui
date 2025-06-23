@@ -143,6 +143,7 @@ class MegaAppTUI(App[None]):
     """
     Actions #############################################################
     """
+
     def action_toggle_darkmode(self) -> None:
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
@@ -182,7 +183,7 @@ class MegaAppTUI(App[None]):
         TODO: Display download status
         TODO: Ask for confirmation with large files
         """
-        file_list = self.query_one(FileList)
+        file_list = self.file_list
         dl_items = file_list.selected_items()
 
         # If dl_items is empty
@@ -251,11 +252,12 @@ class MegaAppTUI(App[None]):
 
     @on(FileList.EmptyDirectory)
     def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
-        self.top_status_bar().signal_empty_dir()
+        _ = message
+        self.top_status_bar.signal_empty_dir()
 
     @on(FileList.LoadError)
     def on_file_list_load_error(self, message: FileList.LoadError):
-        self.top_status_bar().signal_error(f"Failed to load path: {message.path}")
+        self.top_status_bar.signal_error(f"Failed to load path: {message.path}")
         # Log the detailed error
         self.log.error(f"Error loading directory: {message.error}")
 
@@ -264,7 +266,7 @@ class MegaAppTUI(App[None]):
         """
         Refresh UI when status bar is updated.
         """
-        status_bar = self.query_one(TopStatusBar)
+        status_bar = self.top_status_bar
         status_bar.status_msg = message.message
 
         def clear_status_msg():
@@ -278,5 +280,10 @@ class MegaAppTUI(App[None]):
 
     """ Widget access. """
 
+    @property
+    def file_list(self):
+        return self.query_one(FileList)
+
+    @property
     def top_status_bar(self):
         return self.query_one(TopStatusBar)
