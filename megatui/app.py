@@ -211,14 +211,14 @@ class MegaAppTUI(App[None]):
             await mega_mv(file_path=f.path, target_path=new_path)
 
     async def action_move_files(self):
-        """ Move selected files. """
+        """Move selected files."""
         file_list = self.file_list
         files = file_list.selected_items
 
-        pwd = file_list.curr_path
+        cwd = file_list.curr_path
 
-        self.log.info(f"Moving files to {pwd}")
-        await self.move_files(files, pwd)
+        self.log.info(f"Moving files to {cwd}")
+        await self.move_files(files, cwd)
         file_list.unselect_items()
         await file_list.action_refresh(True)
 

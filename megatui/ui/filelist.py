@@ -194,7 +194,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_navigate_in(self) -> None:
         """Navigate into a directory."""
 
-        selected_item_data = self.get_highlighted_megaitem()
+        selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
         assert selected_item_data, "Selected item was 'None'"
 
@@ -251,7 +251,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         self.log.info("Renaming file.")
 
-        selected_item = self.get_highlighted_megaitem()
+        selected_item = self.highlighted_item
 
         if not selected_item:
             self.log.error("No highlighted file to rename.")
@@ -527,7 +527,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         pass
 
-    def get_highlighted_megaitem(self) -> MegaItem | None:
+    @property
+    def highlighted_item(self) -> MegaItem | None:
         """
         Return the MegaItem corresponding to the currently highlighted row.
         """
@@ -549,7 +550,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return self._selected_items
 
         # When we don't have any items selected
-        highlighted = self.get_highlighted_megaitem()
+        highlighted = self.highlighted_item
 
         # When nothing is highlighted
         if not highlighted:
