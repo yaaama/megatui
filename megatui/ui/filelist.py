@@ -24,7 +24,7 @@ from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 ###########################################################################
 class FileList(DataTable[Any], inherit_bindings=False):
     """
-    A DataTable widget to display multiple FileItems
+    A DataTable widget to display files and their information.
     """
 
     """
@@ -45,6 +45,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
     """ Path we are currently loading. """
 
     # TODO We will map items by their 'Handle'
+    COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
+    DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
+
     _row_data_map: dict[str, MegaItem]
     _selected_items: set[str]
 
@@ -76,8 +79,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # Assign our binds
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
-    COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
-    DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -194,9 +195,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         selected_item_data = self.get_highlighted_megaitem()
         # Fail: Selected item is None.
-        if selected_item_data is None:
-            self.log.debug("Cannot enter directory, selected item is 'None'.")
-            return
+        assert selected_item_data, "Selected item was 'None'"
 
         # Fail: Is a regular file
         if selected_item_data.is_file():  # Check if it's a directory
@@ -248,8 +247,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         Rename a file.
         Popup will be shown to prompt the user for the new name.
-
-        TODO: Make this actually rename the file.
         """
         self.log.info("Renaming file.")
 
