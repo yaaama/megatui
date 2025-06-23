@@ -115,23 +115,38 @@ RenameDialog {
 #file_list {
     width: 1fr; /* Occupy available width */
     height: 1fr; /* Occupy available height */
+    background: $background;
+    padding: 1 0;
 
-    & > .datatable--cursor {
-        /* color: black;
-         * text-style: bold;
-         * width: 100%; */
-    }
-    & > .datatable--fixed {
-        /* color: blue; */
-    }
-
+    /* The headers */
     & > .datatable--header {
-        /* margin: 1 1; */
-        /* padding: 1 1; */
-        /* width: 100%; */
+        background: $background;
+        color: $primary;
         text-style: bold;
-        background: $panel;
-        /* layout: horizontal; */
+    }
+
+    /* Target the cursor. */
+    & > .datatable--cursor {
+        color: auto;
+    }
+
+    /* Target the cells under the hover cursor. */
+    & > .datatable--hover {
+        text-style: italic;
+    }
+
+    /* Target cells highlighted by the cursor. */
+    & > .datatable--header-cursor {
+        background: transparent;
+    }
+
+    & > .datatable--fixed {
+    }
+
+    /* Target hovered header or row label cells. */
+    & > .datatable--header-hover {
+        background: $background;
+        color: $background;
     }
 }
 

@@ -86,7 +86,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.cursor_type = "row"
         self.show_cursor = True
         self.show_header = True
-        self.header_height = 1
+        self.header_height = 2
         self.zebra_stripes = False
         self.show_row_labels = True
         # self.cursor_foreground_priority = ("renderable",)
@@ -335,7 +335,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         if not already_selected:
             self._selected_items.add(item_handle)
-            select_txt = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            select_txt = Text(f"{self.SELECTION_INDICATOR}", style="bold italic")
             self.rows[current_row_key].label = select_txt
             self.log.info(f"Selected row: {current_row_key.value}")
         else:
