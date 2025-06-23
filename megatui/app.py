@@ -99,7 +99,6 @@ class MegaAppTUI(App[None]):
         Binding("f4", "move_files", "move files", key_display="f4"),
     ]
 
-    DL_PATH = Path.home() / "megadl"
 
     # --- UI Composition ---
     @override
@@ -149,46 +148,6 @@ class MegaAppTUI(App[None]):
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
-    async def download_files(self, files: list[MegaItem]) -> None:
-        """
-        Helper method to download files.
-
-        TODO: Check for existing files on system and handle them
-        """
-        if not files:
-            self.log.warning("Did not receive any files to download!")
-            return
-
-        dl_len = len(files)
-        for i, file in enumerate(files):
-            self.post_message(
-                StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
-            )
-            await mega_get(
-                target_path=str(self.DL_PATH),
-                remote_path=str(file.full_path),
-                is_dir=file.is_dir(),
-            )
-            rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
-            title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
-            self.notify(
-                f"'{file.name}' finished downloading ", title=f"{title}", markup=True
-            )
-
-    async def action_download(self) -> None:
-        """
-        Download the currently highlighted file or a selection of files.
-
-        TODO: Ask for download path
-        TODO: Display download status
-        TODO: Ask for confirmation with large files
-        """
-        file_list = self.file_list
-        dl_items = file_list.selected_items
-
-        self.app.log.info(f"action_download: Downloading files: '{rc.print(dl_items)}'")
-        await self.download_files(dl_items)
-
     async def action_cancel_download(self):
         pass
 
@@ -200,27 +159,6 @@ class MegaAppTUI(App[None]):
 
     async def action_view_transfer_list(self):
         pass
-
-    async def move_files(self, files: list[MegaItem], new_path: str) -> None:
-        if not files:
-            self.log.warning("No files received to move.")
-            return
-
-        for f in files:
-            self.log.info(f"Moving `{f.name}` from `{f.path}`  to: `{new_path}`")
-            await mega_mv(file_path=f.path, target_path=new_path)
-
-    async def action_move_files(self):
-        """Move selected files."""
-        file_list = self.file_list
-        files = file_list.selected_items
-
-        cwd = file_list.curr_path
-
-        self.log.info(f"Moving files to {cwd}")
-        await self.move_files(files, cwd)
-        file_list.unselect_items()
-        await file_list.action_refresh(True)
 
     async def action_upload_files(self):
         pass
