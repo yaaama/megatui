@@ -49,7 +49,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
     _row_data_map: dict[str, MegaItem]
-    _selected_items: set[str]
+    _selected_handles: set[str]
+    _selected_items: list[MegaItem]
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
@@ -79,7 +80,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # Assign our binds
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
-
     def __init__(self):
         # Initialise the DataTable widget
         super().__init__()
@@ -102,7 +102,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.curr_path = "/"
         self._loading_path = self.curr_path
         self._row_data_map = {}
-        self._selected_items = set()
+        self._selected_handles = set()
+        self._selected_items = list()
         self._selected_item_style: Style = Style(
             foreground=Color.parse("red"), bold=True, italic=True
         )
@@ -328,17 +329,19 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Get handle
         item_handle = row_item.handle
         # Boolean expression to check if already selected
-        already_selected: bool = item_handle in self._selected_items
+        already_selected: bool = item_handle in self._selected_handles
 
         if not already_selected:
-            self._selected_items.add(item_handle)
+            self._selected_handles.add(item_handle)
+            self._selected_items.append(row_item)
             select_txt = Text(f"{self.SELECTION_INDICATOR}", style="bold italic")
             self.rows[current_row_key].label = select_txt
             self.log.info(f"Selected row: {current_row_key.value}")
         else:
             self.rows[current_row_key].label = Text(" ")
             # Remove item from set of selected items
-            self._selected_items.remove(item_handle)
+            self._selected_handles.remove(item_handle)
+            self._selected_items.remove(row_item)
             self.log.info(f"Deselected row: {current_row_key.value}")
 
         self.log.info("Updated row label")
@@ -348,7 +351,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.refresh()
         self._update_count += 1
 
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
+        self.post_message(self.ToggledSelection(len(self._selected_handles)))
 
     ###################################################################
 
@@ -405,7 +408,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 height=height,
                 label=" ",
             )
-            if node.handle in self._selected_items:
+            if node.handle in self._selected_handles:
                 self.rows[rowkey].label = selection_label
                 refresh = True
 
@@ -517,6 +520,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.error(f"Error getting current row. {e}")
             return None
 
+    def get_column_widths(self):
+        """Get optimal widths for table columns.
+
+        Returns a tuple of widths.
+        """
+        pass
+
     def get_highlighted_megaitem(self) -> MegaItem | None:
         """
         Return the MegaItem corresponding to the currently highlighted row.
@@ -528,30 +538,38 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         return self._row_data_map.get(row_key.value)
 
-    def get_column_widths(self):
-        """Get optimal widths for table columns.
-
-        Returns a tuple of widths.
+    @property
+    def selected_or_highlighted_items(self) -> MegaItems:
+        """Returns items that are either selected OR if there are no selected
+        items, it will return the currently highlighted item.
         """
-        pass
 
+        # If we have selected items return those
+        if len(self._selected_handles) > 0:
+            return self._selected_items
+
+        # When we don't have any items selected
+        highlighted = self.get_highlighted_megaitem()
+
+        # When nothing is highlighted
+        if not highlighted:
+            self.log.error("Could not default to highlighted item. Cancelling.")
+            return []
+
+        return [highlighted]
+
+    @property
     def selected_items(self) -> MegaItems:
         """Return items that have been SELECTED."""
 
-        # If we have nothing selected at the moment
-        if len(self._selected_items) <= 0:
-            self.log.debug("No items selected for us to return.")
-
-            highlighted = self.get_highlighted_megaitem()
-            # When nothing is highlighted
-            if not highlighted:
-                self.log.error("Could not default to highlighted item. Cancelling.")
-                return []
-
-            return [highlighted]
-
         # Get selected items
-        selected: list[MegaItem] = [self._row_data_map[e] for e in self._selected_items]
+        return self._selected_items
 
-        # self.log.info(f"Selected files: {rc.print(selected)}")
-        return selected
+    def unselect_items(self) -> None:
+        self._selected_handles.clear()
+        self._selected_items.clear()
+
+        self.refresh()
+        self._update_count += 1
+
+        self.post_message(self.ToggledSelection(0))

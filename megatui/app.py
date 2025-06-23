@@ -11,7 +11,7 @@ from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
 
-from megatui.mega.megacmd import MegaItem, mega_get
+from megatui.mega.megacmd import MegaItem, mega_get, mega_mv
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
 
@@ -96,6 +96,7 @@ class MegaAppTUI(App[None]):
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
         Binding("f3", "download", "download file", key_display="f3"),
+        Binding("f4", "move_files", "move files", key_display="f4"),
     ]
 
     DL_PATH = Path.home() / "megadl"
@@ -183,7 +184,7 @@ class MegaAppTUI(App[None]):
         TODO: Ask for confirmation with large files
         """
         file_list = self.file_list
-        dl_items = file_list.selected_items()
+        dl_items = file_list.selected_items
 
         self.app.log.info(f"action_download: Downloading files: '{rc.print(dl_items)}'")
         await self.download_files(dl_items)
@@ -200,8 +201,26 @@ class MegaAppTUI(App[None]):
     async def action_view_transfer_list(self):
         pass
 
+    async def move_files(self, files: list[MegaItem], new_path: str) -> None:
+        if not files:
+            self.log.warning("No files received to move.")
+            return
+
+        for f in files:
+            self.log.info(f"Moving `{f.name}` from `{f.path}`  to: `{new_path}`")
+            await mega_mv(file_path=f.path, target_path=new_path)
+
     async def action_move_files(self):
-        pass
+        """ Move selected files. """
+        file_list = self.file_list
+        files = file_list.selected_items
+
+        pwd = file_list.curr_path
+
+        self.log.info(f"Moving files to {pwd}")
+        await self.move_files(files, pwd)
+        file_list.unselect_items()
+        await file_list.action_refresh(True)
 
     async def action_upload_files(self):
         pass
