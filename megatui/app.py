@@ -95,8 +95,6 @@ class MegaAppTUI(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
-        Binding("f3", "download", "download file", key_display="f3"),
-        Binding("f4", "move_files", "move files", key_display="f4"),
     ]
 
 
@@ -147,21 +145,6 @@ class MegaAppTUI(App[None]):
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
-
-    async def action_cancel_download(self):
-        pass
-
-    async def action_pause_download(self):
-        pass
-
-    async def action_delete_file(self):
-        pass
-
-    async def action_view_transfer_list(self):
-        pass
-
-    async def action_upload_files(self):
-        pass
 
     """
     # Watchers ################################################################

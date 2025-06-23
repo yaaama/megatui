@@ -52,8 +52,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
     _row_data_map: dict[str, MegaItem]
-    _selected_handles: set[str]
-    _selected_items: list[MegaItem]
+    _selected_items: dict[str, MegaItem]
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
@@ -69,6 +68,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Binding(
             key="space", action="select_item", description="Select file", show=True
         ),
+        Binding("f3", "download", "download file", key_display="f3"),
+        Binding("f4", "move_files", "move files", key_display="f4"),
     ]
     """ Binds that deal with files. """
 
@@ -105,8 +106,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.curr_path = "/"
         self._loading_path = self.curr_path
         self._row_data_map = {}
-        self._selected_handles = set()
-        self._selected_items = list()
+        self._selected_items = {}
         self._selected_item_style: Style = Style(
             foreground=Color.parse("red"), bold=True, italic=True
         )
@@ -308,53 +308,41 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Toggles the selection state of the currently hovered-over item (row).
         Selected rows are MEANT to be visually highlighted.
         """
-        current_row_key: RowKey | None = self._get_curr_row_key()
+        row_key = self._get_curr_row_key()
 
-        if not current_row_key:
+        if not row_key or not row_key.value:
             self.log.info("No current row key to select/deselect.")
             return
 
-        curr_index = self.get_row_index(current_row_key)
+        try:
+            # Get the MegaItem
+            row_item: MegaItem = self._row_data_map[row_key.value]
+            # Get handle
+            item_handle = row_item.handle
+        except KeyError:
+            self.log.error(
+                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
+            )
+            return
 
-        assert (
-            current_row_key.value
-        ), "Row key value SHOULD always exist when row key is not None."
+        # Unselect already selected items
+        if item_handle in self._selected_items:
+            del self._selected_items[item_handle]
+            new_label = Text(" ")
+            log_message = f"Deselected row: {row_key.value}"
 
-        cursor_y = self.cursor_coordinate.row
-        self.log.info(
-            f"Selecting row. Rowkey: '{current_row_key.value}', Row Index: '{curr_index}'"
-        )
-        self.log.info(f"Cursor 'y' value: '{cursor_y}'")
-
-        # Check if selected item has been selected already before
-        # Get the MegaItem
-        row_item: MegaItem = self._row_data_map[current_row_key.value]
-        # Get handle
-        item_handle = row_item.handle
-        # Boolean expression to check if already selected
-        already_selected: bool = item_handle in self._selected_handles
-
-        if not already_selected:
-            self._selected_handles.add(item_handle)
-            self._selected_items.append(row_item)
-            select_txt = Text(f"{self.SELECTION_INDICATOR}", style="bold italic")
-            self.rows[current_row_key].label = select_txt
-            self.log.info(f"Selected row: {current_row_key.value}")
         else:
-            self.rows[current_row_key].label = Text(" ")
-            # Remove item from set of selected items
-            self._selected_handles.remove(item_handle)
-            self._selected_items.remove(row_item)
-            self.log.info(f"Deselected row: {current_row_key.value}")
+            # Action: SELECT
+            self._selected_items[item_handle] = row_item
+            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            log_message = f"Selected row: {row_key.value}"
 
-        self.log.info("Updated row label")
+        self.log.info(log_message)
+        self.rows[row_key].label = new_label
 
-        # self.refresh_row(curr_index)
-        # self.refresh_line(self.cursor_coordinate.row)
         self.refresh()
         self._update_count += 1
-
-        self.post_message(self.ToggledSelection(len(self._selected_handles)))
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """
@@ -394,6 +382,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await self.download_files(dl_items)
 
+    async def action_cancel_download(self):
+        pass
+
+    async def action_pause_download(self):
+        pass
+
+    async def action_view_transfer_list(self):
+        pass
+
     async def move_files(self, files: list[MegaItem], new_path: str) -> None:
         """Helper function to move MegaItems to a new path."""
         if not files:
@@ -414,7 +411,34 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.unselect_items()
         await self.action_refresh(True)
 
+    async def action_delete_file(self):
+        pass
+
+    async def action_upload_files(self):
+        pass
+
     ###################################################################
+
+    # A helper to prepare all displayable contents of a row
+    def _prepare_row_contents(self, node: MegaItem) -> tuple[Content, ...]:
+        """Takes a MegaItem and returns a tuple of Content objects for a table
+        row.
+        """
+        if node.is_dir():
+            icon_markup = self.DIR_ICON_MARKUP
+            size_str = ""
+        else:
+            icon_markup = self.FILE_ICON_MARKUP
+            size_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
+
+        cell_icon = Content.from_rich_text(Text.from_markup(icon_markup))
+        cell_name = Content.from_rich_text(
+            Text(text=node.name, overflow="ellipsis", no_wrap=True)
+        )
+        cell_mtime = Content.from_rich_text(Text(text=str(node.mtime), style="italic"))
+        cell_size = Content(text=size_str)
+
+        return (cell_icon, cell_name, cell_mtime, cell_size)
 
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
@@ -422,63 +446,37 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.curr_path = path
 
         self.clear(columns=False)
-        self._row_data_map.clear()  # Clear our internal mapping
+
+        # Use a dictionary comprehension
+        self._row_data_map = {item.handle: item for item in fetched_items}
 
         height: int = 1
-        fsize_str: str
         selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
-        refresh: bool = False
+        found_selected_items: bool = False
 
         # Go through each item and create new row for them
         for node in fetched_items:
             # Prepare data for each cell in the row
 
-            if node.is_dir():
-                fsize_str = ""
-                _icon = self.DIR_ICON_MARKUP
-            else:
-                fsize_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
-                _icon = self.FILE_ICON_MARKUP
-
-            cell_icon = Content.from_rich_text(Text.from_markup(f"{_icon}"))
-            cell_name = Content.from_rich_text(
-                Text(text=f"{node.name}", overflow="ellipsis", no_wrap=True)
-            )
-            # Modification time
-            cell_mtime = Content.from_rich_text(
-                Text(text=f"{node.mtime}", style="italic")
-            )
-            # Size of node
-            cell_size = Content(text=f"{fsize_str}")
+            row_cells = self._prepare_row_contents(node)
 
             # Pass data as individual arguments for each column
             rowkey = self.add_row(
-                # Icon
-                cell_icon,
-                # Content.from_rich_text(icon_content),
-                # Name of node
-                # Content(text=node.name),
-                cell_name,
-                # Modification time
-                cell_mtime,
-                # Size of node
-                cell_size,
+                *row_cells,
                 # Unique key to reference the node
                 key=node.handle,
                 # Height of each row
                 height=height,
                 label=" ",
             )
-            if node.handle in self._selected_handles:
+            if node.handle in self._selected_items:
                 self.rows[rowkey].label = selection_label
-                refresh = True
+                found_selected_items = True
 
-            # Store the MegaItem
-            self._row_data_map[node.handle] = node
-
-        if refresh:
+        if found_selected_items:
             self.refresh()
             self._update_count += 1
+
         self.border_subtitle = f"{len(fetched_items)} items"
 
     @work(
@@ -607,8 +605,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
 
         # If we have selected items return those
-        if len(self._selected_handles) > 0:
-            return self._selected_items
+        if len(self._selected_items.keys()) > 0:
+            return list(self._selected_items.values())
 
         # When we don't have any items selected
         highlighted = self.highlighted_item
@@ -625,10 +623,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """Return items that have been SELECTED."""
 
         # Get selected items
-        return self._selected_items
+        return list(self._selected_items.values())
 
     def unselect_items(self) -> None:
-        self._selected_handles.clear()
         self._selected_items.clear()
 
         self.refresh()
