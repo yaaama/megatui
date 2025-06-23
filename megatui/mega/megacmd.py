@@ -263,7 +263,6 @@ class MegaItem:
     def is_dir(self) -> bool:
         return self.ftype == MegaFileTypes.DIRECTORY
 
-    @property
     def full_path(self) -> PurePath:
         folder: PurePath = PurePath(self.parent_path)
         path: PurePath = folder / self.name
