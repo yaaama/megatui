@@ -30,12 +30,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     A DataTable widget to display files and their information.
     """
 
-    """
-    All MegaItems in the current directory.
-    TODO: Make this into a map of directories to items => dict[Dir, items[MegaItems]]
-    This can be used to cache directories.
-    """
-
     DEFAULT_CSS = """ """
 
     border_subtitle: str
@@ -47,17 +41,21 @@ class FileList(DataTable[Any], inherit_bindings=False):
     _loading_path: str
     """ Path we are currently loading. """
 
-    # TODO We will map items by their 'Handle'
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
     _row_data_map: dict[str, MegaItem]
+    """ Row and associated MegaItem mapping for current directory. """
+
     _selected_items: dict[str, MegaItem]
+    """ Dict to store selected MegaItem(s), indexed by their """
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
+
     DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
     """ Markup used for directory icon. """
+
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
     """ Character to indicate a file has been selected. """
 
