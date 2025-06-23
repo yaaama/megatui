@@ -546,6 +546,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         for e in self._selected_items:
             item = self._row_data_map[e]
             selected.append(item)
+        # Get selected items
+        selected: list[MegaItem] = [self._row_data_map[e] for e in self._selected_items]
 
         # self.log.info(f"Selected files: {rc.print(selected)}")
-        return selected if len(selected) > 0 else []
+        return selected
