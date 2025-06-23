@@ -185,17 +185,6 @@ class MegaAppTUI(App[None]):
         file_list = self.file_list
         dl_items = file_list.selected_items()
 
-        # If dl_items is empty
-        if len(dl_items) == 0:
-            # Default to downloading the currently highlighted item
-            highlighted = file_list.get_highlighted_megaitem()
-            if not highlighted:
-                self.log.error("Could not default to highlighted item. Cancelling.")
-                return
-
-            # Append highlighted item to the list
-            dl_items.append(highlighted)
-
         self.app.log.info(f"action_download: Downloading files: '{rc.print(dl_items)}'")
         await self.download_files(dl_items)
 

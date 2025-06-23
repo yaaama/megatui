@@ -538,14 +538,18 @@ class FileList(DataTable[Any], inherit_bindings=False):
     def selected_items(self) -> MegaItems:
         """Return items that have been SELECTED."""
 
+        # If we have nothing selected at the moment
         if len(self._selected_items) <= 0:
             self.log.debug("No items selected for us to return.")
-            return []
 
-        selected: list[MegaItem] = []
-        for e in self._selected_items:
-            item = self._row_data_map[e]
-            selected.append(item)
+            highlighted = self.get_highlighted_megaitem()
+            # When nothing is highlighted
+            if not highlighted:
+                self.log.error("Could not default to highlighted item. Cancelling.")
+                return []
+
+            return [highlighted]
+
         # Get selected items
         selected: list[MegaItem] = [self._row_data_map[e] for e in self._selected_items]
 
