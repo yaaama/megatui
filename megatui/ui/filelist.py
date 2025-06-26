@@ -61,8 +61,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     ## Bindings
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding(key="r", action="refresh", description="Refresh", show=True),
-        Binding(key="R", action="rename_file", description="Rename a file", show=True),
+        Binding(key="R", action="refresh", description="Refresh", show=True),
+        Binding(key="r", action="rename_file", description="Rename a file", show=True),
         Binding(
             key="space", action="select_item", description="Select file", show=True
         ),
