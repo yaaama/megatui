@@ -18,17 +18,27 @@ from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
-
 DL_PATH: Path = Path.home() / "megadl"
+""" Default download path. """
 
 
-###########################################################################
-# FileList
-###########################################################################
 class FileList(DataTable[Any], inherit_bindings=False):
     """
     A DataTable widget to display files and their information.
     """
+
+    # * Constants ###################################################################
+
+    FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
+    """ Markup used for file icon. """
+
+    DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
+    """ Markup used for directory icon. """
+
+    SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
+    """ Character to indicate a file has been selected. """
+
+    # * UI Elements ###########################################################
 
     DEFAULT_CSS = """ """
 
@@ -44,27 +54,29 @@ class FileList(DataTable[Any], inherit_bindings=False):
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
 
+    # * State #################################################################
+
     _row_data_map: dict[str, MegaItem]
     """ Row and associated MegaItem mapping for current directory. """
 
     _selected_items: dict[str, MegaItem]
     """ Dict to store selected MegaItem(s), indexed by their """
 
-    FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
-    """ Markup used for file icon. """
-
-    DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
-    """ Markup used for directory icon. """
-
-    SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
-    """ Character to indicate a file has been selected. """
-
-    ## Bindings
+    # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="R", action="refresh", description="Refresh", show=True),
         Binding(key="r", action="rename_file", description="Rename a file", show=True),
         Binding(
-            key="space", action="select_item", description="Select file", show=True
+            key="space",
+            action="toggle_file_selection",
+            description="Select file",
+            show=True,
+        ),
+        Binding(
+            key="u",
+            action="unselect_all_files",
+            description="Unselect all items",
+            show=True,
         ),
         Binding("f3", "download", "download file", key_display="f3"),
         Binding("f4", "move_files", "move files", key_display="f4"),
@@ -79,8 +91,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
     ]
     """ Binds related to navigation. """
 
-    # Assign our binds
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
+
+    # * Initialisation #########################################################
 
     def __init__(self):
         # Initialise the DataTable widget
@@ -142,56 +155,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             else:
                 self.add_column(label=column_name, key=column_name, width=None)
 
-    """
-    # Messages ################################################################
-    """
+    # * Actions #########################################################
 
-    class ToggledSelection(Message):
-        """Message sent after item is selected by user."""
-
-        def __init__(self, count: int) -> None:
-            self.count: int = count
-            super().__init__()
-
-    class PathChanged(Message):
-        """Message for when the path has changed.
-        'PathChanged.path': The path changed into.
-        """
-
-        def __init__(self, path: str) -> None:
-            super().__init__()
-            self.path: str = path
-
-    class LoadSuccess(Message):
-        """Message sent when items are loaded successfully.
-        'LoadSuccess.path': Newly loaded path.
-        """
-
-        def __init__(self, path: str) -> None:
-            super().__init__()
-            self.path: str = path
-
-    class LoadError(Message):
-        """Message sent when loading items fails.
-        'LoadError.path': Path that failed to load.
-        'LoadError.error': An error message.
-        """
-
-        def __init__(self, path: str, error: Exception) -> None:
-            super().__init__()
-            self.path: str = path
-            self.error: Exception = error  # Include the error
-
-    class EmptyDirectory(Message):
-        """Message to signal the entered directory is empty."""
-
-        def __init__(self) -> None:
-            super().__init__()
-
-    """
-    # Actions #########################################################
-    """
-
+    # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:
         """Navigate into a directory."""
 
@@ -228,16 +194,86 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await self.load_directory(str(parent_path))
 
+    # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
-        """
-        Refreshes the current working directory.
-        """
+        """Refreshes the current working directory."""
         if not quiet:
             self.post_message(
                 StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0)
             )
 
         await self.load_directory(self.curr_path)
+
+    # *** Selection #######################################################
+    def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
+        assert rowkey, "Passed in an empty rowkey!"
+
+        key: str
+        # If its a RowKey type, grab the value (str)
+        if isinstance(rowkey, RowKey):
+            assert rowkey.value
+            key = rowkey.value
+        else:
+            key = rowkey
+
+        try:
+            # Get the MegaItem
+            row_item: MegaItem = self._row_data_map[key]
+            return row_item
+        except KeyError:
+            self.log.error(
+                f"Could not find data for row key '{key}'. State is inconsistent."
+            )
+            return None
+
+    def action_toggle_file_selection(self) -> None:
+        """Toggles the selection state of the currently hovered-over item (row)."""
+        row_key = self._get_curr_row_key()
+
+        # Exit if there is a nonexistent rowkey or rowkey.value
+        if not row_key or not row_key.value:
+            self.log.info("No current row key to select/deselect.")
+            return
+
+        megaitem = self._get_row_megaitem(row_key)
+
+        # Exit if there is no megaitem
+        if not megaitem:
+            return
+
+        item_handle = megaitem.handle
+
+        # Unselect already selected items
+        if item_handle in self._selected_items:
+            del self._selected_items[item_handle]
+            new_label = Text(" ")
+            log_message = f"Deselected row: {row_key.value}"
+
+        else:
+            # Action: SELECT
+            self._selected_items[item_handle] = megaitem
+            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            log_message = f"Selected row: {row_key.value}"
+
+        self.log.info(log_message)
+        self.rows[row_key].label = new_label
+
+        self.refresh()
+        self._update_count += 1
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
+
+    def action_unselect_all_files(self) -> None:
+        """Unselect all selected items (if there are any)."""
+        if len(self._selected_items) == 0:
+            self.log.debug("No items selected for us to unselect.")
+            return
+
+        self._selected_items.clear()
+
+        self.refresh()
+        self._update_count += 1
+
+        self.post_message(self.ToggledSelection(0))
 
     @work(
         exclusive=True,
@@ -281,9 +317,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             new_name: str
             node: NodeInfoDict
             new_name, node = result
-            assert (
-                new_name and node
-            ), f"Empty name: '{new_name}' or empty node: '{node}'."
+            assert new_name and node, (
+                f"Empty name: '{new_name}' or empty node: '{node}'."
+            )
             self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
             file_path: str = node["path"]
             await m.node_rename(file_path, new_name)
@@ -300,47 +336,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             ),
             callback=file_rename,
         )
-
-    def action_select_item(self) -> None:
-        """
-        Toggles the selection state of the currently hovered-over item (row).
-        Selected rows are MEANT to be visually highlighted.
-        """
-        row_key = self._get_curr_row_key()
-
-        if not row_key or not row_key.value:
-            self.log.info("No current row key to select/deselect.")
-            return
-
-        try:
-            # Get the MegaItem
-            row_item: MegaItem = self._row_data_map[row_key.value]
-            # Get handle
-            item_handle = row_item.handle
-        except KeyError:
-            self.log.error(
-                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
-            )
-            return
-
-        # Unselect already selected items
-        if item_handle in self._selected_items:
-            del self._selected_items[item_handle]
-            new_label = Text(" ")
-            log_message = f"Deselected row: {row_key.value}"
-
-        else:
-            # Action: SELECT
-            self._selected_items[item_handle] = row_item
-            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
-            log_message = f"Selected row: {row_key.value}"
-
-        self.log.info(log_message)
-        self.rows[row_key].label = new_label
-
-        self.refresh()
-        self._update_count += 1
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     async def download_files(self, files: list[MegaItem]) -> None:
         """
@@ -406,7 +401,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.log.info(f"Moving files to {cwd}")
         await self.move_files(files, cwd)
-        self.unselect_items()
+        self.action_unselect_all_files()
         await self.action_refresh(True)
 
     async def action_delete_file(self):
@@ -414,8 +409,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_upload_files(self):
         pass
-
-    ###################################################################
 
     # A helper to prepare all displayable contents of a row
     def _prepare_row_contents(self, node: MegaItem) -> tuple[Content, ...]:
@@ -523,6 +516,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         fetched_items: MegaItems | None = worker_obj.result
 
+        # Cancelled
         if worker_obj.is_cancelled:
             self.log.debug(
                 f"Worker to fetch files for path '{self._loading_path}' was cancelled."
@@ -530,7 +524,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return
 
         # Failed
-        if fetched_items is None:
+        if not fetched_items:
             # Worker succeeded but returned None
             self.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
@@ -558,6 +552,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.post_message(self.EmptyDirectory())
 
     def _get_curr_row_key(self) -> RowKey | None:
+        """Return RowKey for the Row that the cursor is currently on."""
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
             self.log.info("No highlighted item available to return.")
             return None
@@ -579,16 +574,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     def get_column_widths(self):
         """Get optimal widths for table columns.
-
         Returns a tuple of widths.
         """
         pass
 
     @property
     def highlighted_item(self) -> MegaItem | None:
-        """
-        Return the MegaItem corresponding to the currently highlighted row.
-        """
+        """Return the MegaItem corresponding to the currently highlighted row."""
 
         row_key = self._get_curr_row_key()
 
@@ -598,8 +590,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     @property
     def selected_or_highlighted_items(self) -> MegaItems:
-        """Returns items that are either selected OR if there are no selected
-        items, it will return the currently highlighted item.
+        """Returns items that are selected.
+        Default to returning highlighted item if is nothing selected.
         """
 
         # If we have selected items return those
@@ -618,15 +610,50 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     @property
     def selected_items(self) -> MegaItems:
-        """Return items that have been SELECTED."""
+        """Return MegaItem(s) that are currently selected."""
 
         # Get selected items
         return list(self._selected_items.values())
 
-    def unselect_items(self) -> None:
-        self._selected_items.clear()
+    # * Messages ################################################################
+    class ToggledSelection(Message):
+        """Message sent after item is selected by user."""
 
-        self.refresh()
-        self._update_count += 1
+        def __init__(self, count: int) -> None:
+            self.count: int = count
+            super().__init__()
 
-        self.post_message(self.ToggledSelection(0))
+    class PathChanged(Message):
+        """Message for when the path has changed.
+        'PathChanged.path': The path changed into.
+        """
+
+        def __init__(self, path: str) -> None:
+            super().__init__()
+            self.path: str = path
+
+    class LoadSuccess(Message):
+        """Message sent when items are loaded successfully.
+        'LoadSuccess.path': Newly loaded path.
+        """
+
+        def __init__(self, path: str) -> None:
+            super().__init__()
+            self.path: str = path
+
+    class LoadError(Message):
+        """Message sent when loading items fails.
+        'LoadError.path': Path that failed to load.
+        'LoadError.error': An error message.
+        """
+
+        def __init__(self, path: str, error: Exception) -> None:
+            super().__init__()
+            self.path: str = path
+            self.error: Exception = error  # Include the error
+
+    class EmptyDirectory(Message):
+        """Message to signal the entered directory is empty."""
+
+        def __init__(self) -> None:
+            super().__init__()
