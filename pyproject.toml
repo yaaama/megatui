@@ -12,6 +12,10 @@ dependencies = [
   "textual-dev>=1.7.0",
 ]
 
+src = ["src", "tests"]
+line-length = 100
+target-version = "py310"
+
 # Add this section to explicitly tell setuptools where to find your package(s)
 [tool.setuptools.packages.find]
 where = ["."] # Look in the current directory (project root)
@@ -42,9 +46,6 @@ markers = [
 
 [tool.ruff.format]
 
-line-length = 100
-src = ["src", "tests"]
-target-version = "py310"
 # markers = []
 quote-style = "double"
 indent-style = "space"
