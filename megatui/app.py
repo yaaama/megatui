@@ -11,7 +11,7 @@ from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
 
-from megatui.mega.megacmd import MegaItem, mega_get, mega_mv
+from megatui.mega.megacmd import MegaItem, mega_df, mega_get, mega_mv
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
 
@@ -87,6 +87,28 @@ class MegaAppTUI(App[None]):
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
+
+    def action_view_info(self) -> None:
+        # Call mega_df/ any other important functions to get general information
+        # Functions to call:
+        #   mega_df
+        #   version [-l][-c]: Prints MEGAcmd versioning and extra info
+        #   whoami [-l]: Prints info of the user
+        #   pwd: Prints the current remote folder
+        #   session
+        #   log [-sc] level: Prints/Modifies the log level
+        #   masterkey pathtosave: Shows your master key.
+        #   pwd: Prints the current remote folder
+        #   mount Lists all the root nodes
+        #   speedlimit [-u|-d|--upload-connections|--download-connections] [-h]
+        #[NEWLIMIT]: Displays/modifies upload/download rate limits: either
+        #speed or max connections
+        #   version [-l][-c]: Prints MEGAcmd versioning and extra info
+
+        # Place into rich log
+        # Push 'info' screen
+
+        pass
 
     """
     # Watchers ################################################################
