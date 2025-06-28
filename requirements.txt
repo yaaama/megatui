@@ -10,7 +10,7 @@ pathlib==1.0.1
 platformdirs==4.3.7
 pycryptodome==3.22.0
 Pygments==2.19.1
-requests==2.32.3
+requests==2.32.4
 rich==14.0.0
 six==1.17.0
 tenacity==5.1.5
