@@ -1094,3 +1094,27 @@ async def mega_get(
         logger.exception(
             f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'."
         )
+
+async def mega_df(human: bool = True) -> str | None:
+    """Returns storage information for main folders.
+
+    Args:
+        human (bool): Request human readable file sizes or bytes.
+    """
+
+    cmd = ["df"]
+    if human:
+        cmd.append("-h")
+
+    try:
+        response = await run_megacmd(tuple(cmd))
+
+        if response.err_output:
+            logger.error(f"Error running 'df': {response.err_output}")
+            return None
+
+        return response.stdout
+    except MegaCmdError as e:
+        logger.error(f"MegaCmdError during mega_df: {e}")
+    except Exception as e:
+        logger.exception(f"An unexpected error occurred during mega_df: {e}")
