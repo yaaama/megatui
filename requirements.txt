@@ -17,4 +17,4 @@ tenacity==5.1.5
 textual==3.0.1
 typing_extensions==4.13.1
 uc-micro-py==1.0.3
-urllib3==2.3.0
+urllib3==2.5.0
