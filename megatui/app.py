@@ -141,6 +141,7 @@ class MegaAppTUI(App[None]):
         """Update status bar when path changes."""
         status_bar = self.query_one(TopStatusBar)
         status_bar.path = message.path
+        status_bar.clear_status_msg()
 
     @on(FileList.EmptyDirectory)
     def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
