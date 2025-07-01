@@ -16,6 +16,7 @@ from textual.worker import Worker  # Import worker types
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
+from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 DL_PATH: Path = Path.home() / "megadl"
@@ -66,6 +67,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="R", action="refresh", description="Refresh", show=True),
         Binding(key="r", action="rename_file", description="Rename a file", show=True),
+        Binding(key="plus", action="mkdir", description="mkdir", show=True),
         Binding(
             key="space",
             action="toggle_file_selection",
@@ -163,7 +165,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
-        assert selected_item_data, "Selected item was 'None'"
+        if not selected_item_data:
+            self.log.info("Nothing to navigate into.")
+            return
 
         # Fail: Is a regular file
         if selected_item_data.is_file():  # Check if it's a directory
@@ -575,12 +579,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # Failed
         if not fetched_items:
-            # Worker succeeded but returned None
+            # Worker succeeded but returned None (folder is probably empty)
             self.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
-            self.border_subtitle = "Load Error!"
-            return
+            fetched_items = []
 
         # Success
         # Get number of files
@@ -604,7 +607,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     def _get_curr_row_key(self) -> RowKey | None:
         """Return RowKey for the Row that the cursor is currently on."""
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
-            self.log.info("No highlighted item available to return.")
             return None
         try:
             # DataTable's coordinate system is (row, column)
@@ -634,7 +636,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         row_key = self._get_curr_row_key()
 
-        assert row_key and row_key.value, "Invalid row key!"
+        if not row_key:
+            # We are in an empty directory!
+            return None
+
+        assert row_key.value, (
+            "We should definitely have a 'value' attribute for our rowkey."
+        )
 
         return self._row_data_map.get(row_key.value)
 
@@ -653,7 +661,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # When nothing is highlighted
         if not highlighted:
-            self.log.error("Could not default to highlighted item. Cancelling.")
+            self.log.error(
+                "Could not default to highlighted item, returning empty list."
+            )
             return []
 
         return [highlighted]
