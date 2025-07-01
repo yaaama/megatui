@@ -291,6 +291,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         Rename a file.
         Popup will be shown to prompt the user for the new name.
+        TODO: Make this open a file editor when multiple files are selected.
         """
         self.log.info("Renaming file.")
 
@@ -313,10 +314,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         async def file_rename(result: tuple[str, NodeInfoDict] | None) -> None:
             """Nested function to serve as callback."""
-            if not result:
-                self.log.error("Invalid result!")
-                return
-            if not result[0] or not result[1]:
+            if (not result) or (not result[0]) or (not result[1]):
                 self.log.error("Invalid result!")
                 return
 
