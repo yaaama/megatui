@@ -361,6 +361,23 @@ LS_REGEXP = re.compile(
     + r"(H:[^\s]+)\s+"  # File handle ('H:xxxxxxxx')
     + r"(.+)$"  # Filename (everything else)
 )
+""" Regular expression to parse 'ls -l --show-handles' """
+
+# 'df' parsing regular expression
+# e.g.
+#       Cloud drive:          250770805753 in   17210 file(s) and    1352 folder(s)
+#       Inbox:                           0 in       0 file(s) and       1 folder(s)
+#       Rubbish bin:                  1368 in       4 file(s) and       2 folder(s)
+#       ---------------------------------------------------------------------------
+#       USED STORAGE:         250770069025                  11.40% of 2199023255552
+#       ---------------------------------------------------------------------------
+#       Total size taken up by file versions:    306416706
+#
+__DF_LOCATION_REGEXP = re.compile(
+    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s)"
+)
+__DF_SUMMARY_REGEXP = re.compile(r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)")
+__DF_VERSIONS_REGEXP = re.compile(r"^Total size taken up by file versions:\s+(\d+)")
 
 
 def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
