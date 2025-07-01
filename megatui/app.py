@@ -101,8 +101,8 @@ class MegaAppTUI(App[None]):
         #   pwd: Prints the current remote folder
         #   mount Lists all the root nodes
         #   speedlimit [-u|-d|--upload-connections|--download-connections] [-h]
-        #[NEWLIMIT]: Displays/modifies upload/download rate limits: either
-        #speed or max connections
+        # [NEWLIMIT]: Displays/modifies upload/download rate limits: either
+        # speed or max connections
         #   version [-l][-c]: Prints MEGAcmd versioning and extra info
 
         # Place into rich log
