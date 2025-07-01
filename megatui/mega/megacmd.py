@@ -6,6 +6,7 @@ import re
 import subprocess
 from enum import Enum
 from pathlib import Path, PurePath
+from typing import TypedDict
 
 logging.basicConfig(
     filename="megacmd.log",
@@ -1142,6 +1143,78 @@ async def mega_df(human: bool = True) -> str | None:
         logger.error(f"MegaCmdError during mega_df: {e}")
     except Exception as e:
         logger.exception(f"An unexpected error occurred during mega_df: {e}")
+
+
+class LocationInfo(TypedDict):
+    """Type definition for a single location entry."""
+
+    name: str
+    size_bytes: int
+    files: int
+    folders: int
+
+
+class UsageSummary(TypedDict):
+    """Type definition for the usage summary line."""
+
+    used_bytes: int
+    percentage: float
+    total_bytes: int
+
+
+class StorageOverview(TypedDict):
+    """Dictionary representing parsed 'df' output."""
+
+    locations: list[LocationInfo]
+    usage_summary: UsageSummary | None  # Can be UsageSummary or None
+    version_size_bytes: int | None  # Can be int or None
+
+
+async def mega_df_dict() -> StorageOverview | None:
+    """
+    Returns overview of mounted folders as a dictionary.
+    """
+
+    output: str | None = await mega_df()
+    if not output:
+        logger.error("Received no output from 'mega_df'")
+        return None
+
+    logger.debug(f"'df' output:\n`{output}`")
+
+    # Split by lines
+    lines = output.strip().split("\n")
+
+    # Initialise our dict
+    parsed_data: StorageOverview = {
+        "locations": [],
+        "usage_summary": None,
+        "version_size_bytes": None,
+    }
+
+    for line in lines:
+        line = line.strip()
+        if match := __DF_LOCATION_REGEXP.match(line):
+            name, size, files, folders = match.groups()
+            parsed_data["locations"].append(
+                {
+                    "name": name.strip(),
+                    "size_bytes": int(size),
+                    "files": int(files),
+                    "folders": int(folders),
+                }
+            )
+        elif match := __DF_SUMMARY_REGEXP.match(line):
+            used, pct, total = match.groups()
+            parsed_data["usage_summary"] = {
+                "used_bytes": int(used),
+                "percentage": float(pct),
+                "total_bytes": int(total),
+            }
+        elif match := __DF_VERSIONS_REGEXP.match(line):
+            parsed_data["version_size_bytes"] = int(match.group(1))
+
+    return parsed_data
 
 
 async def mega_mkdir(name: str, path: str | None = None) -> bool:
