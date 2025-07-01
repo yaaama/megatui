@@ -5,9 +5,11 @@ description = "Terminal user interface for MEGA"
 requires-python = ">=3.13"
 readme = "README.md"
 dependencies = [
+  "isort>=6.0.1",
   "pytest>=8.3.5",
   # "pytest-asyncio>=1.0.0",
   # "pytest-mock>=3.14.1",
+  "ruff>=0.12.1",
   "textual>=3.5.0",
   "textual-dev>=1.7.0",
 ]
