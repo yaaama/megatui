@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # Get the logger for the 'asyncio' library and set its level to WARNING.
 # This will hide all INFO and DEBUG messages from asyncio.
-logging.getLogger('asyncio').setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.WARNING)
 logger.debug("This is a debug message.")
 
 MEGA_COMMANDS_ALL: set[str] = {

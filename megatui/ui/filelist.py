@@ -429,6 +429,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             ),
             callback=make_directory,
         )
+
     async def download_files(self, files: list[MegaItem]) -> None:
         """
         Helper method to download files.
