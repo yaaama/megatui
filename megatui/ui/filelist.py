@@ -16,6 +16,7 @@ from textual.worker import Worker  # Import worker types
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
+from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
 DL_PATH: Path = Path.home() / "megadl"
@@ -64,8 +65,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding(key="R", action="refresh", description="Refresh", show=True),
-        Binding(key="r", action="rename_file", description="Rename a file", show=True),
+        Binding(key="r", action="refresh", description="Refresh", show=True),
+        Binding(key="R", action="rename_file", description="Rename a file", show=True),
+        Binding(key="plus", action="mkdir", description="mkdir", show=True),
         Binding(
             key="space",
             action="toggle_file_selection",
@@ -163,7 +165,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
-        assert selected_item_data, "Selected item was 'None'"
+        if not selected_item_data:
+            self.log.info("Nothing to navigate into.")
+            return
 
         # Fail: Is a regular file
         if selected_item_data.is_file():  # Check if it's a directory
@@ -175,6 +179,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
         await self.load_directory(path_str)
+        await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
         """
@@ -193,6 +198,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         parent_path: PurePath = PurePath(curr_path).parent
 
         await self.load_directory(str(parent_path))
+        await m.mega_cd(target_path=str(parent_path))
 
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
@@ -285,6 +291,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         Rename a file.
         Popup will be shown to prompt the user for the new name.
+        TODO: Make this open a file editor when multiple files are selected.
         """
         self.log.info("Renaming file.")
 
@@ -307,10 +314,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         async def file_rename(result: tuple[str, NodeInfoDict] | None) -> None:
             """Nested function to serve as callback."""
-            if not result:
-                self.log.error("Invalid result!")
-                return
-            if not result[0] or not result[1]:
+            if (not result) or (not result[0]) or (not result[1]):
                 self.log.error("Invalid result!")
                 return
 
@@ -337,6 +341,94 @@ class FileList(DataTable[Any], inherit_bindings=False):
             callback=file_rename,
         )
 
+    def action_select_item(self) -> None:
+        """
+        Toggles the selection state of the currently hovered-over item (row).
+        Selected rows are MEANT to be visually highlighted.
+        """
+        row_key = self._get_curr_row_key()
+
+        if not row_key or not row_key.value:
+            self.log.info("No current row key to select/deselect.")
+            return
+
+        try:
+            # Get the MegaItem
+            row_item: MegaItem = self._row_data_map[row_key.value]
+            # Get handle
+            item_handle = row_item.handle
+        except KeyError:
+            self.log.error(
+                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
+            )
+            return
+
+        # Unselect already selected items
+        if item_handle in self._selected_items:
+            del self._selected_items[item_handle]
+            new_label = Text(" ")
+            log_message = f"Deselected row: {row_key.value}"
+
+        else:
+            # Action: SELECT
+            self._selected_items[item_handle] = row_item
+            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            log_message = f"Selected row: {row_key.value}"
+
+        self.log.info(log_message)
+        self.rows[row_key].label = new_label
+
+        self.refresh()
+        self._update_count += 1
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
+
+    @work(
+        exclusive=True,
+        group="megacmd",
+        name="mkdir",
+        description="Make directory.",
+    )
+    async def action_mkdir(self) -> None:
+        """Make a directory."""
+
+        async def make_directory(name: str | None) -> None:
+            # If no name return
+            if not name:
+                return
+
+            # FIXME Should use set comprehension
+            filenames: set[str] = set()
+
+            for item in self._row_data_map.values():
+                filenames.add(item.name)
+
+            # If name is duplicate
+            if name in filenames:
+                self.log.info(f"File already exists with the name '{name}'.")
+                self.post_message(
+                    StatusUpdate(message=f"File '{name}' already exists!")
+                )
+                return
+
+            success = await m.mega_mkdir(name=name, path=None)
+            if not success:
+                self.post_message(
+                    StatusUpdate(
+                        message=f"Could not create directory '{name}' for some reason."
+                    )
+                )
+                return
+
+            await self.action_refresh()
+
+        await self.app.push_screen(
+            MkdirDialog(
+                popup_prompt=f"Make New Directory(s) at: '{self.curr_path}'",
+                emoji_markup_prepended=":open_file_folder:",
+                initial_input=None,
+            ),
+            callback=make_directory,
+        )
     async def download_files(self, files: list[MegaItem]) -> None:
         """
         Helper method to download files.
@@ -525,12 +617,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # Failed
         if not fetched_items:
-            # Worker succeeded but returned None
+            # Worker succeeded but returned None (folder is probably empty)
             self.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
-            self.border_subtitle = "Load Error!"
-            return
+            fetched_items = []
 
         # Success
         # Get number of files
@@ -554,7 +645,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     def _get_curr_row_key(self) -> RowKey | None:
         """Return RowKey for the Row that the cursor is currently on."""
         if self.cursor_row < 0 or not self.rows:  # No selection or empty table
-            self.log.info("No highlighted item available to return.")
             return None
         try:
             # DataTable's coordinate system is (row, column)
@@ -584,7 +674,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         row_key = self._get_curr_row_key()
 
-        assert row_key and row_key.value, "Invalid row key!"
+        if not row_key:
+            # We are in an empty directory!
+            return None
+
+        assert row_key.value, (
+            "We should definitely have a 'value' attribute for our rowkey."
+        )
 
         return self._row_data_map.get(row_key.value)
 
@@ -603,7 +699,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # When nothing is highlighted
         if not highlighted:
-            self.log.error("Could not default to highlighted item. Cancelling.")
+            self.log.error(
+                "Could not default to highlighted item, returning empty list."
+            )
             return []
 
         return [highlighted]

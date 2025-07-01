@@ -27,9 +27,14 @@ The UI and bindings are inspired by [ranger](https://github.com/ranger/ranger) a
 
 ![Renaming a file demonstration](./assets/demo/rename-file.gif)
 
+
+### Making new directories
+
+![Making directories demonstration](./assets/demo/make_directories.gif)
+
 ## 🪷 Features
 
-As of writing this (_2025-06-06_), work is still ongoing and active.
+As of writing this (_2025-07-01_), work is still ongoing and active.
 
 - **Browse Files:** Navigate through your MEGA cloud drive folders.
 - **Basic Navigation:** Use intuitive keybindings (like `j`/`k`, `h`/`l`, `Enter`/`Backspace`) to move up, down, into, and out of directories.
@@ -37,6 +42,7 @@ As of writing this (_2025-06-06_), work is still ongoing and active.
 - **Status Bar:** See information about the currently selected item.
 - **Refresh:** Update the current directory view.
 - **Rename file/directories:** Rename files via the app.
+- **Create new directories**
 - **Login Check:** Verifies your MEGAcmd login status on startup.
 
 ## ✏️ (Planned / TODO)
