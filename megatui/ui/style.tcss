@@ -108,6 +108,35 @@ RenameDialog {
     }
 }
 
+MkdirDialog {
+    align: center middle;
+    background: transparent;
+
+    Vertical {
+        /* background: $panel; */
+        border: round $secondary;
+        height: auto;
+        width: 50%;
+    }
+
+    Vertical > * {
+        width: auto;
+        height: auto;
+    }
+
+    Input {
+        margin: 1;
+        width: 1fr;
+        color: $foreground;
+    }
+
+    Label {
+        margin-left: 2;
+        color: $accent;
+    }
+}
+
+
 /*****************************************************************************/
 /*                                 File List                                 */
 /*****************************************************************************/

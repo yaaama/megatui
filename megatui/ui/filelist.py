@@ -175,6 +175,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
         await self.load_directory(path_str)
+        await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
         """
@@ -193,6 +194,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         parent_path: PurePath = PurePath(curr_path).parent
 
         await self.load_directory(str(parent_path))
+        await m.mega_cd(target_path=str(parent_path))
 
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
@@ -335,6 +337,54 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 initial_input=selected_item.name,
             ),
             callback=file_rename,
+        )
+
+    @work(
+        exclusive=True,
+        group="megacmd",
+        name="mkdir",
+        description="Make directory.",
+    )
+    async def action_mkdir(self) -> None:
+        """Make a directory."""
+
+        async def make_directory(name: str | None) -> None:
+            # If no name return
+            if not name:
+                return
+
+            # FIXME Should use set comprehension
+            filenames: set[str] = set()
+
+            for item in self._row_data_map.values():
+                filenames.add(item.name)
+
+            # If name is duplicate
+            if name in filenames:
+                self.log.info(f"File already exists with the name '{name}'.")
+                self.post_message(
+                    StatusUpdate(message=f"File '{name}' already exists!")
+                )
+                return
+
+            success = await m.mega_mkdir(name=name, path=None)
+            if not success:
+                self.post_message(
+                    StatusUpdate(
+                        message=f"Could not create directory '{name}' for some reason."
+                    )
+                )
+                return
+
+            await self.action_refresh()
+
+        await self.app.push_screen(
+            MkdirDialog(
+                popup_prompt=f"Make New Directory(s) at: '{self.curr_path}'",
+                emoji_markup_prepended=":open_file_folder:",
+                initial_input=None,
+            ),
+            callback=make_directory,
         )
 
     async def download_files(self, files: list[MegaItem]) -> None:
