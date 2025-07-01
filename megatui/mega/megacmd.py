@@ -789,9 +789,9 @@ async def node_exists(file_path: str) -> bool:
 
 
 async def node_rename(file_path: str, new_name: str) -> None:
-    assert (
-        file_path and new_name
-    ), f"Cannot have empty args: `{file_path}`, `{new_name}`"
+    assert file_path and new_name, (
+        f"Cannot have empty args: `{file_path}`, `{new_name}`"
+    )
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
@@ -1095,6 +1095,7 @@ async def mega_get(
             f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'."
         )
 
+
 async def mega_df(human: bool = True) -> str | None:
     """Returns storage information for main folders.
 
@@ -1118,3 +1119,67 @@ async def mega_df(human: bool = True) -> str | None:
         logger.error(f"MegaCmdError during mega_df: {e}")
     except Exception as e:
         logger.exception(f"An unexpected error occurred during mega_df: {e}")
+
+
+async def mega_mkdir(name: str, path: str | None = None) -> bool:
+    """Create a new directory in the current path.
+
+    Args:
+        name (str): Name of directory.
+    If name contains a slash e.g. 'folder1/folder2', the directories will be created.
+        path (str | None): Absolute path to create directory. Defaults to 'None' which
+        will create a path in the current directory.
+    """
+
+    clean_name = name.strip()
+    if not clean_name:
+        logger.error("Cannot create a directory with an empty name.")
+        raise ValueError("Directory name cannot be empty.")
+
+    # Base command. The -p flag creates parent directories as needed (e.g., for 'a/b/c').
+    cmd = ["mkdir", "-p"]
+
+    if path:
+        # Remove whitespace and '/' from the right
+        base_path = path.strip().rstrip("/")
+
+        # If 'path' was '/'
+        if not base_path:
+            remote_path = f"/{clean_name}"
+        else:
+            remote_path = f"{base_path}/{clean_name}"
+
+    # Else if no path was given
+    else:
+        remote_path = f"{clean_name}"
+
+    cmd.append(remote_path)
+
+    # Try running command
+    try:
+        logger.info(f"Attempting to create remote directory: '{remote_path}'")
+        response = await run_megacmd(tuple(cmd))
+
+        # megacmd often puts non-critical info or warnings in stderr.
+        error_msg = response.err_output
+        if error_msg:
+            # Check for the common "already exists" case, which we treat as a success.
+            if "already exists" in error_msg:
+                logger.warning(f"Directory '{remote_path}' already exists.")
+                return True
+            else:
+                # A real error occurred.
+                logger.error(f"Error creating directory '{remote_path}': {error_msg}")
+                return False
+
+        logger.info(f"Successfully created directory: '{remote_path}'")
+        return True
+
+    except MegaCmdError as e:
+        logger.error(f"MegaCmdError while creating directory '{remote_path}': {e}")
+        raise
+    except Exception:
+        logger.exception(
+            f"An unexpected error occurred while creating directory '{remote_path}'."
+        )
+        raise
