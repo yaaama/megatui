@@ -375,7 +375,7 @@ LS_REGEXP = re.compile(
 #       Total size taken up by file versions:    306416706
 #
 __DF_LOCATION_REGEXP = re.compile(
-    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s)"
+    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
 )
 __DF_SUMMARY_REGEXP = re.compile(r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)")
 __DF_VERSIONS_REGEXP = re.compile(r"^Total size taken up by file versions:\s+(\d+)")
