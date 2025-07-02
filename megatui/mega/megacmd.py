@@ -577,9 +577,9 @@ async def mega_ls(
         return []
 
     items: MegaItems = []
-    lines = response.stdout.strip().split("\n")
+
     # Pop out the first element (it will be the header line)
-    lines.pop(0)
+    lines = response.stdout.strip().split("\n")[0:]
 
     # Handle empty output
     if not lines or not lines[0].strip():
