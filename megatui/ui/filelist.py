@@ -288,9 +288,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         description="Renaming file.",
     )
     async def action_rename_file(self) -> None:
-        """
-        Rename a file.
-        Popup will be shown to prompt the user for the new name.
+        """Rename a file by showing a dialog to prompt for the new name.
+
         TODO: Make this open a file editor when multiple files are selected.
         """
         self.log.info("Renaming file.")
@@ -312,23 +311,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             "handle": selected_item.handle,
         }
 
-        async def file_rename(result: tuple[str, NodeInfoDict] | None) -> None:
-            """Nested function to serve as callback."""
-            if (not result) or (not result[0]) or (not result[1]):
-                self.log.error("Invalid result!")
-                return
-
-            new_name: str
-            node: NodeInfoDict
-            new_name, node = result
-            assert new_name and node, (
-                f"Empty name: '{new_name}' or empty node: '{node}'."
-            )
-            self.log.info(f"Renaming file `{node['name']}` to `{new_name}`")
-            file_path: str = node["path"]
-            await m.node_rename(file_path, new_name)
-            await self.action_refresh()
-
         await self.app.push_screen(
             RenameDialog(
                 popup_prompt=f"Rename {selected_item.name}",
@@ -338,12 +320,30 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 ),
                 initial_input=selected_item.name,
             ),
-            callback=file_rename,
+            callback=self._on_rename_dialog_closed,
         )
 
-    def action_select_item(self) -> None:
+    async def _on_rename_dialog_closed(
+        self, result: tuple[str, NodeInfoDict] | None
+    ) -> None:
+        """Callback executed after the RenameDialog closes.
+
+        Handles the actual file renaming logic.
         """
-        Toggles the selection state of the currently hovered-over item (row).
+        if not result or not result[0] or not result[1]:
+            self.log.info("File rename operation was cancelled or failed.")
+            return
+
+        new_name, node_info = result
+        self.log.info(f"Renaming file `{node_info['name']}` to `{new_name}`")
+
+        file_path: str = node_info["path"]
+
+        await m.node_rename(file_path, new_name)
+        await self.action_refresh()
+
+    def action_select_item(self) -> None:
+        """Toggles the selection state of the currently hovered-over item (row).
         Selected rows are MEANT to be visually highlighted.
         """
         row_key = self._get_curr_row_key()
