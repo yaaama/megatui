@@ -4,9 +4,9 @@ from typing import override
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Header, Label, RichLog
+from textual.widgets import Header, Label
 
 import megatui.mega.megacmd as m
 

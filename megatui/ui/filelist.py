@@ -24,9 +24,7 @@ DL_PATH: Path = Path.home() / "megadl"
 
 
 class FileList(DataTable[Any], inherit_bindings=False):
-    """
-    A DataTable widget to display files and their information.
-    """
+    """A DataTable widget to display files and their information."""
 
     # * Constants ###################################################################
 
@@ -162,7 +160,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:
         """Navigate into a directory."""
-
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
         if not selected_item_data:
@@ -182,9 +179,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
-        """
-        Navigate to parent directory.
-        """
+        """Navigate to parent directory."""
         self.log.info(f"Navigating out of directory {self.curr_path}")
         curr_path: str = self.curr_path
 
@@ -431,8 +426,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         )
 
     async def download_files(self, files: list[MegaItem]) -> None:
-        """
-        Helper method to download files.
+        """Helper method to download files.
 
         TODO: Check for existing files on system and handle them
         """
@@ -457,8 +451,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             )
 
     async def action_download(self) -> None:
-        """
-        Download the currently highlighted file or a selection of files.
+        """Download the currently highlighted file or a selection of files.
 
         TODO: Ask for download path
         TODO: Display download status
@@ -570,12 +563,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
         description="mega-ls - Fetching dir listings",
     )
     async def fetch_files(self, path: str) -> MegaItems | None:
-        """
-        Asynchronously fetches items from MEGA for the given path.
+        """Asynchronously fetches items from MEGA for the given path.
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
         """
-
         self.log.info(f"FileList: Worker starting fetch for path: {path}")
         try:
             # Fetch and sort items
@@ -672,7 +663,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     @property
     def highlighted_item(self) -> MegaItem | None:
         """Return the MegaItem corresponding to the currently highlighted row."""
-
         row_key = self._get_curr_row_key()
 
         if not row_key:
@@ -690,7 +680,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """Returns items that are selected.
         Default to returning highlighted item if is nothing selected.
         """
-
         # If we have selected items return those
         if len(self._selected_items.keys()) > 0:
             return list(self._selected_items.values())
@@ -710,7 +699,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
     @property
     def selected_items(self) -> MegaItems:
         """Return MegaItem(s) that are currently selected."""
-
         # Get selected items
         return list(self._selected_items.values())
 

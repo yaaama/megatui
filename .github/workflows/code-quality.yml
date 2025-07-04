@@ -35,4 +35,3 @@ jobs:
     - name: Format code with ruff
       run: |
         ruff format
-   

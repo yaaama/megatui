@@ -374,6 +374,7 @@ LS_REGEXP = re.compile(
 #       ---------------------------------------------------------------------------
 #       Total size taken up by file versions:    306416706
 #
+
 __DF_LOCATION_REGEXP = re.compile(
     r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
 )
@@ -382,12 +383,10 @@ __DF_VERSIONS_REGEXP = re.compile(r"^Total size taken up by file versions:\s+(\d
 
 
 def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
-    """
-    Constructs a list containing the command to run and arguments.
+    """Constructs a list containing the command to run and arguments.
     This list will transform something like: [ls, -l] into [mega-ls, -l]
     Also performs checking to see if the command is valid.
     """
-
     if not command:
         logger.critical("Command tuple cannot be empty.")
         raise MegaLibError("Command tuple cannot be empty.", fatal=True)
@@ -413,15 +412,13 @@ def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
 
 ###############################################################################
 async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
-    """
-    Runs a specific mega-* command (e.g., mega-ls, mega-whoami)
+    """Runs a specific mega-* command (e.g., mega-ls, mega-whoami)
     and returns MegaCmdResponse.
 
     Args:
         command (tuple[str, ...]): The base command name and its arguments.
 
     """
-
     # Construct the actual executable name (e.g., "mega-ls")
     cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
     logger.info(f"Executing mega-cmd: {' '.join(cmd_to_exec)}")
@@ -483,16 +480,13 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
 ###########################################################################
 async def mega_start_server():
-    """
-    Starts the mega server in the background.
-    """
+    """Starts the mega server in the background."""
     pass
 
 
 ###########################################################################
 async def check_mega_login() -> tuple[bool, str | None]:
-    """
-    Checks if the user is logged into MEGA using 'mega-whoami'.
+    """Checks if the user is logged into MEGA using 'mega-whoami'.
 
     Returns:
         tuple[bool, str | None]: A tuple containing:
@@ -535,8 +529,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
 async def mega_ls(
     path: str | None = "/", flags: tuple[str, ...] | None = None
 ) -> MegaItems:
-    """
-    Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
+    """Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
     Args:
         path (str): The MEGA path to list (e.g., "/", "/Backups"). Defaults to "/".
@@ -661,8 +654,7 @@ async def mega_du(
     recurse: bool = True,
     units: MegaSizeUnits = MegaSizeUnits.MB,
 ):
-    """
-    Get disk usage.
+    """Get disk usage.
     If recurse 'True', then calculate disk usage for all subfolders too.
     'units' must be one of the values specified by SIZE_UNIT enum.
     """
@@ -671,9 +663,7 @@ async def mega_du(
 
 ###############################################################################
 async def mega_cd(target_path: str = "/"):
-    """
-    Change directories.
-    """
+    """Change directories."""
     logger.info(f"Changing directory to {target_path}")
 
     cmd: list[str] = ["cd", target_path]
@@ -697,9 +687,7 @@ async def mega_cd(target_path: str = "/"):
 
 
 async def mega_pwd() -> str:
-    """
-    Change directories.
-    """
+    """Change directories."""
     logger.info("Getting current working directory.")
 
     cmd: tuple[str, ...] = ("pwd",)
@@ -726,9 +714,7 @@ async def mega_pwd() -> str:
 async def mega_cd_ls(
     target_path: str | None = "/", ls_flags: tuple[str, ...] | None = None
 ) -> MegaItems:
-    """
-    Change directories and ls.
-    """
+    """Change directories and ls."""
     effective_target_path = target_path if target_path else "/"
     logger.info(f"Changing directory and listing contents for {effective_target_path}")
 
@@ -744,9 +730,7 @@ async def mega_cd_ls(
 ###############################################################################
 ###############################################################################
 async def mega_cp(file_path: str, target_path: str) -> None:
-    """
-    Copy file from 'file_path' to 'target_path'
-    """
+    """Copy file from 'file_path' to 'target_path'"""
     logger.info(f"Copying file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("cp", file_path, target_path)
@@ -777,9 +761,7 @@ async def mega_cp(file_path: str, target_path: str) -> None:
 
 ###############################################################################
 async def mega_mv(file_path: str, target_path: str) -> None:
-    """
-    Move a file (or rename it).
-    """
+    """Move a file (or rename it)."""
     logger.info(f"Moving file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("mv", file_path, target_path)
@@ -834,10 +816,7 @@ async def node_rename(file_path: str, new_name: str) -> None:
 
 ###############################################################################
 async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
-    """
-    Remove a file.
-    """
-
+    """Remove a file."""
     logger.info(f"Removing file {file} with flags: {flags} ")
 
     cmd: tuple[str, ...]
@@ -872,14 +851,12 @@ async def mega_put(
     queue: bool = True,
     create_remote_dir: bool = True,
 ):
-    """
-    Upload a file from the local system to a remote path.
+    """Upload a file from the local system to a remote path.
 
     Args:
         'queue' refers to whether we should queue the file (prevents blocking).
         'create_remote_dir' will mean we create a directory on the remote if it does not yet exist.
     """
-
     if not local_path:
         logger.error("Error! Local file is not specified for upload.")
         raise MegaLibError("Local file is not specified for upload.", fatal=True)
@@ -995,7 +972,6 @@ async def mega_get_handle(
     target_path: str, handle: str, queue: bool = True, merge: bool = False
 ):
     """Download file using its HANDLE."""
-
     assert target_path, "You must specify a 'target_path'"
     assert handle, "'handle' not specified."
     assert verify_handle(handle), "Handle verification failed."
@@ -1048,10 +1024,9 @@ async def mega_get(
     queue: bool = True,
     merge: bool = False,
 ):
-    """
-      Download a file from the remote system to a local path.
+    """Download a file from the remote system to a local path.
 
-      Args:
+    Args:
       'merge' == True means a folder of the same name on the local will be merged with
       the remote folder being downloaded.
       'is_dir' is a flag for whether the file downloaded is a directory or not.
@@ -1059,7 +1034,6 @@ async def mega_get(
       'merge' will ensure local files are not overriden by the remote files and directories are merged instead.
     'merge=True' is only useful when the 'target_path' on the local filesystem already exists.
     """
-
     cmd: list[str] = ["get"]
 
     if not remote_path:
@@ -1126,7 +1100,6 @@ async def mega_df(human: bool = True) -> str | None:
     Args:
         human (bool): Request human readable file sizes or bytes.
     """
-
     cmd = ["df"]
     if human:
         cmd.append("-h")
@@ -1171,10 +1144,7 @@ class StorageOverview(TypedDict):
 
 
 async def mega_df_dict() -> StorageOverview | None:
-    """
-    Returns overview of mounted folders as a dictionary.
-    """
-
+    """Returns overview of mounted folders as a dictionary."""
     output: str | None = await mega_df()
     if not output:
         logger.error("Received no output from 'mega_df'")
@@ -1226,7 +1196,6 @@ async def mega_mkdir(name: str, path: str | None = None) -> bool:
         path (str | None): Absolute path to create directory. Defaults to 'None' which
         will create a path in the current directory.
     """
-
     clean_name = name.strip()
     if not clean_name:
         logger.error("Cannot create a directory with an empty name.")

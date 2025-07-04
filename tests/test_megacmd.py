@@ -1,5 +1,5 @@
 # If input_file_0.py is in the same directory or your PYTHONPATH is set up:
-import megatui.mega.megacmd as megacmd
+from megatui.mega import megacmd
 
 
 # --- Tests for MegaItem ---

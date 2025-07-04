@@ -1,8 +1,6 @@
-from pathlib import Path
 from typing import ClassVar, LiteralString, override
 
 import rich
-from rich.text import Text
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
@@ -11,7 +9,6 @@ from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
 
-from megatui.mega.megacmd import MegaItem, mega_df, mega_get, mega_mv
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
 
@@ -43,9 +40,7 @@ class MegaAppTUI(App[None]):
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
-        """
-        Compose the basic UI for the application.
-        """
+        """Compose the basic UI for the application."""
         # Disable mouse events
         self.capture_mouse(None)
         self.theme = "gruvbox"
@@ -69,8 +64,7 @@ class MegaAppTUI(App[None]):
         # yield Footer(disabled=True)
 
     async def on_mount(self) -> None:
-        """
-        Called when the app is mounted.
+        """Called when the app is mounted.
         Performs initial load and some initialisation.
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
@@ -79,9 +73,9 @@ class MegaAppTUI(App[None]):
         file_list = self.query_one(FileList)
         await file_list.load_directory(file_list.curr_path)
 
-    """
-    Actions #############################################################
-    """
+    # """
+    # Actions #############################################################
+    # """
 
     def action_toggle_darkmode(self) -> None:
         """Toggles darkmode."""
@@ -96,27 +90,21 @@ class MegaAppTUI(App[None]):
         #   whoami [-l]: Prints info of the user
         #   pwd: Prints the current remote folder
         #   session
-        #   log [-sc] level: Prints/Modifies the log level
         #   masterkey pathtosave: Shows your master key.
         #   pwd: Prints the current remote folder
         #   mount Lists all the root nodes
         #   speedlimit [-u|-d|--upload-connections|--download-connections] [-h]
         # [NEWLIMIT]: Displays/modifies upload/download rate limits: either
         # speed or max connections
-        #   version [-l][-c]: Prints MEGAcmd versioning and extra info
 
         # Place into rich log
         # Push 'info' screen
 
         pass
 
-    """
-    # Watchers ################################################################
-    """
-
-    """
-    # Message Handlers ###########################################################
-    """
+    #
+    # # Message Handlers ###########################################################
+    #
 
     @on(FileList.ToggledSelection)
     def on_file_list_toggled_selection(
@@ -156,9 +144,7 @@ class MegaAppTUI(App[None]):
 
     @on(StatusUpdate)
     def update_status_message(self, message: StatusUpdate):
-        """
-        Refresh UI when status bar is updated.
-        """
+        """Refresh UI when status bar is updated."""
         status_bar = self.top_status_bar
         status_bar.status_msg = message.message
 

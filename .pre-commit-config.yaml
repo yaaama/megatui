@@ -5,8 +5,8 @@ repos:
     hooks:
     - id: uv-lock
     - id: uv-export
-    - id: pip-compile
-      args: [requirements.in, -o, requirements.txt]
+    # - id: pip-compile
+    #   args: [requirements.in, -o, requirements.txt]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 582b9c66e0791980685c8b80bb11e6a3df1a06ef

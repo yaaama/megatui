@@ -8,9 +8,7 @@ NOTIF_TYPES: set[str] = {"info", "err", "warn", "op", "done"}
 
 
 class StatusUpdate(Message):
-    """
-    Message for a widget to update status bar.
-    """
+    """Message for a widget to update status bar."""
 
     def __init__(self, message: str, timeout: int = 10) -> None:
         super().__init__()
