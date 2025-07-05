@@ -1,6 +1,11 @@
+"""
+FileList module. Contains actions and is the main way to interact with the
+application.
+"""
 # UI Components Related to Files
+
 from pathlib import Path, PurePath
-from typing import Any, ClassVar, LiteralString, override
+from typing import Annotated, Any, ClassVar, LiteralString, override
 
 from rich.text import Text
 from textual import work
@@ -19,8 +24,7 @@ from megatui.messages import StatusUpdate
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
 
-DL_PATH: Path = Path.home() / "megadl"
-""" Default download path. """
+DL_PATH = Annotated[Path, "Default download path."]
 
 
 class FileList(DataTable[Any], inherit_bindings=False):

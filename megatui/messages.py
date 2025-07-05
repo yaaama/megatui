@@ -1,10 +1,17 @@
-# Global Messages
-#
+"""
+messages.py
+Messages that are used throughout the application.
+"""
+
 from textual.message import Message
 
-NOTIF_TYPES: set[str] = {"info", "err", "warn", "op", "done"}
-
-""" Different kinds of notifications. """
+NOTIF_TYPES: set[str] = {
+    "info",
+    "err",
+    "warn",
+    "op",
+    "done",
+}  # Different kinds of notifications.
 
 
 class StatusUpdate(Message):
