@@ -70,7 +70,6 @@ docstring-code-line-length = "dynamic"
 # https://docs.astral.sh/ruff/rules/
 # General
 select = [
-  "E",
   "E",     # pycodestyle
   "W",     # pycodestyle
   "D",     # pydocstyle
@@ -95,7 +94,6 @@ ignore = [
   "E501", # Line too long
   "E722", # Do not use bare `except`
 ]
-
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
@@ -105,6 +103,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
 
 [tool.pyright]
 exclude = [
