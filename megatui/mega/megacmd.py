@@ -1,3 +1,5 @@
+"""'megacmd' library provides an easy way of interacting with the 'mega-cmd' CLI."""
+
 import asyncio
 import logging
 import math
@@ -6,7 +8,7 @@ import re
 import subprocess
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import TypedDict
+from typing import Annotated, TypedDict, override
 
 logging.basicConfig(
     filename="megacmd.log",
@@ -357,7 +359,7 @@ class MegaCmdResponse:
 
 
 # Default 'ls -l --show-handles' regular expression.
-LS_REGEXP = re.compile(
+LS_REGEXP: re.Pattern[str] = re.compile(
     r"^([^\s]{4})\s+"  #  Flags: Can be either alphabetical or a hyphen
     + r"(\d+|-)\s+"  # Version ('-' or number), skip whitespace
     + r"(\d+|-)\s+"  # Size (digits for bytes or '-'), skip whitespace
@@ -366,7 +368,6 @@ LS_REGEXP = re.compile(
     + r"(H:[^\s]+)\s+"  # File handle ('H:xxxxxxxx')
     + r"(.+)$"  # Filename (everything else)
 )
-""" Regular expression to parse 'ls -l --show-handles' """
 
 # 'df' parsing regular expression
 # e.g.
@@ -378,12 +379,16 @@ LS_REGEXP = re.compile(
 #       ---------------------------------------------------------------------------
 #       Total size taken up by file versions:    306416706
 #
-
-__DF_LOCATION_REGEXP = re.compile(
+__DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
     r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
-)
-__DF_SUMMARY_REGEXP = re.compile(r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)")
-__DF_VERSIONS_REGEXP = re.compile(r"^Total size taken up by file versions:\s+(\d+)")
+)  # Regexp to parse mount info
+
+__DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
+    r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)"
+)  # Regexp to parse total storage usage.
+__DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
+    r"^Total size taken up by file versions:\s+(\d+)"
+)  # Regexp to parse storage taken up by file versions
 
 
 def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
