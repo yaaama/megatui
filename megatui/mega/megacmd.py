@@ -331,21 +331,25 @@ class MegaCmdResponse:
         self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
-        logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
+        # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
 
     @property
     def failed(self) -> bool:
-        if (self.return_code) != 0:
-            logger.warning(
-                f"Command failed with return code: {self.return_code}. Stderr: {self.stderr}"
-            )
-            return True
-        if self.stderr:
-            logger.warning(
-                f"Command had stderr output but return code was 0. Stderr: {self.stderr}"
-            )
+        """
+        Check if the command either returned non-zero or had any standard
+        error output.
+        """
+        if (self.return_code) or (self.stderr):
             return True
         return False
+
+    @override
+    def __repr__(self) -> str:
+        return (
+            f"MegaCmdResponse(return_code={self.return_code},\n"
+            + f"stdout={self.stdout},\n"
+            + f"stderr={self.stderr}\n)"
+        )
 
     @property
     def err_output(self) -> str | None:
