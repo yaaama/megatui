@@ -1,3 +1,5 @@
+import asyncio
+import sys
 from typing import ClassVar, LiteralString, override
 
 import rich
@@ -9,6 +11,7 @@ from textual.content import Content
 from textual.reactive import var
 from textual.widgets import Header, Label
 
+from megatui.mega import megacmd as m
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
 
@@ -223,3 +226,30 @@ class TopStatusBar(Horizontal):
     def signal_error(self, err_msg: str):
         status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
         status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
+
+
+def run_app() -> None:
+    """Checks login and runs the Textual app."""
+    # Check login status before starting TUI
+    print("Checking MEGA login status...")
+    logged_in, message = asyncio.run(m.check_mega_login())
+
+    if not logged_in:
+        print(f"MEGA Login Check Failed: {message}", file=sys.stderr)
+        print(
+            "Please log in using 'mega-login' or check 'mega-whoami'.", file=sys.stderr
+        )
+        return
+
+    print(f"MEGA Login Check: OK ({message})")
+
+    # Start the TUI
+    app = MegaAppTUI()
+    # Use app.run() for a simple blocking call when not in another event loop
+    app.run()
+
+
+# The if __name__ == "__main__" block is not strictly necessary here,
+# as this file isn't intended to be run directly, but it can be useful for testing.
+if __name__ == "__main__":
+    run_app()

@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-megatui = "megatui.__main__:run_app"
+megatui = "megatui.app:run_app"
 
 # UV
 [tool.uv]
