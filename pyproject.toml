@@ -5,26 +5,39 @@ description = "Terminal user interface for MEGA"
 requires-python = ">=3.13"
 readme = "README.md"
 dependencies = [
-  "pre-commit>=4.2.0",
-  "pytest>=8.3.5",
-  # "pytest-asyncio>=1.0.0",
-  # "pytest-mock>=3.14.1",
-  "ruff>=0.12.1",
   "textual>=3.5.0",
-  "textual-dev>=1.7.0",
 ]
 
-src = ["src", "tests"]
-line-length = 100
-target-version = "py310"
+[project.scripts]
+megatui = "megatui.__main__:run_app"
 
-# Add this section to explicitly tell setuptools where to find your package(s)
-[tool.setuptools.packages.find]
-where = ["."] # Look in the current directory (project root)
+# UV
+[tool.uv]
+dev-dependencies = [
+  "pre-commit>=4.2.0",
+  "ruff>=0.12.1",
+  "textual-dev>=1.7.0, < 2.0.0",
+  "pytest>=8.3.5",
+  # "pytest-asyncio",
+  # "pytest-mock",
+]
+
+# Hatch
+[tool.hatch.build.targets.wheel]
+packages = ["src/megatui"]
+
+[tool.hatch.build]
 include = [
-  "megatui*",
-] # Include 'megatui' and any sub-packages like megatui.mega
+  "src/megatui",
+]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+
+# Pytest
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra --color=yes" # Example: report all, quiet, with color
@@ -34,9 +47,8 @@ testpaths = [
 ]
 
 python_files = ["test_*.py", "*_test.py"]
-
-
-asyncio_mode = "auto"                         # For pytest-asyncio
+# For pytest-asyncio
+asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "module"
 # You can add markers, filterwarnings, etc. here
 markers = [
@@ -47,7 +59,6 @@ markers = [
 
 
 [tool.ruff.format]
-
 # markers = []
 quote-style = "double"
 indent-style = "space"
@@ -128,13 +139,6 @@ reportUnnecessaryTypeIgnoreComment = false
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"
-
-# executionEnvironments = [
-# { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ], reportMissingImports = "warning" },
-# { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
-# { root = "src/tests", extraPaths = ["src/tests/e2e", "src/sdk" ]},
-# { root = "src" }
-# ]
 
 [tool.pyrefly]
 project_excludes = [
