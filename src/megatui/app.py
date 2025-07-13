@@ -228,6 +228,7 @@ class TopStatusBar(Horizontal):
         status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
 
 
+# run the application #####################################################################
 def run_app() -> None:
     """Checks login and runs the Textual app."""
     # Check login status before starting TUI
