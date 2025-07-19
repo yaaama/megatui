@@ -249,7 +249,5 @@ async def run_app() -> None:
     await app.run_async(mouse=False)
 
 
-# The if __name__ == "__main__" block is not strictly necessary here,
-# as this file isn't intended to be run directly, but it can be useful for testing.
 if __name__ == "__main__":
     asyncio.run(run_app())

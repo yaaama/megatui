@@ -390,6 +390,13 @@ __DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
     r"^Total size taken up by file versions:\s+(\d+)"
 )  # Regexp to parse storage taken up by file versions
 
+__DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
+    r"^FILENAME\s+SIZE$"
+)  # Parses du output for 'FILENAME SIZE'
+__DU_REGEXP: re.Pattern[str] = re.compile(
+    r"^(.+?):\s+(\d+)"
+)  # Parses du output for a real filename and their size
+
 
 def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """Constructs a list containing the command to run and arguments.
@@ -658,16 +665,71 @@ async def mega_ls(
 
 
 ###############################################################################
+
+
+class DiskUsage(NamedTuple):
+    location: str
+    usage: int | None
+
+
 async def mega_du(
     dir_path: str = "/",
-    recurse: bool = True,
-    units: MegaSizeUnits = MegaSizeUnits.MB,
+    include_version_info: bool = False,
+    units: MegaSizeUnits | None = None,
 ):
-    """Get disk usage.
-    If recurse 'True', then calculate disk usage for all subfolders too.
-    'units' must be one of the values specified by SIZE_UNIT enum.
     """
-    pass
+    Get disk usage. 'recurse' if 'True', will then calculate disk
+    usage for all subfolders too.
+    'human' toggles whether it should use the '-h' flag and return the value in those units.
+    'units' must be one of the values specified by SIZE_UNIT enum.
+    If human is 'True' then 'units' value will be ignored.
+    """
+
+    # Prepare our command
+    cmd: list[str] = ["du"]
+
+    if include_version_info:
+        cmd.append("--versions")
+
+    cmd.append(dir_path)
+
+    try:
+        response = await run_megacmd(tuple(cmd))
+        err_msg = response.err_output
+        if err_msg:
+            logger.error(
+                f"Ran into problems running 'du' for path '{dir_path}': {err_msg}"
+            )
+            raise MegaCmdError(
+                f"Ran into problems running 'du' for path '{dir_path}': {err_msg}"
+            )
+
+        logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
+
+        # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
+        output = response.stdout.splitlines()
+
+        assert len(output) > 3, "Output of 'du' should be 3 lines or more."
+
+        # We can ignore the header
+        _header = __DU_HEADER_REGEXP.match(output[0])
+
+        file_line_match = __DU_REGEXP.match(output[1])
+        assert file_line_match, f"No matches for du file lines: {file_line_match}"
+
+        _filename, _size = file_line_match.groups()
+
+        assert _filename
+        assert _size
+
+        return DiskUsage(location=_filename, usage=int(_size))
+
+    except MegaCmdError as e:
+        logger.error(f"MegaCmdError during mega_du for '{dir_path}': {e}")
+    except Exception:
+        logger.exception(
+            f"An unexpected error occurred during mega_du for '{dir_path}'."
+        )
 
 
 ###############################################################################
