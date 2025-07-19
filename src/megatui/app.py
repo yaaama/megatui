@@ -228,11 +228,12 @@ class TopStatusBar(Horizontal):
         status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
 
 
-def run_app() -> None:
+# run the application #####################################################################
+async def run_app() -> None:
     """Checks login and runs the Textual app."""
     # Check login status before starting TUI
     print("Checking MEGA login status...")
-    logged_in, message = asyncio.run(m.check_mega_login())
+    logged_in, message = await m.check_mega_login()
 
     if not logged_in:
         print(f"MEGA Login Check Failed: {message}", file=sys.stderr)
@@ -245,11 +246,10 @@ def run_app() -> None:
 
     # Start the TUI
     app = MegaAppTUI()
-    # Use app.run() for a simple blocking call when not in another event loop
-    app.run()
+    await app.run_async(mouse=False)
 
 
 # The if __name__ == "__main__" block is not strictly necessary here,
 # as this file isn't intended to be run directly, but it can be useful for testing.
 if __name__ == "__main__":
-    run_app()
+    asyncio.run(run_app())
