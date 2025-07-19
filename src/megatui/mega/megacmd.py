@@ -8,7 +8,7 @@ import re
 import subprocess
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import Annotated, TypedDict, override
+from typing import Annotated, NamedTuple, TypedDict, override
 
 logging.basicConfig(
     filename="megacmd.log",
