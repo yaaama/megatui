@@ -1,4 +1,4 @@
-/* ;;; -*- mode: css-ts; -*- * */
+/* ;;; -*- mode: css; -*- * */
 
 /* Colours:
  * $primary
@@ -24,6 +24,13 @@ Used to indicate success. Typically used as a background color. $text-success ca
  * $accent
 Used sparingly to draw attention. Typically contrasts with $primary and $secondary.
 */
+
+
+/* Target everything */
+/* * { */
+    /* border: round red; */
+/* } */
+
 
 Screen {
     /* layers: base status; /\* Define layers *\/ */
@@ -146,12 +153,17 @@ MkdirDialog {
     height: 1fr; /* Occupy available height */
     background: $background;
     padding: 1 0;
+    /* scrollbar-size: 0 0; */
+    overflow: hidden hidden;
+    text-overflow: ellipsis;
 
     /* The headers */
     & > .datatable--header {
         background: $background;
         color: $primary;
         text-style: bold;
+        text-overflow: ellipsis;
+
     }
 
     /* Target the cursor. */
@@ -170,6 +182,8 @@ MkdirDialog {
     }
 
     & > .datatable--fixed {
+
+        text-overflow: ellipsis;
     }
 
     /* Target hovered header or row label cells. */
@@ -179,6 +193,9 @@ MkdirDialog {
     }
 }
 
-* {
-    /* border: round red; */
-}
+
+
+
+/* Local Variables: */
+/* eval: (flycheck-mode -1) */
+/* End: */
