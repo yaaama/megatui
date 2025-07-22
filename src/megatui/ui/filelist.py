@@ -251,7 +251,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Unselect already selected items
         if item_handle in self._selected_items:
             del self._selected_items[item_handle]
-            new_label = Text(" ")
+            new_label = Text("")
             log_message = f"Deselected row: {row_key.value}"
 
         else:
@@ -272,6 +272,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if len(self._selected_items) == 0:
             self.log.debug("No items selected for us to unselect.")
             return
+
+        new_label = Text("")
+        for key in self._selected_items:
+            self.rows[RowKey(key)].label = new_label
 
         self._selected_items.clear()
 
