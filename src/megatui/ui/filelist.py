@@ -28,7 +28,9 @@ DL_PATH = Annotated[Path, "Default download path."]
 
 
 class FileList(DataTable[Any], inherit_bindings=False):
-    """A DataTable widget to display files and their information."""
+    """
+    A DataTable widget to display files and their information.
+    """
 
     # * Constants ###################################################################
 
@@ -163,7 +165,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:
-        """Navigate into a directory."""
+        """
+        Navigate into a directory.
+        """
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
         if not selected_item_data:
@@ -183,7 +187,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
-        """Navigate to parent directory."""
+        """
+        Navigate to parent directory.
+        """
         self.log.info(f"Navigating out of directory {self.curr_path}")
         curr_path: str = self.curr_path
 
@@ -268,7 +274,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
-        """Unselect all selected items (if there are any)."""
+        """
+        Unselect all selected items (if there are any).
+        """
         if len(self._selected_items) == 0:
             self.log.debug("No items selected for us to unselect.")
             return
@@ -283,6 +291,46 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._update_count += 1
 
         self.post_message(self.ToggledSelection(0))
+
+    def action_select_item(self) -> None:
+        """Toggles the selection state of the currently hovered-over item (row).
+        Selected rows are MEANT to be visually highlighted.
+        """
+        row_key = self._get_curr_row_key()
+
+        if not row_key or not row_key.value:
+            self.log.info("No current row key to select/deselect.")
+            return
+
+        try:
+            # Get the MegaItem
+            row_item: MegaItem = self._row_data_map[row_key.value]
+            # Get handle
+            item_handle = row_item.handle
+        except KeyError:
+            self.log.error(
+                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
+            )
+            return
+
+        # Unselect already selected items
+        if item_handle in self._selected_items:
+            del self._selected_items[item_handle]
+            new_label = Text(" ")
+            log_message = f"Deselected row: {row_key.value}"
+
+        else:
+            # Action: SELECT
+            self._selected_items[item_handle] = row_item
+            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            log_message = f"Selected row: {row_key.value}"
+
+        self.log.info(log_message)
+        self.rows[row_key].label = new_label
+
+        self.refresh()
+        self._update_count += 1
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     @work(
         exclusive=True,
@@ -344,46 +392,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await m.node_rename(file_path, new_name)
         await self.action_refresh()
-
-    def action_select_item(self) -> None:
-        """Toggles the selection state of the currently hovered-over item (row).
-        Selected rows are MEANT to be visually highlighted.
-        """
-        row_key = self._get_curr_row_key()
-
-        if not row_key or not row_key.value:
-            self.log.info("No current row key to select/deselect.")
-            return
-
-        try:
-            # Get the MegaItem
-            row_item: MegaItem = self._row_data_map[row_key.value]
-            # Get handle
-            item_handle = row_item.handle
-        except KeyError:
-            self.log.error(
-                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
-            )
-            return
-
-        # Unselect already selected items
-        if item_handle in self._selected_items:
-            del self._selected_items[item_handle]
-            new_label = Text(" ")
-            log_message = f"Deselected row: {row_key.value}"
-
-        else:
-            # Action: SELECT
-            self._selected_items[item_handle] = row_item
-            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
-            log_message = f"Selected row: {row_key.value}"
-
-        self.log.info(log_message)
-        self.rows[row_key].label = new_label
-
-        self.refresh()
-        self._update_count += 1
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     @work(
         exclusive=True,

@@ -117,15 +117,12 @@ class MegaAppTUI(App[None]):
         selection_label = self.query_one("#label-selected-count", Label)
         if message.count == 0:
             selection_label.update(Content.empty())
-            self.log.info("Selection counter is now cleared.")
+            self.log.debug("Selection counter cleared.")
             return
 
-        selection_label.update(
-            Content.from_markup(
-                "[red bold]$count[/red bold] files selected.", count=message.count
-            )
-        )
-        self.log.info("Selection counter updated.")
+        selection_label.update(Content.from_text(f"{message.count} files selected"))
+        self.log.debug(f"Selected {message.count}")
+        selection_label.refresh()
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
