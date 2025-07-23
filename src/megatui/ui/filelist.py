@@ -28,7 +28,9 @@ DL_PATH = Annotated[Path, "Default download path."]
 
 
 class FileList(DataTable[Any], inherit_bindings=False):
-    """A DataTable widget to display files and their information."""
+    """
+    A DataTable widget to display files and their information.
+    """
 
     # * Constants ###################################################################
 
@@ -163,7 +165,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:
-        """Navigate into a directory."""
+        """
+        Navigate into a directory.
+        """
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
         if not selected_item_data:
@@ -183,7 +187,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
-        """Navigate to parent directory."""
+        """
+        Navigate to parent directory.
+        """
         self.log.info(f"Navigating out of directory {self.curr_path}")
         curr_path: str = self.curr_path
 

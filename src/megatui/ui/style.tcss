@@ -37,14 +37,15 @@ Screen {
 }
 
 #main {
-    height: 1fr;
-    width: 1fr;
+    height: 100%;
+    width: 100%;
 }
 
 TopStatusBar {
     height: 1;
-    /* background: initial; */
+    background: $surface;
     padding: 0 1;
+    margin: 0 2;
     /* width: 100%; /\* Ensure it spans the width *\/ */
     visibility: visible; /* Ensure it's visible */
 
@@ -54,7 +55,7 @@ TopStatusBar {
     }
 
     #top-status-bar-path {
-        color: $accent;
+        color: $foreground;
         content-align: left middle;
         width: 1fr; /* Make labels fill available space */
         text-overflow: ellipsis;
@@ -71,10 +72,14 @@ TopStatusBar {
 }
 
 #label-selected-count {
+    /* padding: 1 0; */
+    margin: 0 2;
     align: right middle;
     content-align: right middle;
     text-align: right;
-    width: auto;
+    /* width: 100%; */
+    height: 1;
+    /* color: red; */
 }
 
 Footer {
@@ -89,7 +94,7 @@ Footer {
 
 RenameDialog {
     align: center middle;
-    background: transparent;
+    /* background: transparent; */
 
     Vertical {
         /* background: $panel; */
@@ -117,29 +122,79 @@ RenameDialog {
 
 MkdirDialog {
     align: center middle;
-    background: transparent;
+    /* background: transparent; */
 
     Vertical {
         /* background: $panel; */
         border: round $secondary;
         height: auto;
         width: 50%;
+
+        * {
+            width: auto;
+            height: auto;
+        }
+
+
+        Input {
+            margin: 1;
+            width: 1fr;
+            color: $foreground;
+        }
+
+        Label {
+            margin-left: 2;
+            color: $accent;
+        }
+
     }
 
-    Vertical > * {
-        width: auto;
-        height: auto;
+
+}
+
+
+UploadFilesModal {
+    /* Align the visible widgets in the middle */
+    align: center middle;
+    /* background: transparent; */
+    /* content-align: center middle; */
+
+    * {
+        text-wrap: wrap;
+        text-overflow: ellipsis;
+        overflow: hidden hidden;
+        /* background: transparent; */
     }
 
-    Input {
-        margin: 1;
-        width: 1fr;
-        color: $foreground;
-    }
+    Vertical {
+        height: 80%;
+        width: 60%;
+        align: center middle;
+        content-align: center middle;
+        border: ascii $secondary;
 
-    Label {
-        margin-left: 2;
-        color: $accent;
+        #uploadfiles-heading {
+            color: $accent;
+            height: 2;
+            width: 1fr;
+            align: center middle;
+            text-align: center;
+            background: transparent;
+            /* outline: hkey $accent; */
+        }
+
+        #filetree {
+            height: 1fr;
+            width: 1fr;
+            align: center middle;
+            /* background: $surface; */
+
+            & .node-selected {
+                background: blue;
+                color: $accent;
+                text-style: bold;
+            }
+        }
     }
 }
 
@@ -149,13 +204,19 @@ MkdirDialog {
 /*****************************************************************************/
 
 #file_list {
-    width: 1fr; /* Occupy available width */
+    width: 100%; /* Occupy available width */
     height: 1fr; /* Occupy available height */
-    background: $background;
-    padding: 1 0;
+    /* Don't show scroll bars */
     /* scrollbar-size: 0 0; */
     overflow: hidden hidden;
+    background: $background;
+    margin: 1 1;
+    text-wrap: wrap;
     text-overflow: ellipsis;
+    border: round $panel;
+    /* outline: round $panel; */
+
+    /* align: center middle; */
 
     /* The headers */
     & > .datatable--header {
@@ -163,7 +224,6 @@ MkdirDialog {
         color: $primary;
         text-style: bold;
         text-overflow: ellipsis;
-
     }
 
     /* Target the cursor. */
@@ -179,17 +239,17 @@ MkdirDialog {
     /* Target cells highlighted by the cursor. */
     & > .datatable--header-cursor {
         background: transparent;
+        text-style: none;
     }
 
     & > .datatable--fixed {
-
         text-overflow: ellipsis;
     }
 
     /* Target hovered header or row label cells. */
     & > .datatable--header-hover {
-        background: $background;
-        color: $background;
+        /* background: $background;
+         * color: $background; */
     }
 }
 
