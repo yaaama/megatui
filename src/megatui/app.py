@@ -120,11 +120,7 @@ class MegaAppTUI(App[None]):
             self.log.debug("Selection counter cleared.")
             return
 
-        selection_label.update(
-            Content.from_text(
-                f"{message.count} files selected"
-            )
-        )
+        selection_label.update(Content.from_text(f"{message.count} files selected"))
         self.log.debug(f"Selected {message.count}")
         selection_label.refresh()
 

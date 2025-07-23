@@ -23,6 +23,7 @@ from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
+import megatui.ui.file_tree as filetree
 
 DL_PATH = Annotated[Path, "Default download path."]
 
@@ -84,6 +85,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             description="Unselect all items",
             show=True,
         ),
+        Binding("o", "upload_file", "upload file"),
         Binding("f3", "download", "download file", key_display="f3"),
         Binding("f4", "move_files", "move files", key_display="f4"),
     ]
@@ -162,6 +164,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 self.add_column(label=column_name, key=column_name, width=None)
 
     # * Actions #########################################################
+
+    async def action_upload_file(self) -> None:
+        self.app.push_screen(filetree.UploadFilesModal())
 
     # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:

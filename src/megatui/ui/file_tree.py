@@ -1,29 +1,43 @@
 # File tree
 from pathlib import Path
-from typing import override
+from typing import ClassVar, override
 
+from rich.text import Text
+from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
+from textual.containers import Vertical
+from textual.content import Content
 from textual.screen import ModalScreen
-from textual.widgets import DirectoryTree, Static
+from textual.widgets import DirectoryTree, Label, Static, Tree
 
 
-class FileTreeScreen(ModalScreen[None]):
+class UploadFilesModal(ModalScreen[str | None]):
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding(key="escape,q", action="app.pop_screen", show=False, priority=True),
+        Binding(key="enter", action="file_select", show=True),
+    ]
+
     @override
     def compose(self) -> ComposeResult:
-        yield LocalSystemFileTree()
+        with Vertical():
+            yield Label("Select file to upload", id="uploadfiles-heading")
+            yield LocalSystemFileTree(
+                id="filetree",
+                starting_path="/home/aayush/downloads",
+            )
 
 
-class LocalSystemFileTree(Static):
+class LocalSystemFileTree(DirectoryTree):
     BINDINGS = [
         Binding(
-            "shift+left",
+            "ctrl+h",
             "cursor_parent",
             "Cursor to parent",
             show=False,
         ),
         Binding(
-            "shift+right",
+            "ctrl+l",
             "cursor_parent_next_sibling",
             "Cursor to next ancestor",
             show=False,
@@ -52,7 +66,15 @@ class LocalSystemFileTree(Static):
         Binding("j", "cursor_down", "Cursor Down", show=False),
     ]
 
-    @override
-    def compose(self) -> ComposeResult:
-        home: Path = Path().home()
-        yield DirectoryTree(path=home)
+    COMPONENT_CLASSES = {
+        "node-selected",
+    }
+
+    # @on(Tree.NodeSelected)
+    # def on_node_selected(self, message: Tree.NodeSelected):
+    #     label = Text(message.node.label.__str__(), style="italic red")
+    #     message.node.set_label(label)
+
+    def __init__(self, starting_path: str, **kwargs):
+        super().__init__(starting_path)
+        self.auto_expand = False
