@@ -121,13 +121,15 @@ class LocalSystemFileTree(DirectoryTree):
         fpath = node_data.path
 
         if fpath in self._selected_items:
+            # Get name of file
+            fname = fpath.name
             # remove
             self._selected_items.remove(fpath)
-            label = Text(str(name))
+            label = Text(f"{fname}")
 
         else:
             # Template for when item is selected
-            label_tmpl = Template("[b][i][red]$path[/][/][/]")
+            label_tmpl = Template("[b][red]*[/] $path[/]")
             label = Text.from_markup(label_tmpl.substitute(path=name))
             self._selected_items.add(fpath)
 
