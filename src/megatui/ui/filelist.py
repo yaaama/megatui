@@ -113,7 +113,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.header_height = 2
         self.zebra_stripes = False
         self.show_row_labels = True
-        # self.cursor_foreground_priority = ("renderable",)
+        self.cursor_foreground_priority = ("renderable", "css")
         # self.cursor_background_priority = ("renderable",)
         # self.cell_padding = 0
 
