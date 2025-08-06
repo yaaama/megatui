@@ -1,9 +1,10 @@
 # File tree
+from enum import Enum
 from pathlib import Path
 from sre_parse import SUBPATTERN
 from string import Template
 from tokenize import String
-from typing import ClassVar, assert_type, override
+from typing import ClassVar, Iterable, Literal, assert_type, override
 
 from rich.text import Text, TextType
 from textual import on
@@ -29,7 +30,7 @@ class UploadFilesModal(ModalScreen[str | None]):
             yield Label("Select file to upload", id="uploadfiles-heading")
             yield LocalSystemFileTree(
                 id="filetree",
-                starting_path="/home/aayush/downloads",
+                starting_path="/home/aayush/",
             )
 
 
@@ -59,6 +60,7 @@ class LocalSystemFileTree(DirectoryTree):
             "Cursor to next sibling",
             show=False,
         ),
+        Binding("full_stop", "toggle_hidden", "Toggle Hidden", show=False),
         Binding("space", "select_cursor", "Select", show=False),
         Binding("tab", "toggle_node", "Toggle", show=False),
         Binding(
@@ -75,7 +77,33 @@ class LocalSystemFileTree(DirectoryTree):
         "node-selected",
     }
 
+    class FilterMethod(Enum):
+        NONE = 0
+        HIDDEN = 1
+
+    filter_type = FilterMethod.HIDDEN
     _selected_items: set[Path] = set()
+
+    def filter_hidden_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        return [path for path in paths if not path.name.startswith(".")]
+
+    @override
+    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        match self.filter_type:
+            case self.FilterMethod.NONE:
+                return paths
+            case self.FilterMethod.HIDDEN:
+                return self.filter_hidden_paths(paths)
+
+        return paths
+
+    def action_toggle_hidden(self):
+        if self.filter_type == self.FilterMethod.HIDDEN:
+            self.filter_type = self.FilterMethod.NONE
+        else:
+            self.filter_type = self.FilterMethod.HIDDEN
+
+        self.reload()
 
     def _toggle_node_selection(self, node: TreeNode[DirEntry]):
         if not node:
