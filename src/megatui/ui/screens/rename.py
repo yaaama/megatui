@@ -9,15 +9,10 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
+from megatui.mega.megacmd import MegaItem
 
 
-class NodeInfoDict(TypedDict):
-    name: str
-    path: str
-    handle: str
-
-
-class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
+class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),
@@ -27,7 +22,7 @@ class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
         self,
         popup_prompt: str,
         emoji_markup_prepended: str,
-        node_info: NodeInfoDict,
+        node: MegaItem,
         initial_input: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
@@ -50,7 +45,7 @@ class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
         self.prompt: Text = Text.from_markup(txt)
         """ Calculated prompt text. """
 
-        self._node_info = node_info
+        self.node = node
         """ Information about the node being renamed. """
 
     @override
@@ -67,9 +62,9 @@ class RenameDialog(ModalScreen[tuple[str, NodeInfoDict]]):
             )
 
     @on(Input.Submitted, "#input-rename-file")
-    def action_submit_rename(self) -> tuple[str, NodeInfoDict] | None:
+    def action_submit_rename(self) -> tuple[str, MegaItem] | None:
         if value := self.query_one(Input).value.strip():
-            self.dismiss(result=(value, self._node_info))
+            self.dismiss(result=(value, self.node))
 
     def action_close_window(self) -> None:
         self.app.pop_screen()

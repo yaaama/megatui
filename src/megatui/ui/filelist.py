@@ -20,7 +20,7 @@ import megatui.ui.file_tree as filetree
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
 from megatui.ui.screens.mkdir import MkdirDialog
-from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
+from megatui.ui.screens.rename import RenameDialog
 
 DL_PATH = Annotated[Path, "Default download path."]
 
@@ -66,7 +66,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
-        Binding(key="R", action="rename_file", description="Rename a file", show=True),
+        Binding(key="R", action="rename_node", description="Rename a file", show=True),
         Binding(key="plus", action="mkdir", description="mkdir", show=True),
         Binding(
             key="space",
@@ -344,23 +344,19 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
-    async def _on_rename_dialog_closed(
-        self, result: tuple[str, NodeInfoDict] | None
-    ) -> None:
+    async def _on_rename_dialog_closed(self, result: tuple[str, MegaItem]) -> None:
         """Callback executed after the RenameDialog closes.
 
         Handles the actual file renaming logic.
         """
-        if not result or not result[0] or not result[1]:
-            self.log.info("File rename operation was cancelled or failed.")
+        new_name, node = result
+        if not new_name or not node:
+            self.debug.info("File rename operation was cancelled or failed.")
             return
 
-        new_name, node_info = result
-        self.log.info(f"Renaming file `{node_info['name']}` to `{new_name}`")
+        self.log.info(f"Renaming node `{node.name}` to `{new_name}`")
 
-        file_path: str = node_info["path"]
-
-        await m.node_rename(file_path, new_name)
+        await m.node_rename(node.path, new_name)
         await self.action_refresh()
 
     @work(
@@ -385,17 +381,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         assert node_path != "/", "Cannot rename the root directory."
 
-        # Build our dict of information about file being renamed
-        node_info: NodeInfoDict = {
-            "name": selected_item.name,
-            "path": selected_item.path,
-            "handle": selected_item.handle,
-        }
-
         await self.app.push_screen(
             RenameDialog(
                 popup_prompt=f"Rename {selected_item.name}",
-                node_info=node_info,
+                node=selected_item,
                 emoji_markup_prepended=(
                     ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
                 ),
