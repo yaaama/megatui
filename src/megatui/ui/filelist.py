@@ -242,22 +242,30 @@ class FileList(DataTable[Any], inherit_bindings=False):
             )
             return None
 
-    def action_toggle_file_selection(self) -> None:
-        """Toggles the selection state of the currently hovered-over item (row)."""
+    def _get_curr_row_megaitem(self) -> MegaItem | None:
         row_key = self._get_curr_row_key()
 
         # Exit if there is a nonexistent rowkey or rowkey.value
         if not row_key or not row_key.value:
-            self.log.info("No current row key to select/deselect.")
-            return
+            return None
 
-        megaitem = self._get_row_megaitem(row_key)
+        return self._get_row_megaitem(row_key)
+
+    def action_toggle_file_selection(self) -> None:
+        """Toggles the selection state of the currently hovered-over item (row)."""
+
+        megaitem = self._get_curr_row_megaitem()
 
         # Exit if there is no megaitem
         if not megaitem:
+            self.log.info("No item to toggle selection.")
             return
 
         item_handle = megaitem.handle
+
+        # Debugging purposes
+        row_key = self._get_curr_row_key()
+        assert row_key
 
         # Unselect already selected items
         if item_handle in self._selected_items:
