@@ -1,6 +1,6 @@
 """
-FileList module. Contains actions and is the main way to interact with the
-application.
+FileList widget.
+Contains actions and is the main way to interact with the application.
 """
 # UI Components Related to Files
 
