@@ -340,16 +340,35 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.rows[row_key].label = new_label
 
         self.refresh()
+        # Need this hack to refresh the UI
         self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
+    async def _on_rename_dialog_closed(
+        self, result: tuple[str, NodeInfoDict] | None
+    ) -> None:
+        """Callback executed after the RenameDialog closes.
+
+        Handles the actual file renaming logic.
+        """
+        if not result or not result[0] or not result[1]:
+            self.log.info("File rename operation was cancelled or failed.")
+            return
+
+        new_name, node_info = result
+        self.log.info(f"Renaming file `{node_info['name']}` to `{new_name}`")
+
+        file_path: str = node_info["path"]
+
+        await m.node_rename(file_path, new_name)
+        await self.action_refresh()
+
     @work(
-        exclusive=True,
         group="megacmd",
-        name="file_rename",
-        description="Renaming file.",
+        name="rename_file",
+        description="Renames a file/directory.",
     )
-    async def action_rename_file(self) -> None:
+    async def action_rename_node(self) -> None:
         """Rename a file by showing a dialog to prompt for the new name.
 
         TODO: Make this open a file editor when multiple files are selected.
@@ -385,30 +404,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
             callback=self._on_rename_dialog_closed,
         )
 
-    async def _on_rename_dialog_closed(
-        self, result: tuple[str, NodeInfoDict] | None
-    ) -> None:
-        """Callback executed after the RenameDialog closes.
-
-        Handles the actual file renaming logic.
-        """
-        if not result or not result[0] or not result[1]:
-            self.log.info("File rename operation was cancelled or failed.")
-            return
-
-        new_name, node_info = result
-        self.log.info(f"Renaming file `{node_info['name']}` to `{new_name}`")
-
-        file_path: str = node_info["path"]
-
-        await m.node_rename(file_path, new_name)
-        await self.action_refresh()
-
     @work(
-        exclusive=True,
         group="megacmd",
-        name="mkdir",
-        description="Make directory.",
+        name="make_dir",
+        description="Make a new directory.",
     )
     async def action_mkdir(self) -> None:
         """Make a directory."""
