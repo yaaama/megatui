@@ -1,5 +1,4 @@
-"""
-FileList widget.
+"""FileList widget.
 Contains actions and is the main way to interact with the application.
 """
 # UI Components Related to Files
@@ -10,10 +9,8 @@ from typing import Annotated, Any, ClassVar, LiteralString, override
 from rich.text import Text
 from textual import work
 from textual.binding import Binding, BindingType
-from textual.color import Color
 from textual.content import Content
 from textual.message import Message
-from textual.style import Style
 from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
@@ -29,9 +26,7 @@ DL_PATH = Annotated[Path, "Default download path."]
 
 
 class FileList(DataTable[Any], inherit_bindings=False):
-    """
-    A DataTable widget to display files and their information.
-    """
+    """A DataTable widget to display files and their information."""
 
     # * Constants ###################################################################
 
@@ -126,9 +121,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._loading_path = self.curr_path
         self._row_data_map = {}
         self._selected_items = {}
-        self._selected_item_style: Style = Style(
-            foreground=Color.parse("red"), bold=True, italic=True
-        )
 
     @override
     def on_mount(self) -> None:
@@ -166,13 +158,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # * Actions #########################################################
 
     async def action_upload_file(self) -> None:
+        """Toggle upload file screen."""
         self.app.push_screen(filetree.UploadFilesModal())
 
     # ** Navigation ############################################################
     async def action_navigate_in(self) -> None:
-        """
-        Navigate into a directory.
-        """
+        """Navigate into directory under cursor."""
         selected_item_data = self.highlighted_item
         # Fail: Selected item is None.
         if not selected_item_data:
@@ -192,9 +183,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await m.mega_cd(target_path=path_str)
 
     async def action_navigate_out(self) -> None:
-        """
-        Navigate to parent directory.
-        """
+        """Navigate to parent directory."""
         self.log.info(f"Navigating out of directory {self.curr_path}")
         curr_path: str = self.curr_path
 
@@ -212,7 +201,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
-        """Refreshes the current working directory."""
+        """Refreshes current working directory."""
         if not quiet:
             self.post_message(
                 StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0)
@@ -222,6 +211,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # *** Selection #######################################################
     def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
+        """Return MegaItem for row index (rowkey).
+
+        Args:
+            rowkey: The rowkey (index) to return MegaItem for.
+
+        Returns:
+            MegaItem if item exists at RowKey, or None if none.
+        """
         assert rowkey, "Passed in an empty rowkey!"
 
         key: str
@@ -243,6 +240,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return None
 
     def _get_curr_row_megaitem(self) -> MegaItem | None:
+        """Returns MegaItem under the current cursor.
+
+        Returns:
+        MegaItem if there is one, else None.
+        """
         row_key = self._get_curr_row_key()
 
         # Exit if there is a nonexistent rowkey or rowkey.value
@@ -252,8 +254,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return self._get_row_megaitem(row_key)
 
     def action_toggle_file_selection(self) -> None:
-        """Toggles the selection state of the currently hovered-over item (row)."""
-
+        """Toggles selection state of row under cursor"""
         megaitem = self._get_curr_row_megaitem()
 
         # Exit if there is no megaitem
@@ -271,15 +272,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if item_handle in self._selected_items:
             del self._selected_items[item_handle]
             new_label = Text("")
-            log_message = f"Deselected row: {row_key.value}"
+            self.log.debug(f"Deselected row: {row_key.value}")
 
         else:
             # Action: SELECT
             self._selected_items[item_handle] = megaitem
-            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
-            log_message = f"Selected row: {row_key.value}"
+            new_label = Text(f"{self.SELECTION_INDICATOR} ", style="bold red")
+            self.log.debug(f"Selected row: {row_key.value}")
 
-        self.log.info(log_message)
         self.rows[row_key].label = new_label
 
         self.refresh()
@@ -287,9 +287,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
-        """
-        Unselect all selected items (if there are any).
-        """
+        """Unselect all selected items (if there are any)."""
         if len(self._selected_items) == 0:
             self.log.debug("No items selected for us to unselect.")
             return
@@ -413,9 +411,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         description="Make directory.",
     )
     async def action_mkdir(self) -> None:
-        """
-        Make a directory.
-        """
+        """Make a directory."""
 
         async def make_directory(name: str | None) -> None:
             # If no name return
