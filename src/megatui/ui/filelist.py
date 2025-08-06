@@ -19,11 +19,11 @@ from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
+import megatui.ui.file_tree as filetree
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
 from megatui.messages import StatusUpdate
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import NodeInfoDict, RenameDialog
-import megatui.ui.file_tree as filetree
 
 DL_PATH = Annotated[Path, "Default download path."]
 
@@ -405,7 +405,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         description="Make directory.",
     )
     async def action_mkdir(self) -> None:
-        """Make a directory."""
+        """
+        Make a directory.
+        """
 
         async def make_directory(name: str | None) -> None:
             # If no name return
@@ -439,7 +441,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await self.app.push_screen(
             MkdirDialog(
-                popup_prompt=f"Make New Directory(s) at: '{self.curr_path}'",
+                popup_prompt=f"Make New Directory(s) '{self.curr_path}'",
                 emoji_markup_prepended=":open_file_folder:",
                 initial_input=None,
             ),

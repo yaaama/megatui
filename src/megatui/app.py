@@ -228,8 +228,12 @@ class TopStatusBar(Horizontal):
 # run the application #####################################################################
 async def run_app() -> None:
     """Checks login and runs the Textual app."""
+
+    # Start the TUI
+    app = MegaAppTUI()
     # Check login status before starting TUI
     print("Checking MEGA login status...")
+    app.log.info("Checking MEGA login status...")
     logged_in, message = await m.check_mega_login()
 
     if not logged_in:
@@ -241,8 +245,6 @@ async def run_app() -> None:
 
     print(f"MEGA Login Check: OK ({message})")
 
-    # Start the TUI
-    app = MegaAppTUI()
     await app.run_async(mouse=False)
 
 
