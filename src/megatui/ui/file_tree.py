@@ -25,8 +25,8 @@ class UploadFilesModal(ModalScreen[str | None]):
         with Vertical():
             yield Label("Select file to upload", id="uploadfiles-heading")
             yield LocalSystemFileTree(
-                id="filetree",
                 starting_path="/home/aayush/",
+                id="filetree",
             )
 
 
@@ -94,6 +94,7 @@ class LocalSystemFileTree(DirectoryTree):
         return paths
 
     def action_toggle_hidden(self):
+        """Toggle visibility of hidden files in the file tree."""
         if self.filter_type == self.FilterMethod.HIDDEN:
             self.filter_type = self.FilterMethod.NONE
         else:
@@ -144,6 +145,6 @@ class LocalSystemFileTree(DirectoryTree):
     ):
         self._toggle_node_selection(msg.node)
 
-    def __init__(self, starting_path: str, **kwargs):
-        super().__init__(starting_path)
+    def __init__(self, starting_path: str, id: str):
+        super().__init__(path=starting_path, id=id)
         self.auto_expand = False
