@@ -1,19 +1,15 @@
 # File tree
+from collections.abc import Iterable
 from enum import Enum
 from pathlib import Path
-from sre_parse import SUBPATTERN
-from string import Template
-from tokenize import String
-from typing import ClassVar, Iterable, Literal, assert_type, override
+from typing import ClassVar, override
 
-from rich.text import Text, TextType
-from textual import on
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
-from textual.content import Content
 from textual.screen import ModalScreen
-from textual.widgets import DirectoryTree, Label, Static, Tree
+from textual.widgets import DirectoryTree, Label
 from textual.widgets._directory_tree import DirEntry
 from textual.widgets.tree import TreeNode
 
