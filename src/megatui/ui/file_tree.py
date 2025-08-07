@@ -101,36 +101,40 @@ class LocalSystemFileTree(DirectoryTree):
 
         self.reload()
 
-    def _toggle_node_selection(self, node: TreeNode[DirEntry]):
-        if not node:
-            return
+    def _selection_status_node_label(self, node: TreeNode[DirEntry], selected: bool):
+        """Helper function to produce node label with 'selected' status."""
+        assert node
+        assert node.data
 
-        # Name of the node
-        name = node.label
+        # When selected
+        if selected:
+            return Text.from_markup(f"[b][red]*[/] {node.data.path}[/]")
+
+        # Else return regular name as label
+        return Text(f"{node.data.path.name}")
+
+    def _toggle_node_selection(self, node: TreeNode[DirEntry]) -> None:
+        if not node:
+            self.log.error("Toggling selection on a non-existent node.")
+            return
 
         # Data stored in node
         node_data = node.data
+        assert node_data, "Node has null data attribute."
         if not node_data:
             self.log.error("No data associated with node.")
-            return node
 
-        fpath = node_data.path
+        new_selection_state: bool = True
 
-        if fpath in self._selected_items:
-            # Get name of file
-            fname = fpath.name
-            # remove
-            self._selected_items.remove(fpath)
-            label = Text(f"{fname}")
+        # If not previously selected
+        if node_data.path not in self._selected_items:
+            self._selected_items.add(node_data.path)
 
         else:
-            # Template for when item is selected
-            label_tmpl = Template("[b][red]*[/] $path[/]")
-            label = Text.from_markup(label_tmpl.substitute(path=name))
-            self._selected_items.add(fpath)
+            self._selected_items.remove(node_data.path)
+            new_selection_state = False
 
-        node.set_label(label)
-        return node
+        node.set_label(self._selection_status_node_label(node, new_selection_state))
 
     def on_directory_tree_file_selected(self, msg: DirectoryTree.DirectorySelected):
         self._toggle_node_selection(msg.node)
