@@ -203,7 +203,7 @@ UploadFilesModal {
 /*                                 File List                                 */
 /*****************************************************************************/
 
-#file_list {
+#filelist {
     width: 100%; /* Occupy available width */
     height: 1fr; /* Occupy available height */
     /* Don't show scroll bars */
