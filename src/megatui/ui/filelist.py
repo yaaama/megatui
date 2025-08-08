@@ -3,6 +3,7 @@ Contains actions and is the main way to interact with the application.
 """
 # UI Components Related to Files
 
+from collections import deque
 from pathlib import Path, PurePath
 from typing import (
     Annotated,
@@ -36,7 +37,9 @@ DL_PATH = Annotated[Path, "Default download path."]
 class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[reportExplicitAny]
     """A DataTable widget to display files and their information."""
 
-    # * Constants ###################################################################
+    # * UI Elements ###########################################################
+
+    DEFAULT_CSS: ClassVar[LiteralString] = """ """
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
@@ -47,18 +50,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
     """ Character to indicate a file has been selected. """
 
-    # * UI Elements ###########################################################
-
-    DEFAULT_CSS: ClassVar[LiteralString] = """ """
-
     border_subtitle: str
     """ Border subtitle. """
-
-    curr_path: str
-    """ Current path we are in. """
-
-    _loading_path: str
-    """ Path we are currently loading. """
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
     DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
@@ -70,6 +63,12 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     _selected_items: dict[str, MegaItem]
     """ Dict to store selected MegaItem(s), indexed by their handles. """
+
+    _curr_path: str
+    """ Current path we are in. """
+
+    _loading_path: str
+    """ Path we are currently loading. """
 
     _parent_index: deque[int]
     """ Stores cursor index before navigating into a child. """
@@ -125,8 +124,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # TODO: Think of something useful to add here
         # self.border_title = "MEGA"
         self.border_subtitle = "Initializing view..."
-        self.curr_path = "/"
-        self._loading_path = self.curr_path
+        self._curr_path = "/"
+        self._loading_path = self._curr_path
         self._row_data_map = {}
         self._selected_items = {}
         self._parent_index = deque()
@@ -198,8 +197,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
-        self.log.info(f"Navigating out of directory {self.curr_path}")
-        curr_path: str = self.curr_path
+        self.log.info(f"Navigating out of directory {self._curr_path}")
+        curr_path: str = self._curr_path
 
         # Avoid going above root "/"
         if curr_path == "/":
@@ -222,10 +221,10 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """Refreshes current working directory."""
         if not quiet:
             self.post_message(
-                StatusUpdate(f"Refreshing '{self.curr_path}'...", timeout=0)
+                StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=0)
             )
 
-        await self.load_directory(self.curr_path)
+        await self.load_directory(self._curr_path)
 
     # *** Selection #######################################################
     def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
@@ -458,7 +457,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         await self.app.push_screen(
             MkdirDialog(
-                popup_prompt=f"Make New Directory(s) '{self.curr_path}'",
+                popup_prompt=f"Make New Directory(s) '{self._curr_path}'",
                 emoji_markup_prepended=":open_file_folder:",
                 initial_input=None,
             ),
@@ -523,7 +522,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def action_move_files(self):
         """Move selected files to current directory."""
         files = self.selected_items
-        cwd = self.curr_path
+        cwd = self._curr_path
 
         self.log.info(f"Moving files to {cwd}")
         await self.move_files(files, cwd)
@@ -560,7 +559,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.log.debug(f"Updating UI for path: {path}")
-        self.curr_path = path
+        self._curr_path = path
 
         self.clear(columns=False)
 
@@ -663,7 +662,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             f"Worker success for path '{self._loading_path}', items: {file_count}"
         )
         # Update FileList
-        self._update_list_on_success(self._loading_path, fetched_items)
+
+        with self.app.batch_update():
+            self._update_list_on_success(self._loading_path, fetched_items)
 
         # We have successfully loaded the path
         # self.post_message(self.LoadSuccess(path))

@@ -74,7 +74,8 @@ class MegaAppTUI(App[None]):
         # Get the FileList widget and load the root directory
 
         file_list = self.query_one(FileList)
-        await file_list.load_directory(file_list.curr_path)
+
+        await file_list.load_directory(file_list._curr_path)
 
     # """
     # Actions #############################################################
@@ -231,6 +232,7 @@ async def run_app() -> None:
 
     # Start the TUI
     app = MegaAppTUI()
+    app.animation_level = "none"
     # Check login status before starting TUI
     print("Checking MEGA login status...")
     app.log.info("Checking MEGA login status...")

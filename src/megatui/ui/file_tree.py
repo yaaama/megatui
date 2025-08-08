@@ -126,7 +126,6 @@ class LocalSystemFileTree(DirectoryTree):
             self.log.error("No data associated with node.")
 
         new_selection_state: bool = True
-
         # If not previously selected
         if node_data.path not in self._selected_items:
             self._selected_items.add(node_data.path)
