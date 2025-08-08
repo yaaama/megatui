@@ -1,6 +1,7 @@
 # Rename popup
-from typing import ClassVar, TypedDict, override
+from typing import ClassVar, override
 
+from megatui.mega.megacmd import MegaItem
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
@@ -9,7 +10,6 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
-from megatui.mega.megacmd import MegaItem
 
 
 class RenameDialog(ModalScreen[tuple[str, MegaItem]]):

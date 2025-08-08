@@ -373,6 +373,24 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         assert node_path != "/", "Cannot rename the root directory."
 
+        async def _on_rename_dialog_closed(result: tuple[str, MegaItem] | None) -> None:
+            """Callback executed after the RenameDialog closes.
+
+            Handles the actual file renaming logic.
+            """
+            # We have not got a result
+            if not result:
+                return
+
+            new_name, node = result
+            if not new_name or not node:
+                self.log.debug("File rename operation was cancelled or failed.")
+                return
+
+            self.log.info(f"Renaming node `{node.name}` to `{new_name}`")
+
+            await m.node_rename(node.path, new_name)
+
         await self.app.push_screen(
             RenameDialog(
                 popup_prompt=f"Rename {selected_item.name}",
@@ -382,8 +400,10 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 ),
                 initial_input=selected_item.name,
             ),
-            callback=self._on_rename_dialog_closed,
+            callback=_on_rename_dialog_closed,
         )
+
+        await self.action_refresh()
 
     @work(
         group="megacmd",
