@@ -599,7 +599,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             # Fetch and sort items
             fetched_items: MegaItems = await m.mega_ls(path)
             # Return the result or empty list
-            return fetched_items or []
+            return fetched_items or ()
 
         except MegaCmdError as e:
             self.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
@@ -640,7 +640,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
-            fetched_items = []
+            fetched_items = ()
 
         # Success
         # Get number of files
@@ -709,7 +709,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """
         # If we have selected items return those
         if len(self._selected_items.keys()) > 0:
-            return list(self._selected_items.values())
+            return tuple(self._selected_items.values())
 
         # When we don't have any items selected
         highlighted = self.highlighted_item
@@ -719,15 +719,15 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.log.error(
                 "Could not default to highlighted item, returning empty list."
             )
-            return []
+            return ()
 
-        return [highlighted]
+        return (highlighted,)
 
     @property
     def selected_items(self) -> MegaItems:
         """Return MegaItem(s) that are currently selected."""
         # Get selected items
-        return list(self._selected_items.values())
+        return tuple(self._selected_items.values())
 
     # * Messages ################################################################
     class ToggledSelection(Message):

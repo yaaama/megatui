@@ -6,9 +6,10 @@ import math
 import pathlib
 import re
 import subprocess
+from collections import deque
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import Annotated, NamedTuple, TypedDict, override
+from typing import NamedTuple, TypedDict, override
 
 logging.basicConfig(
     filename="megacmd.log",
@@ -302,7 +303,7 @@ class MegaItem:
 
 # Alias
 # MegaItems = list[MegaItem]
-type MegaItems = list[MegaItem]
+type MegaItems = tuple[MegaItem, ...]
 
 
 # TODO
@@ -583,9 +584,9 @@ async def mega_ls(
     error_msg = response.err_output
     if error_msg:
         logger.error(f"Error listing files in '{target_path}': {error_msg}")
-        return []
+        return ()
 
-    items: MegaItems = []
+    items: deque[MegaItem] = deque()
 
     # Pop out the first element (it will be the header line)
     lines = response.stdout.strip().split("\n")[0:]
@@ -593,11 +594,11 @@ async def mega_ls(
     # Handle empty output
     if not lines or not lines[0].strip():
         logger.info(f"No items found in '{target_path}' or output is empty.")
-        return []
+        return ()
 
     # Parse the lines we receive
     for line in lines:
-        """Parse each line of the ls output"""
+        # Parse each line of the ls output
         parsed_tuple: tuple[MegaFileTypes, tuple[str, ...]]
 
         # Stripped line
@@ -661,7 +662,7 @@ async def mega_ls(
             )
         )
     logger.info(f"Successfully listed {len(items)} items in '{target_path}'.")
-    return items
+    return tuple(items)
 
 
 ###############################################################################
