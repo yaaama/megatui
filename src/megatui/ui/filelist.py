@@ -4,7 +4,15 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 
 from pathlib import Path, PurePath
-from typing import Annotated, Any, ClassVar, LiteralString, override
+from typing import (
+    Annotated,
+    Any,
+    ClassVar,
+    Literal,
+    LiteralString,
+    assert_type,
+    override,
+)
 
 from rich.text import Text
 from textual import work
@@ -25,7 +33,7 @@ from megatui.ui.screens.rename import RenameDialog
 DL_PATH = Annotated[Path, "Default download path."]
 
 
-class FileList(DataTable[Any], inherit_bindings=False):
+class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[reportExplicitAny]
     """A DataTable widget to display files and their information."""
 
     # * Constants ###################################################################
@@ -41,7 +49,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # * UI Elements ###########################################################
 
-    DEFAULT_CSS = """ """
+    DEFAULT_CSS: ClassVar[LiteralString] = """ """
 
     border_subtitle: str
     """ Border subtitle. """
@@ -53,7 +61,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     """ Path we are currently loading. """
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
-    DEFAULT_COLUMN_WIDTHS = (2, 50, 12, 8)
+    DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
 
     # * State #################################################################
 
@@ -61,7 +69,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     """ Row and associated MegaItem mapping for current directory. """
 
     _selected_items: dict[str, MegaItem]
-    """ Dict to store selected MegaItem(s), indexed by their """
+    """ Dict to store selected MegaItem(s), indexed by their handles. """
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
@@ -99,18 +107,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # * Initialisation #########################################################
 
     def __init__(self):
-        # Initialise the DataTable widget
-        super().__init__()
-        self.id = "file_list"
-        self.cursor_type = "row"
-        self.show_cursor = True
-        self.show_header = True
-        self.header_height = 2
-        self.zebra_stripes = False
-        self.show_row_labels = True
-        self.cursor_foreground_priority = ("renderable", "css")
-        # self.cursor_background_priority = ("renderable",)
-        # self.cell_padding = 0
+        super().__init__(
+            id="filelist",
+            show_header=True,
+            cursor_type="row",
+            header_height=2,
+            zebra_stripes=False,
+            show_row_labels=True,
+            cursor_foreground_priority="renderable",
+        )
 
         # Extra UI Elements
 
@@ -344,20 +349,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
-    async def _on_rename_dialog_closed(self, result: tuple[str, MegaItem]) -> None:
-        """Callback executed after the RenameDialog closes.
-
-        Handles the actual file renaming logic.
-        """
-        new_name, node = result
-        if not new_name or not node:
-            self.debug.info("File rename operation was cancelled or failed.")
-            return
-
-        self.log.info(f"Renaming node `{node.name}` to `{new_name}`")
-
-        await m.node_rename(node.path, new_name)
-        await self.action_refresh()
+    # ** Rename node ######################################################
 
     @work(
         group="megacmd",
@@ -371,7 +363,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         self.log.info("Renaming file.")
 
-        selected_item = self.highlighted_item
+        selected_item: MegaItem | None = self.highlighted_item
 
         if not selected_item:
             self.log.error("No highlighted file to rename.")
@@ -440,7 +432,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             callback=make_directory,
         )
 
-    async def download_files(self, files: list[MegaItem]) -> None:
+    async def _download_files(self, files: MegaItems) -> None:
         """Helper method to download files.
 
         TODO: Check for existing files on system and handle them
@@ -474,7 +466,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         dl_items = self.selected_items
 
-        await self.download_files(dl_items)
+        await self._download_files(dl_items)
 
     async def action_cancel_download(self):
         pass
@@ -485,7 +477,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_view_transfer_list(self):
         pass
 
-    async def move_files(self, files: list[MegaItem], new_path: str) -> None:
+    async def move_files(self, files: MegaItems, new_path: str) -> None:
         """Helper function to move MegaItems to a new path."""
         if not files:
             self.log.warning("No files received to move.")
