@@ -71,6 +71,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     _selected_items: dict[str, MegaItem]
     """ Dict to store selected MegaItem(s), indexed by their handles. """
 
+    _parent_index: deque[int]
+    """ Stores cursor index before navigating into a child. """
+
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="r", action="refresh", description="Refresh", show=True),
@@ -126,6 +129,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self._loading_path = self.curr_path
         self._row_data_map = {}
         self._selected_items = {}
+        self._parent_index = deque()
 
     @override
     def on_mount(self) -> None:
@@ -167,6 +171,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self.app.push_screen(filetree.UploadFilesModal())
 
     # ** Navigation ############################################################
+    def _push_cursor_index(self, index: int):
+        self._parent_index.append(index)
+
     async def action_navigate_in(self) -> None:
         """Navigate into directory under cursor."""
         selected_item_data = self.highlighted_item
@@ -181,6 +188,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             return
 
         to_enter = selected_item_data.full_path
+        # Add cursor index to our cursor position stack
+        self._push_cursor_index(index=self.cursor_row)
         path_str: str = str(to_enter)
 
         # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
@@ -200,9 +209,13 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             return
 
         parent_path: PurePath = PurePath(curr_path).parent
+        curs_index = self._parent_index.pop()
 
-        await self.load_directory(str(parent_path))
-        await m.mega_cd(target_path=str(parent_path))
+        # Useful to stop the flickering
+        with self.app.batch_update():
+            await self.load_directory(str(parent_path))
+            await m.mega_cd(target_path=str(parent_path))
+            self.move_cursor(row=curs_index)
 
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
