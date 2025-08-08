@@ -297,8 +297,7 @@ class MegaItem:
                 return bytes >> 30
             case MegaSizeUnits.TB:
                 return bytes >> 40
-
-        return self.bytes
+        return bytes
 
 
 # Alias
