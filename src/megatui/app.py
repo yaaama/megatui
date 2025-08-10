@@ -9,7 +9,7 @@ from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.reactive import var
-from textual.widgets import Header, Label
+from textual.widgets import Header, Label, Footer
 
 from megatui.mega import megacmd as m
 from megatui.messages import StatusUpdate
@@ -64,7 +64,7 @@ class MegaAppTUI(App[None]):
             yield Label("", id="label-selected-count")
 
         # Why does the footer create so many event messages?
-        # yield Footer(disabled=True)
+        yield Footer()
 
     async def on_mount(self) -> None:
         """Called when the app is mounted.
