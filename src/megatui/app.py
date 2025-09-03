@@ -1,20 +1,20 @@
 import asyncio
 import sys
-from typing import ClassVar, LiteralString, override
+from typing import ClassVar, override
 
 import rich
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.content import Content
-from textual.reactive import var
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
+from megatui.ui.top_status_bar import TopStatusBar
 
 rc = rich.get_console()
 
@@ -146,7 +146,7 @@ class MegaAppTUI(App[None]):
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update status bar when path changes."""
-        status_bar = self.query_one(TopStatusBar)
+        status_bar: TopStatusBar = self.query_one(TopStatusBar)
         status_bar.path = message.path
         status_bar.clear_status_msg()
 
@@ -185,63 +185,6 @@ class MegaAppTUI(App[None]):
     @property
     def top_status_bar(self):
         return self.query_one(TopStatusBar)
-
-
-class TopStatusBar(Horizontal):
-    PATH_LABEL_ID: ClassVar[LiteralString] = "top-status-bar-path"
-    STATUS_MSG_ID: ClassVar[LiteralString] = "top-status-bar-msg"
-
-    path: var[str] = var("")
-    status_msg: var[str] = var("")
-
-    DEFAULT_CSS = f"""
-    TopStatusBar {{
-        height: 1;
-        background: $panel;
-    }}
-    #{PATH_LABEL_ID} {{
-        content-align: left middle;
-        width: 1fr;
-        margin: 0 1;
-
-    }}
-    #{STATUS_MSG_ID} {{
-        content-align: right middle;
-        min-width: 20%;
-        width: auto;
-        margin: 0 1;
-    }}
-    """
-
-    @override
-    def compose(self) -> ComposeResult:
-        """Create the child widgets"""
-        # Yield the labels. Their content will be set by the watch methods
-        # immediately after this, and then every time the reactive var changes.
-        yield Label(id=self.PATH_LABEL_ID)
-        yield Label(id=self.STATUS_MSG_ID)
-
-    def watch_path(self, new_path: str) -> None:
-        """Called when self.path is modified."""
-        path_label = self.query_one(f"#{self.PATH_LABEL_ID}", Label)
-        path_label.update(f"[b]Path:[/] [i]'{new_path}'[/]")
-
-    def watch_status_msg(self, new_status_msg: str) -> None:
-        """Called when self.status_msg is modified."""
-        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update(f"[b]{new_status_msg}[/b]")
-
-    def clear_status_msg(self) -> None:
-        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update()
-
-    def signal_empty_dir(self) -> None:
-        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update("[b][red]Empty directory[/b][/red]")
-
-    def signal_error(self, err_msg: str):
-        status_msg_label = self.query_one(f"#{self.STATUS_MSG_ID}", Label)
-        status_msg_label.update(f"[b][red][reverse]{err_msg}[/][/][/]")
 
 
 # run the application #####################################################################
