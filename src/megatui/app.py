@@ -14,6 +14,7 @@ from textual.widgets import Header, Label, Footer
 from megatui.mega import megacmd as m
 from megatui.messages import StatusUpdate
 from megatui.ui.filelist import FileList
+from megatui.ui.screens.help import HelpScreen
 
 rc = rich.get_console()
 
@@ -38,6 +39,13 @@ class MegaAppTUI(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("q", "quit", "Quit"),
         Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
+        Binding(
+            key="ctrl+h",
+            key_display="C-h",
+            action="show_help_screen",
+            description="help",
+            system=True,
+        ),
     ]
 
     # --- UI Composition ---
@@ -85,6 +93,9 @@ class MegaAppTUI(App[None]):
         """Toggles darkmode."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
+
+    def action_show_help_screen(self) -> None:
+        self.push_screen(HelpScreen(keys=self._bindings))
 
     def action_view_info(self) -> None:
         # Call mega_df/ any other important functions to get general information
