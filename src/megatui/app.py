@@ -9,7 +9,7 @@ from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.reactive import var
-from textual.widgets import Header, Label, Footer
+from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
 from megatui.messages import StatusUpdate
@@ -37,8 +37,14 @@ class MegaAppTUI(App[None]):
     # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("q", "quit", "Quit"),
-        Binding("f2", "toggle_darkmode", "toggle darkmode", key_display="f2"),
+        Binding(key="q", action="quit", description="quit", show=False),
+        Binding(
+            "f2",
+            action="toggle_darkmode",
+            description="darkmode",
+            key_display="f2",
+            show=False,
+        ),
         Binding(
             key="ctrl+h",
             key_display="C-h",
@@ -61,6 +67,9 @@ class MegaAppTUI(App[None]):
         # Top status bar
         top_status_bar = TopStatusBar()
 
+        footer = Footer(show_command_palette=True)
+        footer.compact = True
+
         with Vertical(id="main"):
             yield Header()
             yield top_status_bar
@@ -71,8 +80,8 @@ class MegaAppTUI(App[None]):
             # Selected files count
             yield Label("", id="label-selected-count")
 
-        # Why does the footer create so many event messages?
-        yield Footer()
+            # Why does the footer create so many event messages?
+            # yield footer
 
     async def on_mount(self) -> None:
         """Called when the app is mounted.
@@ -80,10 +89,8 @@ class MegaAppTUI(App[None]):
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
         # Get the FileList widget and load the root directory
-
         file_list = self.query_one(FileList)
-
-        await file_list.load_directory(file_list._curr_path)
+        await file_list.load_directory(file_list._curr_path)  # pyright: ignore[reportPrivateUsage]
 
     # """
     # Actions #############################################################
@@ -169,7 +176,7 @@ class MegaAppTUI(App[None]):
             callback=clear_status_msg,
         )
 
-    """ Widget access. """
+    # Widget access.
 
     @property
     def file_list(self):
