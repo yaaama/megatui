@@ -71,36 +71,65 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     """ Path we are currently loading. """
 
     _path_history: deque[int]
-    """ Stores cursor index before navigating into a child. """
+    """ Stores cursor index before navigating into a child folder. """
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding(key="r", action="refresh", description="Refresh", show=True),
-        Binding(key="R", action="rename_node", description="Rename a file", show=True),
-        Binding(key="plus", action="mkdir", description="mkdir", show=True),
+        Binding(
+            key="r",
+            key_display="r",
+            action="refresh",
+            description="refresh current directory",
+            show=True,
+        ),
+        Binding(
+            key="R",
+            key_display="R",
+            action="rename_node",
+            description="rename a node",
+            show=True,
+        ),
+        Binding(
+            key="plus",
+            key_display="+",
+            action="mkdir",
+            description="make new directory",
+            show=True,
+        ),
         Binding(
             key="space",
+            key_display="␠",
             action="toggle_file_selection",
-            description="Select file",
+            description="select a file",
             show=True,
         ),
         Binding(
             key="u",
+            key_display="u",
             action="unselect_all_files",
-            description="Unselect all items",
+            description="unselect all",
             show=True,
         ),
-        Binding("o", "upload_file", "upload file"),
-        Binding("f3", "download", "download file", key_display="f3"),
-        Binding("f4", "move_files", "move files", key_display="f4"),
+        Binding(
+            key="o", key_display="o", action="upload_file", description="upload_file"
+        ),
+        Binding(key="f3", key_display="f3", action="download", description="download"),
+        Binding(
+            "f4",
+            key_display="f4",
+            action="move_files",
+            description="move",
+        ),
     ]
     """ Binds that deal with files. """
 
     _NAVIGATION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("j", "cursor_down", "Cursor Down", key_display="j"),
-        Binding("k", "cursor_up", "Cursor Up", key_display="k"),
-        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l"),
-        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h"),
+        Binding("j", "cursor_down", "Cursor Down", key_display="j", show=False),
+        Binding("k", "cursor_up", "Cursor Up", key_display="k", show=False),
+        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l", show=False),
+        Binding(
+            "h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False
+        ),
     ]
     """ Binds related to navigation. """
 
@@ -184,6 +213,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.log.debug("Cannot enter into a file.")
             return
 
+        # Folder to enter
         to_enter = selected_item_data.full_path
         # Add cursor index to our cursor position stack
         self._path_history.append(self.cursor_row)
