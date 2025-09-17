@@ -70,6 +70,7 @@ class LocalSystemFileTree(DirectoryTree):
     SELECTED_NODE_PREFIX = "[bold][red]*[/]"
 
     def filter_hidden_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        """Returns paths that are NOT hidden."""
         return [path for path in paths if not path.name.startswith(".")]
 
     @override
@@ -82,6 +83,7 @@ class LocalSystemFileTree(DirectoryTree):
         return paths
 
     async def _recenter_cursor(self):
+        """Recenter cursor."""
         with self.app.batch_update():
             await self.reload()
             self.action_cursor_down()

@@ -145,18 +145,20 @@ class MegaAppTUI(App[None]):
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
-        """Update status bar when path changes."""
+        """Update TopStatusBar when path changes."""
         status_bar: TopStatusBar = self.query_one(TopStatusBar)
         status_bar.path = message.path
         status_bar.clear_status_msg()
 
     @on(FileList.EmptyDirectory)
     def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
-        _ = message
+        """Update TopStatusBar to signal to user the directory is empty."""
+        _ = message  # To stop getting unused arg warning
         self.top_status_bar.signal_empty_dir()
 
     @on(FileList.LoadError)
     def on_file_list_load_error(self, message: FileList.LoadError):
+        """Update TopStatusBar to signal that loading PATH had an error."""
         self.top_status_bar.signal_error(f"Failed to load path: {message.path}")
         # Log the detailed error
         self.log.error(f"Error loading directory: {message.error}")
@@ -168,26 +170,29 @@ class MegaAppTUI(App[None]):
         status_bar.status_msg = message.message
 
         def clear_status_msg():
+            """Clear TopStatusBar of all its contents"""
             self.log.info("Clearing status message in top bar.")
             status_bar.clear_status_msg()
 
+        # Set timer for status bar to clear its contents
         status_bar.set_timer(
             delay=message.timeout if message.timeout > 0 else 10,
             callback=clear_status_msg,
         )
 
     # Widget access.
-
     @property
     def file_list(self):
+        """Return FileList widget"""
         return self.query_one(FileList)
 
     @property
     def top_status_bar(self):
+        """Return TopStatusBar of UI"""
         return self.query_one(TopStatusBar)
 
 
-# run the application #####################################################################
+# Run the application #####################################################################
 async def run_app() -> None:
     """Checks login and runs the Textual app."""
 
@@ -195,15 +200,16 @@ async def run_app() -> None:
     app = MegaAppTUI()
     app.animation_level = "none"
     # Check login status before starting TUI
-    print("Checking MEGA login status...")
+    # print("Checking MEGA login status...")
     app.log.info("Checking MEGA login status...")
     logged_in, message = await m.check_mega_login()
 
     if not logged_in:
         print(f"MEGA Login Check Failed: {message}", file=sys.stderr)
-        print(
-            "Please log in using 'mega-login' or check 'mega-whoami'.", file=sys.stderr
-        )
+        print("Please login to 'megacmd' using 'mega-login'", file=sys.stderr)
+        app.log.error(f"MEGA Login Check Failed: {message}")
+        app.log.error("Please login to 'megacmd' using 'mega-login'")
+
         return
 
     print(f"MEGA Login Check: OK ({message})")
