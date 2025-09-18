@@ -4,6 +4,7 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 
 from collections import deque
+from collections.abc import Iterable
 from pathlib import Path, PurePath
 from typing import (
     Annotated,
@@ -16,7 +17,7 @@ from typing import (
 )
 
 from rich.text import Text
-from textual import work
+from textual import on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
@@ -25,9 +26,9 @@ from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
-import megatui.ui.file_tree as filetree
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
-from megatui.messages import StatusUpdate
+from megatui.messages import StatusUpdate, UploadRequest
+from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
 
@@ -194,9 +195,22 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     # * Actions #########################################################
 
+    @work(name="upload")
+    async def on_upload_request(self, msg: UploadRequest):
+        self.log.info(f"Uploading file(s)")
+
+        files = [str(path) for path in msg.files]
+        destination = str(msg.destination) if msg.destination else self._curr_path
+
+        filenames = ", ".join(files)
+        self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
+
+        await m.mega_put(local_path=tuple(files), target_path=destination, queue=True)
+
     async def action_upload_file(self) -> None:
         """Toggle upload file screen."""
-        self.app.push_screen(filetree.UploadFilesModal())
+
+        await self.app.push_screen(UploadFilesModal())
 
     # ** Navigation ############################################################
 

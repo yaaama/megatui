@@ -16,6 +16,8 @@ from textual.widgets import DirectoryTree, Label
 from textual.widgets._directory_tree import DirEntry
 from textual.widgets.tree import TreeNode
 
+from megatui.messages import UploadRequest
+
 
 class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     BINDINGS = [
@@ -222,22 +224,24 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         self.auto_expand = False
 
 
-class UploadFilesModal(ModalScreen[str | None]):
+class UploadFilesModal(ModalScreen[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="escape,q", action="app.pop_screen", show=False, priority=True),
-        Binding(key="enter", action="upload_selected", show=True),
+        Binding(key="enter", action="finished", show=True),
     ]
 
-    def action_upload_selected(self) -> None:
+    def action_finished(self) -> None:
         filetree = self.query_one(LocalSystemFileTree)
         selected: Iterable[Path] = filetree.get_selected_items_path()
 
-        # Prepare notification
-        file_names = [item.name for item in selected]
-        flattened = ", ".join(file_names)
+        if not selected:
+            self.dismiss()
+            return
 
-        self.notify(message=f"{flattened}", title="Uploading Files")
-        pass
+        else:
+            filelist = self.app.query_one("#filelist")
+            filelist.post_message(UploadRequest(files=selected, destination=None))
+            self.dismiss()
 
     @override
     def compose(self) -> ComposeResult:

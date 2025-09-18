@@ -3,6 +3,9 @@ messages.py
 Messages that are used throughout the application.
 """
 
+from collections.abc import Iterable
+from pathlib import Path, PurePath
+
 from textual.message import Message
 
 NOTIF_TYPES: set[str] = {
@@ -21,6 +24,15 @@ class StatusUpdate(Message):
         super().__init__()
         self.message = message
         self.timeout = timeout
+
+
+class UploadRequest(Message):
+    def __init__(
+        self, files: Iterable[Path], destination: PurePath | str | None
+    ) -> None:
+        super().__init__()
+        self.files: Iterable[Path] = files
+        self.destination: PurePath | str | None = destination
 
 
 class Notification(Message):
