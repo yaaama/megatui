@@ -232,7 +232,7 @@ class UploadFilesModal(ModalScreen[str | None]):
         filetree = self.query_one(LocalSystemFileTree)
         selected: Iterable[Path] = filetree.get_selected_items_path()
 
-        # Prepare notification for upload
+        # Prepare notification
         file_names = [item.name for item in selected]
         flattened = ", ".join(file_names)
 
