@@ -18,7 +18,7 @@ from textual.widgets._tree import TOGGLE_STYLE, Tree
 from textual.widgets.tree import TreeNode
 
 
-class LocalSystemFileTree(DirectoryTree):
+class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     BINDINGS = [
         Binding(
             "ctrl+h",
@@ -207,6 +207,9 @@ class LocalSystemFileTree(DirectoryTree):
         # Kick off the recursive process to apply this new state everywhere.
         self._apply_selection_recursively(node, new_selection_state)
 
+    def get_selected_items_path(self) -> Iterable[Path]:
+        return self._selected_items
+
     @on(DirectoryTree.FileSelected)
     def file_selected(self, msg: DirectoryTree.FileSelected):
         self._toggle_node_selection(msg.node)
@@ -223,8 +226,19 @@ class LocalSystemFileTree(DirectoryTree):
 class UploadFilesModal(ModalScreen[str | None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="escape,q", action="app.pop_screen", show=False, priority=True),
-        Binding(key="enter", action="file_select", show=True),
+        Binding(key="enter", action="upload_selected", show=True),
     ]
+
+    def action_upload_selected(self) -> None:
+        filetree = self.query_one(LocalSystemFileTree)
+        selected: Iterable[Path] = filetree.get_selected_items_path()
+
+        # Prepare notification for upload
+        file_names = [item.name for item in selected]
+        flattened = ", ".join(file_names)
+
+        self.notify(message=f"{flattened}", title="Uploading Files")
+        pass
 
     @override
     def compose(self) -> ComposeResult:
