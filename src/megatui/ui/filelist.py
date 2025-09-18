@@ -111,9 +111,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             description="unselect all",
             show=True,
         ),
-        Binding(
-            key="o", key_display="o", action="upload_file", description="upload_file"
-        ),
+        Binding(key="o", key_display="o", action="upload_file", description="upload"),
+        Binding(key="D", key_display="D", action="delete_files", description="delete"),
         Binding(key="f3", key_display="f3", action="download", description="download"),
         Binding(
             "f4",
@@ -194,6 +193,24 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 self.add_column(label=column_name, key=column_name, width=None)
 
     # * Actions #########################################################
+
+    async def action_delete_files(self) -> None:
+        self.log.info("Deleting files")
+        # Selected files
+        selected = self.selected_or_highlighted_items
+
+        for item in selected:
+            if item.is_dir():
+                await m.mega_rm(file=item.path, flags=("-r", "-f"))
+            await m.mega_rm(file=item.path, flags=None)
+
+        self.action_unselect_all_files()
+
+        with self.app.batch_update():
+            deleted_count = len(selected)
+            cursor_index = self.cursor_row - deleted_count
+            await self.action_refresh(quiet=True)
+            self.move_cursor(row=cursor_index)
 
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
