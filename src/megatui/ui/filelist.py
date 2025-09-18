@@ -263,10 +263,17 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """Refreshes current working directory."""
         if not quiet:
             self.post_message(
-                StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=0)
+                StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
             )
 
-        await self.load_directory(self._curr_path)
+        # Keep point at curr index when refreshing
+        curs_index = self.cursor_row
+
+        with self.app.batch_update():
+            await self.load_directory(self._curr_path)
+            if curs_index > self.row_count - 1:
+                curs_index = self.row_count - 1
+            self.move_cursor(row=curs_index)
 
     # *** Selection #######################################################
     def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
