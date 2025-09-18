@@ -11,9 +11,9 @@ dependencies = [
 [project.scripts]
 megatui = "megatui.app:run_app"
 
-# UV
-[tool.uv]
-dev-dependencies = [
+
+[dependency-groups]
+dev = [
   "pre-commit>=4.2.0",
   "ruff>=0.12.1",
   "textual-dev>=1.7.0, < 2.0.0",
