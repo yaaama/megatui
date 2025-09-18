@@ -472,7 +472,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             if not name:
                 return
 
-            # FIXME Should use set comprehension
+            # TODO Should use set comprehension
             filenames: set[str] = set()
 
             for item in self._row_data_map.values():
