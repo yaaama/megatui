@@ -14,7 +14,6 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import DirectoryTree, Label
 from textual.widgets._directory_tree import DirEntry
-from textual.widgets._tree import TOGGLE_STYLE, Tree
 from textual.widgets.tree import TreeNode
 
 
