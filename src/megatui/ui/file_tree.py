@@ -248,6 +248,6 @@ class UploadFilesModal(ModalScreen[None]):
         with Vertical(id="verticalcontainer"):
             yield Label("Select file to upload", id="uploadfiles-heading")
             yield LocalSystemFileTree(
-                path="/home/aayush/",
+                path=str(Path.home()),
                 id="filetree",
             )
