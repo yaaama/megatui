@@ -204,9 +204,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 await m.mega_rm(file=item.path, flags=("-r", "-f"))
             await m.mega_rm(file=item.path, flags=None)
 
-        self.action_unselect_all_files()
-
         with self.app.batch_update():
+            self.action_unselect_all_files()
             deleted_count = len(selected)
             cursor_index = self.cursor_row - deleted_count
             await self.action_refresh(quiet=True)
@@ -278,15 +277,14 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
-        if not quiet:
+        if quiet == False:
             self.post_message(
                 StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
             )
 
-        # Keep point at curr index when refreshing
-        curs_index = self.cursor_row
-
         with self.app.batch_update():
+            # Keep point at curr index when refreshing
+            curs_index = self.cursor_row
             await self.load_directory(self._curr_path)
             if curs_index > self.row_count - 1:
                 curs_index = self.row_count - 1
