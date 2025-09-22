@@ -377,7 +377,11 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         new_label = Text("")
         for key in self._selected_items:
-            self.rows[RowKey(key)].label = new_label
+            # Check if selected item is within the curr list of rows
+            if key in self.rows:
+                self.rows[RowKey(key)].label = new_label
+            else:
+                pass
 
         self._selected_items.clear()
 
