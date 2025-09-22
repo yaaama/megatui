@@ -365,7 +365,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         self.rows[row_key].label = new_label
 
-        self.refresh()
+        self.refresh_row(self.cursor_row)
         self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
