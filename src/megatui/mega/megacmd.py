@@ -165,16 +165,43 @@ class MegaLibError(Exception):
 class MegaCmdError(Exception):
     """Custom exception for mega-* command errors."""
 
+    message: str
+    response: MegaCmdResponse | None
+
     def __init__(
-        self, message: str, return_code: int | None = None, stderr: str | None = None
+        self,
+        message: str,
+        response: MegaCmdResponse | None = None,
     ):
         super().__init__(message)
-        self.return_code: int | None = return_code
-        self.stderr: str | None = stderr
-        self.message: str = message
+        self.message = message
+
+        assert response, "No response object given."
+        # If a response object is given, use its data.
+        # This makes it the source of truth.
+
+        self.response = response
+
+        # Centralized logging
         logger.error(
-            f"MegaCmdError: {message} (Return Code: {return_code}, Stderr: {stderr})"
+            f"MegaCmdError: {self.message} (Return Code: {self.return_code}, Stderr: {self.stderr})"
         )
+
+    @property
+    def stderr(self) -> str | None:
+        assert self.response, "No response object."
+        if self.response.stderr:
+            return self.response.stderr
+
+        return None
+
+    @property
+    def return_code(self) -> int:
+        assert self.response, "No response object."
+        if self.response.return_code:
+            return self.response.return_code
+
+        return 0
 
 
 class MegaFileTypes(Enum):
@@ -454,14 +481,14 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         stdout_str = stdout.decode("utf-8", errors="replace").strip()
         stderr_str = stderr.decode("utf-8", errors="replace").strip()
 
-        megacmd_obj = MegaCmdResponse(
+        cmd_response = MegaCmdResponse(
             stdout=stdout_str,
             stderr=None,  # Initialize stderr as None
             return_code=process.returncode,
         )
 
         if stderr_str:
-            megacmd_obj.stderr = stderr_str
+            cmd_response.stderr = stderr_str
             logger.warning(
                 f"Command {' '.join(cmd_to_exec)} produced stderr: {stderr_str}"
             )
@@ -474,21 +501,17 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
             )
             raise MegaCmdError(
                 f"Command '{' '.join(command)}' failed: {error_message}",
-                return_code=process.returncode,
-                stderr=stderr_str or stdout_str,  # Use stderr if available
+                response=cmd_response,  # Use stderr if available
             )
 
         logger.debug(f"Command '{' '.join(command)}' completed successfully.")
-        return megacmd_obj
+        return cmd_response
 
     except FileNotFoundError:
         logger.error(
             f"Mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?"
         )
-        raise MegaCmdError(
-            f"Command '{cmd_to_exec[0]}' not found.",
-            stderr=f"{cmd_to_exec[0]} not found",
-        )
+        raise MegaLibError(f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
     except Exception as e:
         logger.exception(f"Unexpected error running '{cmd_to_exec[0]}'")
         # Wrap unexpected errors
@@ -694,43 +717,33 @@ async def mega_du(
 
     cmd.append(dir_path)
 
-    try:
-        response = await run_megacmd(tuple(cmd))
-        err_msg = response.err_output
-        if err_msg:
-            logger.error(
-                f"Ran into problems running 'du' for path '{dir_path}': {err_msg}"
-            )
-            raise MegaCmdError(
-                f"Ran into problems running 'du' for path '{dir_path}': {err_msg}"
-            )
-
-        logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
-
-        # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
-        output = response.stdout.splitlines()
-
-        assert len(output) > 3, "Output of 'du' should be 3 lines or more."
-
-        # We can ignore the header
-        _header = DU_HEADER_REGEXP.match(output[0])
-
-        file_line_match = DU_REGEXP.match(output[1])
-        assert file_line_match, f"No matches for du file lines: {file_line_match}"
-
-        _filename, _size = file_line_match.groups()
-
-        assert _filename
-        assert _size
-
-        return MegaDiskUsage(location=_filename, usage=int(_size))
-
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_du for '{dir_path}': {e}")
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_du for '{dir_path}'."
+    response = await run_megacmd(tuple(cmd))
+    err_msg = response.err_output
+    if err_msg:
+        logger.error(f"Ran into problems running 'du' for path '{dir_path}': {err_msg}")
+        raise MegaCmdError(
+            f"Ran into problems running 'du' for path '{dir_path}': {err_msg}",
+            response=response,
         )
+
+    logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
+
+    # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
+    output = response.stdout.splitlines()
+
+    assert len(output) > 3, "Output of 'du' should be 3 lines or more."
+
+    # We can ignore the header
+    _header = DU_HEADER_REGEXP.match(output[0])
+
+    file_line_match = DU_REGEXP.match(output[1])
+    assert file_line_match, f"No matches for du file lines: {file_line_match}"
+
+    _filename, _size = file_line_match.groups()
+
+    assert _filename
+    assert _size
+    return MegaDiskUsage(location=_filename, usage=int(_size))
 
 
 ###############################################################################
@@ -739,23 +752,16 @@ async def mega_cd(target_path: str = "/"):
     logger.info(f"Changing directory to {target_path}")
 
     cmd: list[str] = ["cd", target_path]
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(f"Error changing directories to '{target_path}': {error_msg}")
-            raise MegaCmdError(
-                f"Failed to change directory to '{target_path}': {error_msg}"
-            )
-
-        logger.info(f"Successfully changed directory to '{target_path}'")
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_cd for '{target_path}': {e}")
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_cd for '{target_path}'."
+    error_msg = response.err_output
+    if error_msg:
+        logger.error(f"Error changing directories to '{target_path}': {error_msg}")
+        raise MegaCmdError(
+            f"Failed to change directory to '{target_path}': {error_msg}"
         )
+
+    logger.info(f"Successfully changed directory to '{target_path}'")
 
 
 async def mega_pwd() -> str:
@@ -763,23 +769,17 @@ async def mega_pwd() -> str:
     logger.info("Getting current working directory.")
 
     cmd: tuple[str, ...] = ("pwd",)
-    try:
-        response = await run_megacmd(cmd)
+    response = await run_megacmd(cmd)
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(f"Error printing working directory: {error_msg}")
-            return ""
+    error_msg = response.err_output
 
-        pwd_path = response.stdout.strip()
-        logger.info(f"Current working directory: {pwd_path}")
-        return pwd_path
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_pwd: {e}")
-        return ""
-    except Exception:
-        logger.exception("An unexpected error occurred during mega_pwd.")
-        return ""
+    if error_msg:
+        logger.error(f"Error printing working directory: {error_msg}")
+        raise MegaCmdError(f"Failed to get working directory: {error_msg}")
+
+    pwd_path = response.stdout.strip()
+    logger.info(f"Current working directory: {pwd_path}")
+    return pwd_path
 
 
 ###############################################################################
@@ -806,29 +806,19 @@ async def mega_cp(file_path: str, target_path: str) -> None:
     logger.info(f"Copying file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("cp", file_path, target_path)
-    try:
-        response = await run_megacmd(cmd)
+    response = await run_megacmd(cmd)
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(
-                f"Error copying file '{file_path}' to '{target_path}': {error_msg}"
-            )
-            raise MegaCmdError(
-                "Error copying file '{file_path}' to '{target_path}'",
-                response.return_code,
-                response.stderr,
-            )
+    error_msg = response.err_output
+
+    if error_msg:
+        logger.error(
+            f"Error copying file '{file_path}' to '{target_path}': {error_msg}"
+        )
+        raise MegaCmdError(
+            "Error copying file '{file_path}' to '{target_path}'", response=response
+        )
 
         logger.info(f"Successfully copied '{file_path}' to '{target_path}'")
-    except MegaCmdError as e:
-        logger.error(
-            f"MegaCmdError during mega_cp from '{file_path}' to '{target_path}': {e}"
-        )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_cp from '{file_path}' to '{target_path}'."
-        )
 
 
 ###############################################################################
@@ -837,27 +827,18 @@ async def mega_mv(file_path: str, target_path: str) -> None:
     logger.info(f"Moving file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("mv", file_path, target_path)
-    try:
-        response = await run_megacmd(cmd)
+    response = await run_megacmd(cmd)
 
-        error_msg = response.err_output
-        if error_msg:
-            error_msg = response.stderr if response.stderr else response.stdout
-            logger.error(
-                f"Error moving file '{file_path}' to '{target_path}': {error_msg}"
-            )
-            # TODO Make this raise an exception
-            return
+    error_msg = response.err_output
+    if error_msg:
+        error_msg = response.stderr if response.stderr else response.stdout
+        logger.error(f"Error moving file '{file_path}' to '{target_path}': {error_msg}")
+        # TODO Make this raise an exception
+        raise MegaCmdError(
+            f"Failed to move {file_path} to {target_path}", response=response
+        )
 
-        logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
-    except MegaCmdError as e:
-        logger.error(
-            f"MegaCmdError during mega_mv from '{file_path}' to '{target_path}': {e}"
-        )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_mv from '{file_path}' to '{target_path}'."
-        )
+    logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
 async def node_exists(file_path: str) -> bool:
@@ -895,25 +876,17 @@ async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
 
     cmd = ("rm", file, *flags) if flags else ("rm", file)
 
-    try:
-        response = await run_megacmd(cmd)
+    response = await run_megacmd(cmd)
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(
-                f"Error removing file '{file}' with flags '{flags}': {error_msg}"
-            )
-            return
+    error_msg = response.err_output
+    if error_msg:
+        logger.error(f"Error removing file '{file}' with flags '{flags}': {error_msg}")
+        raise MegaCmdError(
+            message=f"MegaCmdError during `{cmd}` ",
+            response=response,
+        )
 
-        logger.info(f"Successfully removed '{file}' with flags '{flags}'")
-    except MegaCmdError as e:
-        logger.error(
-            f"MegaCmdError during mega_rm for '{file}' with flags '{flags}': {e}"
-        )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_rm for '{file}' with flags '{flags}'."
-        )
+    logger.info(f"Successfully removed '{file}' with flags '{flags}'")
 
 
 ###############################################################################
@@ -954,27 +927,19 @@ async def mega_put(
     # Remote destination
     cmd.append(target_path)
 
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(
-                f"Error uploading files '{local_path}' to '{target_path}': {error_msg}"
-            )
-            return
-
-        logger.info(
-            f"Successfully initiated upload of '{local_path}' to '{target_path}'"
-        )
-    except MegaCmdError as e:
+    error_msg = response.err_output
+    if error_msg:
         logger.error(
-            f"MegaCmdError during mega_put from '{local_path}' to '{target_path}': {e}"
+            f"Error uploading files '{local_path}' to '{target_path}': {error_msg}"
         )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_put from '{local_path}' to '{target_path}'."
+        raise MegaCmdError(
+            message=f"Error uploading files '{local_path}' to '{target_path}': {error_msg}",
+            response=response,
         )
+
+    logger.info(f"Successfully initiated upload of '{local_path}' to '{target_path}'")
 
 
 def _verify_handle_structure(handle: str) -> bool:
@@ -1008,31 +973,31 @@ async def path_from_handle(handle: str) -> PurePath | None:
         await mega_cd("/")
     except MegaCmdError as e:
         logger.error(f"Could not navigate to root directory: {e}")
-        return None
+        raise e
 
     # Have to use the 'ls' command to get the full path of a handle
     cmd: list[str] = ["ls", handle]
 
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(f"Error verifying handle: '{handle}': {error_msg}")
-            return
-
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError raised whilst verifying '{handle}': {e}")
-        return None
+    error_msg = response.err_output
+    if error_msg:
+        logger.error(f"Error verifying handle: '{handle}': {error_msg}")
+        raise MegaCmdError(
+            message=f"Error verifying handle: '{handle}': {error_msg}",
+            response=response,
+        )
 
     # Parse result
     try:
         split = response.stdout.partition("\n")
-        # Parse Path
+        # Parse Path (first partition)
         path = PurePath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
-        return None
+        raise MegaCmdError(
+            message=f"Could not parse path from handle `{handle}` :: {e}"
+        )
     except Exception as e:
         logger.error(f"Some other error occured: {e}")
         return None
@@ -1040,13 +1005,13 @@ async def path_from_handle(handle: str) -> PurePath | None:
     return path
 
 
-async def mega_get_handle(
+async def mega_get_from_handle(
     target_path: str, handle: str, queue: bool = True, merge: bool = False
 ):
     """Download file using its HANDLE."""
     assert target_path, "You must specify a 'target_path'"
     assert handle, "'handle' not specified."
-    assert verify_handle(handle), "Handle verification failed."
+    assert _verify_handle_structure(handle), "Handle verification failed."
 
     cmd: list[str] = ["get"]
     if queue:
@@ -1069,23 +1034,17 @@ async def mega_get_handle(
 
     cmd.append(target_path)
 
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(f"Error downloading in '{target_path}': {error_msg}")
-            return
+    error_msg = response.err_output
+    if error_msg:
+        logger.error(f"Error downloading in '{target_path}': {error_msg}")
+        raise MegaCmdError(
+            message=f"Error downloading handle `{handle}` to '{target_path}'",
+            response=response,
+        )
 
-        logger.info(f"Successfully initiated download of '{handle}' to '{target_path}'")
-    except MegaCmdError as e:
-        logger.error(
-            f"MegaCmdError during mega_get_handle for '{handle}' to '{target_path}': {e}"
-        )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_get_handle for '{handle}' to '{target_path}'."
-        )
+    logger.info(f"Successfully initiated download of '{handle}' to '{target_path}'")
 
 
 ###############################################################################
@@ -1145,25 +1104,20 @@ async def mega_get(
 
     cmd.append(target_path)
 
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.error(f"Error downloading in '{target_path}': {error_msg}")
-            return
-
-        logger.info(
-            f"Successfully initiated download of '{remote_path}' to '{target_path}'"
-        )
-    except MegaCmdError as e:
+    error_msg = response.err_output
+    if error_msg:
         logger.error(
-            f"MegaCmdError during mega_get from '{remote_path}' to '{target_path}': {e}"
+            f"Error downloading file `{remote_path}` to `{target_path}`: {error_msg}"
         )
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred during mega_get from '{remote_path}' to '{target_path}'."
+        raise MegaCmdError(
+            message=f"Error downloading `{remote_path}` to `{target_path}`"
         )
+
+    logger.info(
+        f"Successfully initiated download of '{remote_path}' to '{target_path}'"
+    )
 
 
 async def mega_df(human: bool = True) -> str | None:
@@ -1176,18 +1130,13 @@ async def mega_df(human: bool = True) -> str | None:
     if human:
         cmd.append("-h")
 
-    try:
-        response = await run_megacmd(tuple(cmd))
+    response = await run_megacmd(tuple(cmd))
 
-        if response.err_output:
-            logger.error(f"Error running 'df': {response.err_output}")
-            return None
+    if response.err_output:
+        logger.error(f"Error running 'df': {response.err_output}")
+        raise MegaCmdError(message=f"Error running mega-df", response=response)
 
-        return response.stdout
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError during mega_df: {e}")
-    except Exception as e:
-        logger.exception(f"An unexpected error occurred during mega_df: {e}")
+    return response.stdout
 
 
 class LocationInfo(TypedDict):
