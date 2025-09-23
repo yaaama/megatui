@@ -668,7 +668,7 @@ async def mega_ls(
 ###############################################################################
 
 
-class DiskUsage(NamedTuple):
+class MegaDiskUsage(NamedTuple):
     location: str
     usage: int | None
 
@@ -723,7 +723,7 @@ async def mega_du(
         assert _filename
         assert _size
 
-        return DiskUsage(location=_filename, usage=int(_size))
+        return MegaDiskUsage(location=_filename, usage=int(_size))
 
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during mega_du for '{dir_path}': {e}")
