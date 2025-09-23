@@ -977,7 +977,7 @@ async def mega_put(
         )
 
 
-def verify_handle(handle: str) -> bool:
+def _verify_handle_structure(handle: str) -> bool:
     logger.info(f"Verifying handle: '{handle}'")
 
     if not handle:
@@ -1001,7 +1001,7 @@ def verify_handle(handle: str) -> bool:
 
 
 async def path_from_handle(handle: str) -> PurePath | None:
-    assert verify_handle(handle), "Handle failed verification."
+    assert _verify_handle_structure(handle), "Handle does not conform to structure."
 
     # cd to root
     try:
