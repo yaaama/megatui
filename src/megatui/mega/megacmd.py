@@ -379,21 +379,21 @@ LS_REGEXP: re.Pattern[str] = re.compile(
 #       ---------------------------------------------------------------------------
 #       Total size taken up by file versions:    306416706
 #
-__DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
+DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
     r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
 )  # Regexp to parse mount info
 
-__DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
+DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
     r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)"
 )  # Regexp to parse total storage usage.
-__DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
+DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
     r"^Total size taken up by file versions:\s+(\d+)"
 )  # Regexp to parse storage taken up by file versions
 
-__DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
+DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
     r"^FILENAME\s+SIZE$"
 )  # Parses du output for 'FILENAME SIZE'
-__DU_REGEXP: re.Pattern[str] = re.compile(
+DU_REGEXP: re.Pattern[str] = re.compile(
     r"^(.+?):\s+(\d+)"
 )  # Parses du output for a real filename and their size
 
@@ -712,9 +712,9 @@ async def mega_du(
         assert len(output) > 3, "Output of 'du' should be 3 lines or more."
 
         # We can ignore the header
-        _header = __DU_HEADER_REGEXP.match(output[0])
+        _header = DU_HEADER_REGEXP.match(output[0])
 
-        file_line_match = __DU_REGEXP.match(output[1])
+        file_line_match = DU_REGEXP.match(output[1])
         assert file_line_match, f"No matches for du file lines: {file_line_match}"
 
         _filename, _size = file_line_match.groups()
@@ -1235,7 +1235,7 @@ async def mega_df_dict() -> StorageOverview | None:
 
     for line in lines:
         line = line.strip()
-        if match := __DF_LOCATION_REGEXP.match(line):
+        if match := DF_LOCATION_REGEXP.match(line):
             name, size, files, folders = match.groups()
             parsed_data["locations"].append(
                 {
@@ -1245,14 +1245,14 @@ async def mega_df_dict() -> StorageOverview | None:
                     "folders": int(folders),
                 }
             )
-        elif match := __DF_SUMMARY_REGEXP.match(line):
+        elif match := DF_SUMMARY_REGEXP.match(line):
             used, pct, total = match.groups()
             parsed_data["usage_summary"] = {
                 "used_bytes": int(used),
                 "percentage": float(pct),
                 "total_bytes": int(total),
             }
-        elif match := __DF_VERSIONS_REGEXP.match(line):
+        elif match := DF_VERSIONS_REGEXP.match(line):
             parsed_data["version_size_bytes"] = int(match.group(1))
 
     return parsed_data
