@@ -337,10 +337,7 @@ class MegaCmdResponse:
 
     @property
     def failed(self) -> bool:
-        """
-        Check if the command either returned non-zero or had any standard
-        error output.
-        """
+        """Return True if cmd returned non-zero or has stderr output."""
         if (self.return_code) or (self.stderr):
             return True
         return False
@@ -355,7 +352,11 @@ class MegaCmdResponse:
 
     @property
     def err_output(self) -> str | None:
-        return self.stderr or self.stdout if self.failed else None
+        """Return stderr from command if failed, else None."""
+        if self.failed:
+            return self.stderr
+
+        return None
 
 
 # Default 'ls -l --show-handles' regular expression.
