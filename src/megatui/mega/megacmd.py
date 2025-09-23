@@ -115,6 +115,44 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
 }
 
 
+# Response from running mega commands.
+class MegaCmdResponse:
+    __slots__ = ("return_code", "stderr", "stdout")
+
+    stdout: str
+    stderr: str | None
+    return_code: int | None
+
+    def __init__(self, stdout: str, stderr: str | None, return_code: int | None):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.return_code = return_code
+        # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
+
+    @property
+    def failed(self) -> bool:
+        """Return True if cmd returned non-zero or has stderr output."""
+        if (self.return_code) or (self.stderr):
+            return True
+        return False
+
+    @override
+    def __repr__(self) -> str:
+        return (
+            f"MegaCmdResponse(return_code={self.return_code},\n"
+            + f"stdout={self.stdout},\n"
+            + f"stderr={self.stderr}\n)"
+        )
+
+    @property
+    def err_output(self) -> str | None:
+        """Return stderr from command if failed, else None."""
+        if self.failed:
+            return self.stderr
+
+        return None
+
+
 class MegaLibError(Exception):
     """Custom exception for incorrect library usage."""
 
@@ -319,44 +357,6 @@ class MegaMediaInfo:
         self.height = height
         self.fps = fps
         self.playtime = playtime
-
-
-# Response from running mega commands.
-class MegaCmdResponse:
-    __slots__ = ("return_code", "stderr", "stdout")
-
-    stdout: str
-    stderr: str | None
-    return_code: int | None
-
-    def __init__(self, stdout: str, stderr: str | None, return_code: int | None):
-        self.stdout = stdout
-        self.stderr = stderr
-        self.return_code = return_code
-        # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
-
-    @property
-    def failed(self) -> bool:
-        """Return True if cmd returned non-zero or has stderr output."""
-        if (self.return_code) or (self.stderr):
-            return True
-        return False
-
-    @override
-    def __repr__(self) -> str:
-        return (
-            f"MegaCmdResponse(return_code={self.return_code},\n"
-            + f"stdout={self.stdout},\n"
-            + f"stderr={self.stderr}\n)"
-        )
-
-    @property
-    def err_output(self) -> str | None:
-        """Return stderr from command if failed, else None."""
-        if self.failed:
-            return self.stderr
-
-        return None
 
 
 # Default 'ls -l --show-handles' regular expression.
