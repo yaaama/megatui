@@ -211,6 +211,14 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             await self.action_refresh(quiet=True)
             self.move_cursor(row=cursor_index)
 
+        filenames = [str(item.full_path) for item in selected]
+        deletion_msg = ", ".join(filenames)
+
+        self.notify(
+            message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
+            title="Deletion",
+        )
+
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
         self.log.info(f"Uploading file(s)")
