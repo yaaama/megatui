@@ -99,6 +99,7 @@ MEGA_COMMANDS_ALL: set[str] = {
     "preview",
     "whoami",
 }
+"""All Mega commands."""
 
 MEGA_COMMANDS_SUPPORTED: set[str] = {
     "get",
@@ -115,6 +116,7 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
     "mkdir",
     "df",
 }
+"""Mega commands that are supported."""
 
 
 # Response from running mega commands.
@@ -645,12 +647,12 @@ async def mega_ls(
 
         # If flags (first elem) contains 'd' as first elem, then we have a directory
         if __file_info[0][0] == "d":
-            logger.debug(f"Parsed directory: {__file_info[-1]}")
+            # logger.debug(f"Parsed directory: {__file_info[-1]}")
             parsed_tuple = (MegaFileTypes.DIRECTORY, __file_info)
 
         else:
             # Else it is a regular file
-            logger.debug(f"Parsed file: {__file_info[-1]}")
+            # logger.debug(f"Parsed file: {__file_info[-1]}")
             parsed_tuple = (MegaFileTypes.FILE, __file_info)
 
         # Tuple values
@@ -690,6 +692,11 @@ async def mega_ls(
             )
         )
     logger.info(f"Successfully listed {len(items)} items in '{target_path}'.")
+    _debug_files = [file.name for file in items if file.is_file]
+    _debug_dirs = [file.name for file in items if file.is_dir]
+    logger.debug(
+        f"LOADED '{len(_debug_dirs)}' DIRS and '{len(_debug_files)}' FILES in '{target_path}'."
+    )
     return tuple(items)
 
 
