@@ -468,7 +468,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     """
     # Construct the actual executable name (e.g., "mega-ls")
     cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
-    logger.info(f"Executing mega-cmd: {' '.join(cmd_to_exec)}")
+    logger.info(f"Running cmd: '{' '.join(cmd_to_exec)}'")
     cmd, *cmd_args = cmd_to_exec
 
     try:
@@ -493,21 +493,21 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         if stderr_str:
             cmd_response.stderr = stderr_str
             logger.warning(
-                f"Command {' '.join(cmd_to_exec)} produced stderr: {stderr_str}"
+                f"Command '{' '.join(cmd_to_exec)}' produced stderr: '{stderr_str}'"
             )
 
         # Handle cases where mega-* commands might print errors to stdout
         if process.returncode != 0:
             error_message = stderr_str if stderr_str else stdout_str
             logger.error(
-                f"Command '{' '.join(command)}' failed with return code {process.returncode}: {error_message}"
+                f"Command '{' '.join(command)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
             )
             raise MegaCmdError(
-                f"Command '{' '.join(command)}' failed: {error_message}",
+                f"Command '{' '.join(command)}' FAILED: {error_message}",
                 response=cmd_response,  # Use stderr if available
             )
 
-        logger.debug(f"Command '{' '.join(command)}' completed successfully.")
+        logger.debug(f"Cmd '{' '.join(command)}' 'SUCCESS'.")
         return cmd_response
 
     except FileNotFoundError:
