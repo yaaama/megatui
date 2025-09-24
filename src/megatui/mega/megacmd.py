@@ -614,8 +614,9 @@ async def mega_ls(
 
     items: deque[MegaItem] = deque()
 
-    # Pop out the first element (it will be the header line)
-    lines = response.stdout.strip().split("\n")[0:]
+    # Remove first element (it will be the header line)
+    lines = response.stdout.strip().split("\n")
+    del lines[0]
 
     # Handle empty output
     if not lines or not lines[0].strip():
