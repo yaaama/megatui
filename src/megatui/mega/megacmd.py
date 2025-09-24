@@ -13,15 +13,18 @@ from typing import NamedTuple, TypedDict, override
 
 logging.basicConfig(
     filename="megacmd.log",
-    filemode="a",
+    filemode="w",
     level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s",
+    # format="%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s",
+    format="%(asctime)s - %(levelname)s - %(funcName)s :: %(message)s",
 )
 logger = logging.getLogger(__name__)
 # Get the logger for the 'asyncio' library and set its level to WARNING.
 # This will hide all INFO and DEBUG messages from asyncio.
 logging.getLogger("asyncio").setLevel(logging.WARNING)
-logger.debug("This is a debug message.")
+logger.info(f"================")
+logger.info(f"'megacmd' LOADED.")
+logger.info(f"================")
 
 MEGA_COMMANDS_ALL: set[str] = {
     "attr",
