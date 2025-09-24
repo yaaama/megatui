@@ -24,7 +24,7 @@ logging.basicConfig(
 )
 
 
-class MegaAppTUI(App[None]):
+class MegaAppTUI(App[None], inherit_bindings=False):
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -42,6 +42,9 @@ class MegaAppTUI(App[None]):
     # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
     BINDINGS: ClassVar[list[BindingType]] = [
+        Binding(
+            key="ctrl+c", action="quit", description="quit", show=False, priority=True
+        ),
         Binding(key="q", action="quit", description="quit", show=False),
         Binding(
             "f2",
@@ -52,7 +55,15 @@ class MegaAppTUI(App[None]):
         ),
         Binding(
             key="ctrl+h",
-            key_display="C-h",
+            key_display="c-h",
+            action="show_help_screen",
+            description="help",
+            system=True,
+            priority=True,
+        ),
+        Binding(
+            key="?",
+            key_display="?",
             action="show_help_screen",
             description="help",
             system=True,
@@ -107,7 +118,7 @@ class MegaAppTUI(App[None]):
         self.action_toggle_dark()
 
     def action_show_help_screen(self) -> None:
-        self.push_screen(HelpScreen(keys=self._bindings))
+        self.push_screen(HelpScreen(self.active_bindings))
 
     def action_view_info(self) -> None:
         # Call mega_df/ any other important functions to get general information
