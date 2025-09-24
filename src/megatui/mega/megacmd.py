@@ -334,9 +334,11 @@ class MegaItem:
                 )
                 self.size_unit = MegaSizeUnits.TB
 
+    @property
     def is_file(self) -> bool:
         return self.ftype == MegaFileTypes.FILE
 
+    @property
     def is_dir(self) -> bool:
         return self.ftype == MegaFileTypes.DIRECTORY
 

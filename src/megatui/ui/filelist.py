@@ -200,7 +200,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         selected = self.selected_or_highlighted_items
 
         for item in selected:
-            if item.is_dir():
+            if item.is_dir:
                 await m.mega_rm(file=item.path, flags=("-r", "-f"))
             await m.mega_rm(file=item.path, flags=None)
 
@@ -247,7 +247,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             return
 
         # Fail: Is a regular file
-        if selected_item_data.is_file():  # Check if it's a directory
+        if selected_item_data.is_file:  # Check if it's a directory
             self.log.debug("Cannot enter into a file.")
             return
 
@@ -484,7 +484,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 popup_prompt=f"Rename {selected_item.name}",
                 node=selected_item,
                 emoji_markup_prepended=(
-                    ":page_facing_up:" if selected_item.is_file() else ":file_folder:"
+                    ":page_facing_up:" if selected_item.is_file else ":file_folder:"
                 ),
                 initial_input=selected_item.name,
             ),
@@ -557,7 +557,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             await m.mega_get(
                 target_path=str(DL_PATH),
                 remote_path=str(file.full_path),
-                is_dir=file.is_dir(),
+                is_dir=file.is_dir,
             )
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
             title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
@@ -616,7 +616,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """Takes a MegaItem and returns a tuple of Content objects for a table
         row.
         """
-        if node.is_dir():
+        if node.is_dir:
             icon_markup = self.DIR_ICON_MARKUP
             size_str = ""
         else:
