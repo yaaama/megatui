@@ -25,12 +25,10 @@ Used to indicate success. Typically used as a background color. $text-success ca
 Used sparingly to draw attention. Typically contrasts with $primary and $secondary.
 */
 
-
 /* Target everything */
 /* * { */
-    /* border: round red; */
+/* border: round red; */
 /* } */
-
 
 Screen {
     /* layers: base status; /\* Define layers *\/ */
@@ -135,7 +133,6 @@ MkdirDialog {
             height: auto;
         }
 
-
         Input {
             margin: 1;
             width: 1fr;
@@ -146,12 +143,8 @@ MkdirDialog {
             margin-left: 2;
             color: $accent;
         }
-
     }
-
-
 }
-
 
 UploadFilesModal {
     /* Align the visible widgets in the middle */
@@ -171,10 +164,11 @@ UploadFilesModal {
         width: 60%;
         align: center middle;
         content-align: center middle;
-        border: ascii $secondary;
+        border: ascii $accent;
 
         #uploadfiles-heading {
-            color: $accent;
+            color: $primary;
+            text-style: bold;
             height: 2;
             width: 1fr;
             align: center middle;
@@ -191,13 +185,45 @@ UploadFilesModal {
 
             & .node-selected {
                 background: blue;
-                color: $accent;
+                color: $primary;
                 text-style: bold;
             }
         }
     }
 }
 
+HelpScreen {
+    align: center bottom;
+
+    MegaTUIBindingsTable {
+        background: $surface;
+        border: ascii $accent;
+        border-title-style: bold;
+        border-title-color: $primary;
+        border-title-align: center;
+        width: auto;
+        height: 33%;
+    }
+
+    & > MegaTUIBindingsTable > .megabindings-table--key {
+        color: $text-accent;
+        text-style: bold;
+        padding: 0 1;
+    }
+
+    & > MegaTUIBindingsTable > .megabindings-table--description {
+        color: $foreground;
+    }
+
+    & > MegaTUIBindingsTable > .megabindings-table--divider {
+        color: $secondary;
+    }
+
+    & > MegaTUIBindingsTable > .megabindings-table--header {
+        color: $text-primary;
+        text-style: underline;
+    }
+}
 
 /*****************************************************************************/
 /*                                 File List                                 */
@@ -252,9 +278,6 @@ UploadFilesModal {
          * color: $background; */
     }
 }
-
-
-
 
 /* Local Variables: */
 /* eval: (flycheck-mode -1) */

@@ -24,7 +24,7 @@ logging.basicConfig(
 )
 
 
-class MegaAppTUI(App[None], inherit_bindings=False):
+class MegaTUI(App[None], inherit_bindings=False):
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -213,7 +213,7 @@ async def run_app() -> None:
     """Checks login and runs the Textual app."""
 
     # Start the TUI
-    app = MegaAppTUI()
+    app = MegaTUI()
     app.animation_level = "none"
     # Check login status before starting TUI
     # print("Checking MEGA login status...")

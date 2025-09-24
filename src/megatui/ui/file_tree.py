@@ -1,4 +1,5 @@
 # File tree
+import typing
 from collections.abc import Iterable
 from enum import Enum
 from pathlib import Path
@@ -18,8 +19,13 @@ from textual.widgets.tree import TreeNode
 
 from megatui.messages import UploadRequest
 
+if typing.TYPE_CHECKING:
+    from megatui.app import MegaTUI
+
 
 class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
+    app: "MegaTUI"
+
     BINDINGS = [
         Binding(
             "ctrl+h",
@@ -89,7 +95,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
             await self.reload()
             self.action_cursor_down()
             self.action_cursor_up()
-        self.refresh()
+            self.refresh()
 
     async def action_toggle_hidden(self):
         """Toggle visibility of hidden files in the file tree."""
@@ -170,8 +176,6 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         if not (node and node.data and node.data.path):
             return rendered_label
 
-        path = node.data.path.resolve()
-
         if self._is_node_or_ancestor_selected(node):
             # If it is, prepend our selection marker.
             # selection_marker = Text.from_markup(f"[bold][red]*[/]")
@@ -225,6 +229,10 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
 
 
 class UploadFilesModal(ModalScreen[None]):
+    """Modal screen for uploading local files."""
+
+    app: "MegaTUI"
+
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(key="escape,q", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="finished", show=True),
