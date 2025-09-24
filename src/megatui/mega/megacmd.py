@@ -11,13 +11,12 @@ from enum import Enum
 from pathlib import Path, PurePath
 from typing import NamedTuple, TypedDict, override
 
-logging.basicConfig(
-    filename="megacmd.log",
-    filemode="w",
-    level=logging.DEBUG,
-    # format="%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s",
-    format="%(asctime)s - %(levelname)s - %(funcName)s :: %(message)s",
-)
+# logging.basicConfig(
+#     filename="megacmd.log",
+#     filemode="w",
+#     level=logging.DEBUG,
+#     format="%(asctime)s - %(levelname)s - %(funcName)s :: %(message)s",
+# )
 logger = logging.getLogger(__name__)
 # Get the logger for the 'asyncio' library and set its level to WARNING.
 # This will hide all INFO and DEBUG messages from asyncio.

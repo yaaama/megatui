@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import sys
 from typing import ClassVar, override
 
@@ -8,6 +9,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
 from textual.content import Content
+from textual.logging import TextualHandler
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
@@ -16,7 +18,10 @@ from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
 from megatui.ui.top_status_bar import TopStatusBar
 
-rc = rich.get_console()
+logging.basicConfig(
+    level="NOTSET",
+    handlers=[TextualHandler()],
+)
 
 
 class MegaAppTUI(App[None]):
