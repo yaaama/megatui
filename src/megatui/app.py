@@ -41,6 +41,8 @@ class MegaTUI(App[None], inherit_bindings=False):
     # 120 cells or wider, the app has the class "-very-wide"
     # HORIZONTAL_BREAKPOINTS = [(0, "-normal"), (80, "-wide"), (120, "-very-wide")]
 
+    BINDING_GROUP_TITLE = "Main Application"
+
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(
             key="ctrl+c", action="quit", description="quit", show=False, priority=True
@@ -52,10 +54,11 @@ class MegaTUI(App[None], inherit_bindings=False):
             description="darkmode",
             key_display="f2",
             show=False,
+            priority=True,
         ),
         Binding(
-            key="ctrl+h",
-            key_display="c-h",
+            key="f1",
+            key_display="f1",
             action="show_help_screen",
             description="help",
             system=True,

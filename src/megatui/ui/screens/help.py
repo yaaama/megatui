@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 
 
 class MegaTUIBindingsTable(BindingsTable):
-    app: "MegaTUI"
     """A widget to display bindings."""
 
     COMPONENT_CLASSES = {
@@ -110,13 +109,12 @@ class MegaTUIBindingsTable(BindingsTable):
         return self.render_bindings_table()
 
     def __init__(self, binds, id):
-        super().__init__()
+        super().__init__(id=id)
         self.binds = binds
-        self.id = id
 
 
 class HelpScreen(ModalScreen[None]):
-    BINDINGS: ClassVar[list[BindingType]] = [
+    BINDINGS: list[BindingType] = [
         Binding(key="escape", action="quit_help", show=False, priority=True),
     ]
 

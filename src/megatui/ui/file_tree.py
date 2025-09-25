@@ -26,6 +26,7 @@ if typing.TYPE_CHECKING:
 class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     app: "MegaTUI"
 
+    BINDING_GROUP_TITLE = "Local File Explorer"
     BINDINGS = [
         Binding(
             "ctrl+h",

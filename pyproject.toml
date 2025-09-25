@@ -20,7 +20,7 @@ dev = [
   "pytest>=8.3.5",
   # "pytest-asyncio",
   # "pytest-mock",
-  "basedpyright>=1.31.3",
+  "basedpyright==1.31.4",
 ]
 
 # Hatch
