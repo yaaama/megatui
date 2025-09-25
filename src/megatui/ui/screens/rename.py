@@ -1,7 +1,6 @@
 # Rename popup
 from typing import ClassVar, override
 
-from megatui.mega.megacmd import MegaItem
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
@@ -11,9 +10,11 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
+from megatui.mega.megacmd import MegaItem
+
 
 class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
-    BINDINGS: ClassVar[list[BindingType]] = [
+    BINDINGS: list[BindingType] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),
     ]
@@ -34,19 +35,19 @@ class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
             initial_input: The initial value for the input box.
         """
         super().__init__()
+        # Emoji to prepend the prompt.
         self._emoji = emoji_markup_prepended
-        """ Emoji to prepend the prompt. """
+        # Label to display above input box.
         self._prompt = popup_prompt
-        """ Label to display above input box. """
+        # The initial value to use for the input.
         self._initial = initial_input
-        """ The initial value to use for the input."""
-
         txt = f"{self._emoji} {self._prompt}"
-        self.prompt: Text = Text.from_markup(txt)
-        """ Calculated prompt text. """
 
+        # Calculated prompt text.
+        self.prompt: Text = Text.from_markup(txt)
+
+        # Information about the node being renamed.
         self.node = node
-        """ Information about the node being renamed. """
 
     @override
     def compose(self) -> ComposeResult:
