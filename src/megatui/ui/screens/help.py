@@ -121,8 +121,8 @@ class HelpScreen(ModalScreen[None]):
     def action_quit_help(self) -> None:
         self.dismiss()
 
-    def __init__(self, keys: tuple[dict[str, ActiveBinding]]):
-        super().__init__()
+    def __init__(self, keys: dict[str, ActiveBinding]):
+        super().__init__(name="help", id="help-screen")
         self.display_keys = keys
 
     @override

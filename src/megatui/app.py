@@ -6,7 +6,7 @@ from typing import ClassVar, override
 import rich
 from textual import on
 from textual.app import App, ComposeResult
-from textual.binding import Binding, BindingType
+from textual.binding import Binding, BindingType, ActiveBinding
 from textual.containers import Vertical
 from textual.content import Content
 from textual.logging import TextualHandler
@@ -121,6 +121,12 @@ class MegaTUI(App[None], inherit_bindings=False):
         self.action_toggle_dark()
 
     def action_show_help_screen(self) -> None:
+        """Show bindings help screen."""
+        # Prevent opening a new help window when one is already there
+        if self.app.screen.name == "help":
+            self.pop_screen()
+            return
+
         self.push_screen(HelpScreen(self.active_bindings))
 
     def action_view_info(self) -> None:
