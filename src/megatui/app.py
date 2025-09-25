@@ -6,7 +6,7 @@ from typing import ClassVar, override
 import rich
 from textual import on
 from textual.app import App, ComposeResult
-from textual.binding import Binding, BindingType, ActiveBinding
+from textual.binding import ActiveBinding, Binding, BindingType
 from textual.containers import Vertical
 from textual.content import Content
 from textual.logging import TextualHandler
@@ -116,7 +116,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     # """
 
     def action_toggle_darkmode(self) -> None:
-        """Toggles darkmode."""
+        """Toggle darkmode for the application."""
         self.log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
