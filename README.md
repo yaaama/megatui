@@ -27,33 +27,35 @@ The UI and bindings are inspired by [ranger](https://github.com/ranger/ranger) a
 
 ![Renaming a file demonstration](./assets/demo/rename-file.gif)
 
-
 ### Making new directories
 
 ![Making directories demonstration](./assets/demo/make_directories.gif)
 
 ## 🪷 Features
 
-As of writing this (_2025-07-01_), work is still ongoing and active.
+As of writing this (_2025-09-26_), work is still ongoing and active.
 
-- **Browse Files:** Navigate through your MEGA cloud drive folders.
-- **Basic Navigation:** Use intuitive keybindings (like `j`/`k`, `h`/`l`, `Enter`/`Backspace`) to move up, down, into, and out of directories.
-- **Directory Listing:** View files and directories within the current path.
-- **Status Bar:** See information about the currently selected item.
-- **Refresh:** Update the current directory view.
-- **Rename file/directories:** Rename files via the app.
-- **Create new directories**
+### Implemented
+
+- **File Navigation:** Navigate through your MEGA cloud drive using intuitive keybindings (press <kbd>f1</kbd> to view currently active bindings).
+- **Operate On Files:**
+  - Download files
+  - Delete files (and folders)
+  - Create new directories
+  - Upload files
+  - Move files around
+  - Rename files
+- **Marking (Selecting) Files For Bulk Operations:** Marking files will allow certain operations to operate on all of them.
+  - For example, if you mark 3 files, the move command will move all 3 marked files.
 - **Login Check:** Verifies your MEGAcmd login status on startup.
 
 ## ✏️ (Planned / TODO)
 
-- [x] Implement file operations (Get, Put, Rename, Delete, Copy, Move) based on supported `mega-*` commands.
 - [ ] Search functionality.
 - [ ] Multi-pane views.
 - [ ] Caching to improve performance.
 - [ ] File Previews (basic info, potentially text content).
 - [ ] Display detailed directory/account usage (total storage usage, account details, etc).
-- [ ] Robust error handling.
 - [ ] Configuration options.
 - [ ] Background transfer monitoring.
 - [ ] Logging in (with 2FA support), and logging out.
@@ -66,9 +68,8 @@ Before you begin, ensure you have the following installed:
 
 1.  **Python:** Version 3.13 is what is currently being used (subject to change potentially).
 2.  **MEGAcmd:** The official MEGA command-line tool.
-
     - Download and install it from the [official MEGAcmd GitHub releases page](https://github.com/meganz/MEGAcmd/releases).
-    - **Crucially:** You need to **log in** to your MEGA account using MEGAcmd
+    - **Crucially:** You need to **log in** to your MEGA account using `MEGAcmd`
       _before_ running MegaTUI.
       - Open your terminal and run `mega-login your-email@example.com` and follow the prompts.
         You can verify your login status with `mega-whoami`.
