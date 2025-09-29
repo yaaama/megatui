@@ -1,5 +1,3 @@
-from datetime import datetime
-
 """'megacmd' library provides an easy way of interacting with the 'mega-cmd' CLI."""
 
 import asyncio
@@ -9,9 +7,10 @@ import pathlib
 import re
 import subprocess
 from collections import deque
+from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import NamedTuple, TypedDict, override
+from typing import Literal, LiteralString, NamedTuple, TypedDict, override
 
 # logging.basicConfig(
 #     filename="megacmd.log",

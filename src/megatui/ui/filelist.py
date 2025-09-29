@@ -40,7 +40,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     # * UI Elements ###########################################################
 
-    DEFAULT_CSS: ClassVar[LiteralString] = """ """
+    DEFAULT_CSS = """ """
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
     """ Markup used for file icon. """
@@ -51,7 +51,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
     """ Character to indicate a file has been selected. """
 
-    border_subtitle: str
+    BORDER_SUBTITLE = ""
     """ Border subtitle. """
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
@@ -660,6 +660,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 key=node.handle,
                 # Height of each row
                 height=height,
+                # Selection label should be empty
                 label=" ",
             )
             if node.handle in self._selected_items:
