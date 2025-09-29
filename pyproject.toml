@@ -1,12 +1,39 @@
 [project]
 name = "megatui"
 version = "0.0.1"
-description = "Terminal user interface for MEGA"
-requires-python = ">=3.13"
-readme = "README.md"
-dependencies = [
-  "textual>=3.5.0",
+description = "Terminal user interface application for MEGA"
+license = { text = "GPLv3" }
+authors = [{ name = "yaaama", email = "sau@yaaama.xyz" }]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+keywords = [
+  "filemanager",
+  "cloud",
+  "MEGA",
+  "megacmd",
+  "python",
+  "textual",
+  "tui",
 ]
+
+classifiers = [
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: End Users/Desktop",
+
+  "Topic :: Communications :: File Sharing",
+  "Topic :: Desktop Environment :: File Managers",
+  "Topic :: Internet",
+  "Topic :: Utilities",
+
+  "Programming Language :: Python :: 3.13",
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
+
+requires-python = ">=3.13"
+dependencies = ["textual>=3.5.0"]
 
 [project.scripts]
 megatui = "megatui.app:run_app"
@@ -28,14 +55,11 @@ dev = [
 packages = ["src/megatui"]
 
 [tool.hatch.build]
-include = [
-  "src/megatui",
-]
+include = ["src/megatui"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
 
 
 # Pytest
@@ -65,17 +89,7 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-# Enable auto-formatting of code examples in docstrings. Markdown,
-# reStructuredText code/literal blocks and doctests are all supported.
-# This is currently disabled by default, but it is planned for this
-# to be opt-out in the future.
 docstring-code-format = true
-
-# Set the line length limit used when formatting code snippets in
-# docstrings.
-#
-# This only has an effect when the `docstring-code-format` setting is
-# enabled.
 docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
