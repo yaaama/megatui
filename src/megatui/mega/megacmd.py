@@ -10,7 +10,7 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import Literal, LiteralString, NamedTuple, TypedDict, override
+from typing import Final, Literal, LiteralString, NamedTuple, TypedDict, override
 
 # logging.basicConfig(
 #     filename="megacmd.log",
@@ -25,6 +25,7 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 logger.info(f"================")
 logger.info(f"'megacmd' LOADED.")
 logger.info(f"================")
+
 
 MEGA_COMMANDS_ALL: set[str] = {
     "attr",
@@ -395,16 +396,38 @@ class MegaMediaInfo:
 
 # XXX ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
-# Default 'ls -l --show-handles' regular expression.
-LS_REGEXP: re.Pattern[str] = re.compile(
-    r"^([^\s]{4})\s+"  #  Flags: Can be either alphabetical or a hyphen
-    + r"(\d+|-)\s+"  # Version ('-' or number), skip whitespace
-    + r"(\d+|-)\s+"  # Size (digits for bytes or '-'), skip whitespace
-    # + r"(\d{2}\w{3}\d{4})\s+"  # Date (DDMonYYYY), skip whitespace
-    # + r"(\d{2}:\d{2}:\d{2})\s+"  # Time (HH:MM:SS), skip whitespace
-    + r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+"  # 2018-04-06T13:05:37
-    + r"(H:[^\s]+)\s+"  # File handle ('H:xxxxxxxx')
-    + r"(.+)$"  # Filename (everything else)
+
+# A dictionary defining the components of the 'ls' output.
+# These keys will become the named capture groups in the final regex.
+LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
+    #  Flags: Can be either alphabetical or a hyphen (e.g., 'd---')
+    "flags": r"[a-zA-Z-]{4}",
+    # Version ('-' or a number)
+    "version": r"\d+|-",
+    # Size (digits for bytes or '-')
+    "size": r"\d+|-",
+    # Date time in ISO 8601 format (e.g., '2018-04-06T13:05:37')
+    "datetime": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+    # File handle (e.g., 'H:xxxxxxxx')
+    "filehandle": r"H:[^\s]+",
+    # Filename (captures everything until the end of the line)
+    "filename": r".+",
+}
+
+# Default 'ls -l --show-handles --date-format=ISO6081_WITH_TIME' regular expression.
+# re.VERBOSE allows for this clean, multi-line, and commented format.
+LS_REGEXP: Final[re.Pattern[str]] = re.compile(
+    rf"""
+    ^
+    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]})       \s+
+    (?P<version>{LS_PATTERN_COMPONENTS["version"]})   \s+
+    (?P<size>{LS_PATTERN_COMPONENTS["size"]})         \s+
+    (?P<datetime>{LS_PATTERN_COMPONENTS["datetime"]}) \s+
+    (?P<filehandle>{LS_PATTERN_COMPONENTS["filehandle"]}) \s+
+    (?P<filename>{LS_PATTERN_COMPONENTS["filename"]})
+    $
+    """,
+    re.VERBOSE,
 )
 
 # 'df' parsing regular expression
