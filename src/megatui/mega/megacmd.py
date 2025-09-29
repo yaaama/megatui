@@ -1,3 +1,5 @@
+from datetime import datetime
+
 """'megacmd' library provides an easy way of interacting with the 'mega-cmd' CLI."""
 
 import asyncio
@@ -270,8 +272,8 @@ class MegaItem:
     size_unit: MegaSizeUnits
     """ Unit for human readable size. """
 
-    mtime: str  # Parse into date if needed
-    """ Modification time of file."""
+    mtime: datetime
+    """ Modification date + time of file."""
 
     ftype: MegaFileTypes
     """ Type of file. """
@@ -287,7 +289,7 @@ class MegaItem:
         name: str,
         parent_path: str,
         size: int,
-        mtime: str,
+        mtime: datetime,
         ftype: MegaFileTypes,
         version: int,
         handle: str,
@@ -392,13 +394,16 @@ class MegaMediaInfo:
         self.playtime = playtime
 
 
+# XXX ISO6081 is a typo, it should be 8601
+MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
 # Default 'ls -l --show-handles' regular expression.
 LS_REGEXP: re.Pattern[str] = re.compile(
     r"^([^\s]{4})\s+"  #  Flags: Can be either alphabetical or a hyphen
     + r"(\d+|-)\s+"  # Version ('-' or number), skip whitespace
     + r"(\d+|-)\s+"  # Size (digits for bytes or '-'), skip whitespace
-    + r"(\d{2}\w{3}\d{4})\s+"  # Date (DDMonYYYY), skip whitespace
-    + r"(\d{2}:\d{2}:\d{2})\s+"  # Time (HH:MM:SS), skip whitespace
+    # + r"(\d{2}\w{3}\d{4})\s+"  # Date (DDMonYYYY), skip whitespace
+    # + r"(\d{2}:\d{2}:\d{2})\s+"  # Time (HH:MM:SS), skip whitespace
+    + r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+"  # 2018-04-06T13:05:37
     + r"(H:[^\s]+)\s+"  # File handle ('H:xxxxxxxx')
     + r"(.+)$"  # Filename (everything else)
 )
@@ -601,6 +606,7 @@ async def mega_ls(
         "ls",
         "-l",
         "--show-handles",
+        f"--time-format={MEGA_LS_DATEFMT_DEFAULT}",
     ]
 
     if flags:
@@ -656,10 +662,16 @@ async def mega_ls(
             parsed_tuple = (MegaFileTypes.FILE, __file_info)
 
         # Tuple values
-        _file_type, (_flags, _vers, _size, _date, _time, _handle, _name) = parsed_tuple
+        _file_type, (_flags, _vers, _size, _date, _handle, _name) = parsed_tuple
 
         # Values to convert
-        mtime_str: str = f"{_date} {_time}"
+        mtime_str: str = f"{_date}"
+        try:
+            mtime_obj = datetime.fromisoformat(mtime_str)
+        except ValueError:
+            logger.fatal(f"Failed to parse time: {mtime_str}")
+            raise MegaLibError(message=f"Failed to parse time: {mtime_str}")
+
         item_size: int
         version: int
 
@@ -685,7 +697,7 @@ async def mega_ls(
                 name=_name,
                 parent_path=curr_path_for_items,
                 size=item_size,
-                mtime=mtime_str,
+                mtime=mtime_obj,
                 ftype=_file_type,
                 version=version,
                 handle=_handle,

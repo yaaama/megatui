@@ -627,6 +627,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         cell_name = Content.from_rich_text(
             Text(text=node.name, overflow="ellipsis", no_wrap=True)
         )
+        # NOTE: We can display time in different formats from here for the UI
         cell_mtime = Content.from_rich_text(Text(text=str(node.mtime), style="italic"))
         cell_size = Content(text=size_str)
 
