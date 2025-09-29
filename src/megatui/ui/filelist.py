@@ -647,12 +647,12 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
         found_selected_items: bool = False
 
+        row_generator = (
+            (node, self._prepare_row_contents(node)) for node in fetched_items
+        )
+
         # Go through each item and create new row for them
-        for node in fetched_items:
-            # Prepare data for each cell in the row
-
-            row_cells = self._prepare_row_contents(node)
-
+        for node, row_cells in row_generator:
             # Pass data as individual arguments for each column
             rowkey = self.add_row(
                 *row_cells,
