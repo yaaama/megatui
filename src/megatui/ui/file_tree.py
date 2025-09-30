@@ -33,39 +33,14 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
 
     BINDING_GROUP_TITLE = "Local File Explorer"
     BINDINGS = [
-        Binding(
-            "ctrl+h",
-            "cursor_parent",
-            "Cursor to parent",
-            show=False,
-        ),
-        Binding(
-            "ctrl+l",
-            "cursor_parent_next_sibling",
-            "Cursor to next ancestor",
-            show=False,
-        ),
-        Binding(
-            "shift+up",
-            "cursor_previous_sibling",
-            "Cursor to previous sibling",
-            show=False,
-        ),
-        Binding(
-            "shift+down",
-            "cursor_next_sibling",
-            "Cursor to next sibling",
-            show=False,
-        ),
+        Binding("h", "cursor_parent", "Cursor to parent", show=False),
+        Binding("L", "cursor_parent_next_sibling", "Cursor to next ancestor", show=False),
+        Binding("shift+up", "cursor_previous_sibling", "Cursor to previous sibling", show=False),
+        Binding("shift+down", "cursor_next_sibling", "Cursor to next sibling", show=False),
         Binding("full_stop", "toggle_hidden", "Toggle Hidden", show=False),
         Binding("space", "select_cursor", "Select", show=False),
         Binding("tab", "toggle_node", "Toggle", show=False),
-        Binding(
-            "shift+tab",
-            "toggle_expand_all",
-            "Expand or collapse all",
-            show=False,
-        ),
+        Binding("shift+tab", "toggle_expand_all", "Expand or collapse all", show=False),
         Binding("k", "cursor_up", "Cursor Up", show=False),
         Binding("j", "cursor_down", "Cursor Down", show=False),
     ]
@@ -75,6 +50,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     }
 
     SELECTED_NODE_PREFIX = "[bold][red]*[/]"
+    UNSELECTED_NODE_PREFIX = "  "
 
     @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -86,8 +62,8 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
                 return [path for path in paths if not path.name.startswith(".")]
         return paths
 
-    async def _recenter_cursor(self):
-        """Recenter cursor."""
+    async def _reload_and_recenter(self):
+        """Reloads the tree and attempts to keep the cursor centered."""
         with self.app.batch_update():
             await self.reload()
             self.action_cursor_down()
@@ -102,7 +78,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         else:
             self.filter_type = FilterMethod.HIDDEN
 
-        await self._recenter_cursor()
+        await self._reload_and_recenter()
 
     def _selection_status_node_label(self, node: TreeNode[DirEntry], selected: bool):
         """Helper function to produce node label with 'selected' status."""
@@ -132,16 +108,13 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         # Update the visual representation of the node
         node.refresh()
 
-    def _is_descendant(self, child: Path, parent: Path) -> bool:
-        """Checks if 'child' is the same as or a subpath of 'parent'."""
+    @staticmethod
+    def _is_descendant(child: Path, parent: Path) -> bool:
+        """Checks if a path is a descendant of another."""
         try:
-            parent_resolved = parent.resolve(strict=True)
-            child_resolved = child.resolve(strict=True)
-
+            return child.resolve(strict=True).is_relative_to(parent.resolve(strict=True))
         except FileNotFoundError:
-            return False  # Path must exist to be a descendant
-
-        return child_resolved.is_relative_to(parent_resolved)
+            return False
 
     def _is_node_or_ancestor_selected(self, node: TreeNode[DirEntry]) -> bool:
         """Checks if the node's path or any of its ancestors are in the selection set."""
@@ -155,9 +128,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         return False
 
     @override
-    def render_label(
-        self, node: TreeNode[DirEntry], base_style: Style, style: Style
-    ) -> Text:
+    def render_label(self, node: TreeNode[DirEntry], base_style: Style, style: Style) -> Text:
         """Render a label for the given node.
 
         Args:
@@ -190,9 +161,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         is_currently_selected = node.data.path.resolve() in self._selected_items
         self._set_node_selection_state(node, not is_currently_selected)
 
-    def _apply_selection_recursively(
-        self, node: TreeNode[DirEntry], select: bool
-    ) -> None:
+    def _apply_selection_recursively(self, node: TreeNode[DirEntry], select: bool) -> None:
         """Recursively applies a selection state to a node and all its descendants."""
         # Apply the state to the current node
         self._set_node_selection_state(node, select)
@@ -213,11 +182,11 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         return self._selected_items
 
     @on(DirectoryTree.FileSelected)
-    def file_selected(self, msg: DirectoryTree.FileSelected):
+    def on_file_selected(self, msg: DirectoryTree.FileSelected):
         self._toggle_node_selection(msg.node)
 
     @on(DirectoryTree.DirectorySelected)
-    def directory_selected(self, msg: DirectoryTree.DirectorySelected):
+    def on_directory_selected(self, msg: DirectoryTree.DirectorySelected):
         self._toggle_dir_node_selection(msg.node)
 
     def __init__(self, path: str, id: str):
