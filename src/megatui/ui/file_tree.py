@@ -1,7 +1,7 @@
 # File tree
 import typing
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from string import Template
 from typing import ClassVar, override
@@ -21,6 +21,11 @@ from megatui.messages import UploadRequest
 
 if typing.TYPE_CHECKING:
     from megatui.app import MegaTUI
+
+
+class FilterMethod(Enum):
+    NONE = auto()
+    HIDDEN = auto()
 
 
 class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
@@ -69,25 +74,16 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         "node-selected",
     }
 
-    class FilterMethod(Enum):
-        NONE = 0
-        HIDDEN = 1
-
-    filter_type = FilterMethod.HIDDEN
-    _selected_items: set[Path] = set()
     SELECTED_NODE_PREFIX = "[bold][red]*[/]"
-
-    def filter_hidden_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
-        """Returns paths that are NOT hidden."""
-        return [path for path in paths if not path.name.startswith(".")]
 
     @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        """Filters paths based on the current filter_type."""
         match self.filter_type:
-            case self.FilterMethod.NONE:
+            case FilterMethod.NONE:
                 return paths
-            case self.FilterMethod.HIDDEN:
-                return self.filter_hidden_paths(paths)
+            case FilterMethod.HIDDEN:
+                return [path for path in paths if not path.name.startswith(".")]
         return paths
 
     async def _recenter_cursor(self):
@@ -101,10 +97,10 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     async def action_toggle_hidden(self):
         """Toggle visibility of hidden files in the file tree."""
         # self.anchor(True)
-        if self.filter_type == self.FilterMethod.HIDDEN:
-            self.filter_type = self.FilterMethod.NONE
+        if self.filter_type == FilterMethod.HIDDEN:
+            self.filter_type = FilterMethod.NONE
         else:
-            self.filter_type = self.FilterMethod.HIDDEN
+            self.filter_type = FilterMethod.HIDDEN
 
         await self._recenter_cursor()
 
@@ -226,7 +222,16 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
 
     def __init__(self, path: str, id: str):
         super().__init__(path=path, id=id)
+        # Do not auto expand selected folders
         self.auto_expand = False
+        # Keep cursor in the center
+        self.center_scroll = True
+        # Filter out hidden files by default
+        self.filter_type = FilterMethod.HIDDEN
+        # Paths that are explicitly selected.
+        self._selected_items: set[Path] = set()
+        # Paths that are explicitly deselected (as an exception to a selected parent).
+        self._deselected_items: set[Path] = set()
 
 
 class UploadFilesModal(ModalScreen[None]):
