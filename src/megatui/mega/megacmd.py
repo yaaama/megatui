@@ -12,16 +12,23 @@ from enum import Enum
 from pathlib import Path, PurePath
 from typing import Final, Literal, LiteralString, NamedTuple, TypedDict, override
 
-# logging.basicConfig(
-#     filename="megacmd.log",
-#     filemode="w",
-#     level=logging.DEBUG,
-#     format="%(asctime)s - %(levelname)s - %(funcName)s :: %(message)s",
-# )
+MEGA_LOGTOFILE = True
+
+if MEGA_LOGTOFILE:
+    logging.basicConfig(
+        filename="etc/megacmd.log",
+        filemode="w",
+        level=logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(funcName)s :: %(message)s",
+    )
+
+
 logger = logging.getLogger(__name__)
+
 # Get the logger for the 'asyncio' library and set its level to WARNING.
 # This will hide all INFO and DEBUG messages from asyncio.
 logging.getLogger("asyncio").setLevel(logging.WARNING)
+
 logger.info(f"================")
 logger.info(f"'megacmd' LOADED.")
 logger.info(f"================")
@@ -470,9 +477,7 @@ def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
         logger.critical(f"Unsupported command '{command[0]}' requested.")
-        raise MegaLibError(
-            f"The library does not support command '{command[0]}'.", fatal=True
-        )
+        raise MegaLibError(f"The library does not support command '{command[0]}'.", fatal=True)
 
     # if 'command' is ('ls', '-l', '--tree'), then 'megacmd' name will be 'mega-ls'
     megacmd_name: str = f"mega-{command[0]}"
@@ -522,9 +527,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
         if stderr_str:
             cmd_response.stderr = stderr_str
-            logger.warning(
-                f"Command '{' '.join(cmd_to_exec)}' produced stderr: '{stderr_str}'"
-            )
+            logger.warning(f"Command '{' '.join(cmd_to_exec)}' produced stderr: '{stderr_str}'")
 
         # Handle cases where mega-* commands might print errors to stdout
         if process.returncode != 0:
@@ -541,9 +544,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         return cmd_response
 
     except FileNotFoundError:
-        logger.error(
-            f"Mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?"
-        )
+        logger.error(f"Mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
         raise MegaLibError(f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
     except Exception as e:
         logger.exception(f"Unexpected error running '{cmd_to_exec[0]}'")
@@ -584,9 +585,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
             return True, username
 
         else:
-            logger.warning(
-                f"Login status uncertain. Unexpected response: {response.stdout}"
-            )
+            logger.warning(f"Login status uncertain. Unexpected response: {response.stdout}")
             return False, f"Login status uncertain. Response: {response}"
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during login check: {e}")
@@ -599,9 +598,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
 ###########################################################################
 
 
-async def mega_ls(
-    path: str | None = "/", flags: tuple[str, ...] | None = None
-) -> MegaItems:
+async def mega_ls(path: str | None = "/", flags: tuple[str, ...] | None = None) -> MegaItems:
     """Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
     Args:
@@ -803,9 +800,7 @@ async def mega_cd(target_path: str = "/"):
     error_msg = response.err_output
     if error_msg:
         logger.error(f"Error changing directories to '{target_path}': {error_msg}")
-        raise MegaCmdError(
-            f"Failed to change directory to '{target_path}': {error_msg}"
-        )
+        raise MegaCmdError(f"Failed to change directory to '{target_path}': {error_msg}")
 
     logger.info(f"Successfully changed directory to '{target_path}'")
 
@@ -838,9 +833,7 @@ async def mega_cd_ls(
 
     await mega_cd(effective_target_path)
     items = await mega_ls(effective_target_path, ls_flags)
-    logger.info(
-        f"Finished cd and ls for {effective_target_path}. Found {len(items)} items."
-    )
+    logger.info(f"Finished cd and ls for {effective_target_path}. Found {len(items)} items.")
 
     return items
 
@@ -857,9 +850,7 @@ async def mega_cp(file_path: str, target_path: str) -> None:
     error_msg = response.err_output
 
     if error_msg:
-        logger.error(
-            f"Error copying file '{file_path}' to '{target_path}': {error_msg}"
-        )
+        logger.error(f"Error copying file '{file_path}' to '{target_path}': {error_msg}")
         raise MegaCmdError(
             "Error copying file '{file_path}' to '{target_path}'", response=response
         )
@@ -880,9 +871,7 @@ async def mega_mv(file_path: str, target_path: str) -> None:
         error_msg = response.stderr if response.stderr else response.stdout
         logger.error(f"Error moving file '{file_path}' to '{target_path}': {error_msg}")
         # TODO Make this raise an exception
-        raise MegaCmdError(
-            f"Failed to move {file_path} to {target_path}", response=response
-        )
+        raise MegaCmdError(f"Failed to move {file_path} to {target_path}", response=response)
 
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
@@ -894,9 +883,7 @@ async def node_exists(file_path: str) -> bool:
 
 
 async def node_rename(file_path: str, new_name: str) -> None:
-    assert file_path and new_name, (
-        f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    )
+    assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
@@ -977,9 +964,7 @@ async def mega_put(
 
     error_msg = response.err_output
     if error_msg:
-        logger.error(
-            f"Error uploading files '{local_path}' to '{target_path}': {error_msg}"
-        )
+        logger.error(f"Error uploading files '{local_path}' to '{target_path}': {error_msg}")
         raise MegaCmdError(
             message=f"Error uploading files '{local_path}' to '{target_path}': {error_msg}",
             response=response,
@@ -1041,9 +1026,7 @@ async def path_from_handle(handle: str) -> PurePath | None:
         path = PurePath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
-        raise MegaCmdError(
-            message=f"Could not parse path from handle `{handle}` :: {e}"
-        )
+        raise MegaCmdError(message=f"Could not parse path from handle `{handle}` :: {e}")
     except Exception as e:
         logger.error(f"Some other error occured: {e}")
         return None
@@ -1154,16 +1137,10 @@ async def mega_get(
 
     error_msg = response.err_output
     if error_msg:
-        logger.error(
-            f"Error downloading file `{remote_path}` to `{target_path}`: {error_msg}"
-        )
-        raise MegaCmdError(
-            message=f"Error downloading `{remote_path}` to `{target_path}`"
-        )
+        logger.error(f"Error downloading file `{remote_path}` to `{target_path}`: {error_msg}")
+        raise MegaCmdError(message=f"Error downloading `{remote_path}` to `{target_path}`")
 
-    logger.info(
-        f"Successfully initiated download of '{remote_path}' to '{target_path}'"
-    )
+    logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
 
 
 async def mega_df(human: bool = True) -> str | None:
