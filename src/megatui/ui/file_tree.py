@@ -50,7 +50,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     }
 
     SELECTED_NODE_PREFIX = "[bold][red]*[/]"
-    UNSELECTED_NODE_PREFIX = "  "
+    UNSELECTED_NODE_PREFIX = " "
 
     @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -110,21 +110,35 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
 
     @staticmethod
     def _is_descendant(child: Path, parent: Path) -> bool:
-        """Checks if a path is a descendant of another."""
+        """Checks if a path is a descendant of another, but not the same path."""
+        if child == parent:
+            return False
         try:
             return child.resolve(strict=True).is_relative_to(parent.resolve(strict=True))
         except FileNotFoundError:
             return False
 
-    def _is_node_or_ancestor_selected(self, node: TreeNode[DirEntry]) -> bool:
-        """Checks if the node's path or any of its ancestors are in the selection set."""
+    def _is_node_rendered_as_selected(self, node: TreeNode[DirEntry]) -> bool:
+        """Determines if a node should be visually displayed as selected."""
         if not (node and node.data and node.data.path):
             return False
 
-        node_path = node.data.path
-        for selected_path in self._selected_items:
-            if self._is_descendant(node_path, selected_path):
-                return True
+        path = node.data.path.resolve()
+
+        # If the path or any of its ancestors are explicitly deselected, it's not selected.
+        if path in self._deselected_items or any(
+            path.is_relative_to(p) for p in self._deselected_items
+        ):
+            return False
+
+        # If the path is explicitly selected, it's selected.
+        if path in self._selected_items:
+            return True
+
+        # If any ancestor is explicitly selected, it's implicitly selected.
+        if any(path.is_relative_to(p) for p in self._selected_items):
+            return True
+
         return False
 
     @override
@@ -144,50 +158,85 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         if not (node and node.data and node.data.path):
             return rendered_label
 
-        if self._is_node_or_ancestor_selected(node):
-            # If it is, prepend our selection marker.
-            # selection_marker = Text.from_markup(f"[bold][red]*[/]")
-            return Text.from_markup(f"{self.SELECTED_NODE_PREFIX} ") + rendered_label
-        else:
-            # If not selected, return the original label unmodified.
-            return Text("  ") + rendered_label
+        prefix = (
+            self.SELECTED_NODE_PREFIX
+            if self._is_node_rendered_as_selected(node)
+            else self.UNSELECTED_NODE_PREFIX
+        )
 
-    def _toggle_node_selection(self, node: TreeNode[DirEntry]) -> None:
+        return Text.from_markup(f"{prefix} ") + rendered_label
+
+    def _cleanup_descendant_states(self, path: Path) -> None:
+        """Removes all descendants of a path from both selection and deselection sets."""
+        self._selected_items = {
+            p for p in self._selected_items if not self._is_descendant(p, path)
+        }
+        self._deselected_items = {
+            p for p in self._deselected_items if not self._is_descendant(p, path)
+        }
+
+    def _toggle_selection(self, node: TreeNode[DirEntry]) -> None:
+        """Toggles the selection state of a node based on the new logic."""
         if not (node and node.data and node.data.path):
-            self.log.error("Toggling selection on a non-existent node.")
             return
 
-        # The new state is the opposite of the current state.
-        is_currently_selected = node.data.path.resolve() in self._selected_items
-        self._set_node_selection_state(node, not is_currently_selected)
+        path = node.data.path.resolve()
+        is_currently_selected = self._is_node_rendered_as_selected(node)
 
-    def _apply_selection_recursively(self, node: TreeNode[DirEntry], select: bool) -> None:
-        """Recursively applies a selection state to a node and all its descendants."""
-        # Apply the state to the current node
-        self._set_node_selection_state(node, select)
+        # First, clear any more specific rules for children of the current node.
+        self._cleanup_descendant_states(path)
 
+        if is_currently_selected:
+            # GOAL: Deselect the node.
+            self._selected_items.discard(path)
+            # If an ancestor is selected, this node becomes an explicit exception.
+            is_ancestor_selected = any(path.is_relative_to(p) for p in self._selected_items)
+            if is_ancestor_selected:
+                self._deselected_items.add(path)
+        else:
+            # GOAL: Select the node.
+            self._deselected_items.discard(path)
+            self._selected_items.add(path)
+
+        # Refresh the display of the node and its immediate children
+        node.refresh()
         for child in node.children:
-            self._apply_selection_recursively(child, select)
-
-    def _toggle_dir_node_selection(self, node: TreeNode[DirEntry]):
-        assert node and node.data and node.data.path
-        # Determine the new state based on the top-level directory's current state.
-        # If the main directory is not currently in the selection, the new state is to select.
-        new_selection_state = node.data.path not in self._selected_items
-
-        # Kick off the recursive process to apply this new state everywhere.
-        self._apply_selection_recursively(node, new_selection_state)
+            child.refresh()
 
     def get_selected_items_path(self) -> Iterable[Path]:
-        return self._selected_items
+        """
+        Computes and returns the final set of selected file paths by resolving
+        parent selections and child deselections.
+        """
+        final_paths: set[Path] = set()
+        # 1. Add all files from explicitly selected items
+        for path in self._selected_items:
+            if path.is_file():
+                final_paths.add(path)
+            elif path.is_dir():
+                for file_path in path.rglob("*"):
+                    if file_path.is_file():
+                        final_paths.add(file_path)
+
+        # 2. Remove any files that are part of a deselected group
+        if not self._deselected_items:
+            return final_paths
+
+        return {
+            p
+            for p in final_paths
+            if not any(p.is_relative_to(deselected) for deselected in self._deselected_items)
+        }
 
     @on(DirectoryTree.FileSelected)
-    def on_file_selected(self, msg: DirectoryTree.FileSelected):
-        self._toggle_node_selection(msg.node)
+    def on_file_selected(self, msg: DirectoryTree.FileSelected) -> None:
+        """Handles file selection events."""
+        self._toggle_selection(msg.node)
 
     @on(DirectoryTree.DirectorySelected)
-    def on_directory_selected(self, msg: DirectoryTree.DirectorySelected):
-        self._toggle_dir_node_selection(msg.node)
+    def on_directory_selected(self, msg: DirectoryTree.DirectorySelected) -> None:
+        """Handles directory selection events."""
+        self._toggle_selection(msg.node)
 
     def __init__(self, path: str, id: str):
         super().__init__(path=path, id=id)
