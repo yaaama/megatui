@@ -34,6 +34,71 @@ logger.info(f"'megacmd' LOADED.")
 logger.info(f"================")
 
 
+# XXX ISO6081 is a typo, it should be 8601
+MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
+
+# A dictionary defining the components of the 'ls' output.
+# These keys will become the named capture groups in the final regex.
+LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
+    #  Flags: Can be either alphabetical or a hyphen (e.g., 'd---')
+    "flags": r"[a-zA-Z-]{4}",
+    # Version ('-' or a number)
+    "version": r"\d+|-",
+    # Size (digits for bytes or '-')
+    "size": r"\d+|-",
+    # Date time in ISO 8601 format (e.g., '2018-04-06T13:05:37')
+    "datetime": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+    # File handle (e.g., 'H:xxxxxxxx')
+    "filehandle": r"H:[^\s]+",
+    # Filename (captures everything until the end of the line)
+    "filename": r".+",
+}
+
+# Default 'ls -l --show-handles --date-format=ISO6081_WITH_TIME' regular expression.
+# re.VERBOSE allows for this clean, multi-line, and commented format.
+LS_REGEXP: Final[re.Pattern[str]] = re.compile(
+    rf"""
+    ^
+    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]})       \s+
+    (?P<version>{LS_PATTERN_COMPONENTS["version"]})   \s+
+    (?P<size>{LS_PATTERN_COMPONENTS["size"]})         \s+
+    (?P<datetime>{LS_PATTERN_COMPONENTS["datetime"]}) \s+
+    (?P<filehandle>{LS_PATTERN_COMPONENTS["filehandle"]}) \s+
+    (?P<filename>{LS_PATTERN_COMPONENTS["filename"]})
+    $
+    """,
+    re.VERBOSE,
+)
+
+# 'df' parsing regular expression
+# e.g.
+#       Cloud drive:          250770805753 in   17210 file(s) and    1352 folder(s)
+#       Inbox:                           0 in       0 file(s) and       1 folder(s)
+#       Rubbish bin:                  1368 in       4 file(s) and       2 folder(s)
+#       ---------------------------------------------------------------------------
+#       USED STORAGE:         250770069025                  11.40% of 2199023255552
+#       ---------------------------------------------------------------------------
+#       Total size taken up by file versions:    306416706
+#
+DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
+    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
+)  # Regexp to parse mount info
+
+DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
+    r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)"
+)  # Regexp to parse total storage usage.
+DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
+    r"^Total size taken up by file versions:\s+(\d+)"
+)  # Regexp to parse storage taken up by file versions
+
+DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
+    r"^FILENAME\s+SIZE$"
+)  # Parses du output for 'FILENAME SIZE'
+DU_REGEXP: re.Pattern[str] = re.compile(
+    r"^(.+?):\s+(\d+)"
+)  # Parses du output for a real filename and their size
+
+
 MEGA_COMMANDS_ALL: set[str] = {
     "attr",
     "fuse-remove",
@@ -399,71 +464,6 @@ class MegaMediaInfo:
         self.height = height
         self.fps = fps
         self.playtime = playtime
-
-
-# XXX ISO6081 is a typo, it should be 8601
-MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
-
-# A dictionary defining the components of the 'ls' output.
-# These keys will become the named capture groups in the final regex.
-LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
-    #  Flags: Can be either alphabetical or a hyphen (e.g., 'd---')
-    "flags": r"[a-zA-Z-]{4}",
-    # Version ('-' or a number)
-    "version": r"\d+|-",
-    # Size (digits for bytes or '-')
-    "size": r"\d+|-",
-    # Date time in ISO 8601 format (e.g., '2018-04-06T13:05:37')
-    "datetime": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
-    # File handle (e.g., 'H:xxxxxxxx')
-    "filehandle": r"H:[^\s]+",
-    # Filename (captures everything until the end of the line)
-    "filename": r".+",
-}
-
-# Default 'ls -l --show-handles --date-format=ISO6081_WITH_TIME' regular expression.
-# re.VERBOSE allows for this clean, multi-line, and commented format.
-LS_REGEXP: Final[re.Pattern[str]] = re.compile(
-    rf"""
-    ^
-    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]})       \s+
-    (?P<version>{LS_PATTERN_COMPONENTS["version"]})   \s+
-    (?P<size>{LS_PATTERN_COMPONENTS["size"]})         \s+
-    (?P<datetime>{LS_PATTERN_COMPONENTS["datetime"]}) \s+
-    (?P<filehandle>{LS_PATTERN_COMPONENTS["filehandle"]}) \s+
-    (?P<filename>{LS_PATTERN_COMPONENTS["filename"]})
-    $
-    """,
-    re.VERBOSE,
-)
-
-# 'df' parsing regular expression
-# e.g.
-#       Cloud drive:          250770805753 in   17210 file(s) and    1352 folder(s)
-#       Inbox:                           0 in       0 file(s) and       1 folder(s)
-#       Rubbish bin:                  1368 in       4 file(s) and       2 folder(s)
-#       ---------------------------------------------------------------------------
-#       USED STORAGE:         250770069025                  11.40% of 2199023255552
-#       ---------------------------------------------------------------------------
-#       Total size taken up by file versions:    306416706
-#
-DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
-    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
-)  # Regexp to parse mount info
-
-DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
-    r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)"
-)  # Regexp to parse total storage usage.
-DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
-    r"^Total size taken up by file versions:\s+(\d+)"
-)  # Regexp to parse storage taken up by file versions
-
-DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
-    r"^FILENAME\s+SIZE$"
-)  # Parses du output for 'FILENAME SIZE'
-DU_REGEXP: re.Pattern[str] = re.compile(
-    r"^(.+?):\s+(\d+)"
-)  # Parses du output for a real filename and their size
 
 
 def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
