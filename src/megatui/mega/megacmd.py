@@ -201,7 +201,7 @@ class MegaCmdResponse:
     stderr: str | None
     return_code: int | None
 
-    def __init__(self, stdout: str, stderr: str | None, return_code: int | None):
+    def __init__(self, *, stdout: str, stderr: str | None, return_code: int | None):
         self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
@@ -234,7 +234,7 @@ class MegaCmdResponse:
 class MegaLibError(Exception):
     """Custom exception for incorrect library usage."""
 
-    def __init__(self, message: str, fatal: bool = False):
+    def __init__(self, *, message: str, fatal: bool = False):
         super().__init__(message)
         self.fatal: bool = fatal
         logger.error(f"MegaLibError: {message} (Fatal: {fatal})")
@@ -473,11 +473,13 @@ def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """
     if not command:
         logger.critical("Command tuple cannot be empty.")
-        raise MegaLibError("Command tuple cannot be empty.", fatal=True)
+        raise MegaLibError(message="Command tuple cannot be empty.", fatal=True)
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
         logger.critical(f"Unsupported command '{command[0]}' requested.")
-        raise MegaLibError(f"The library does not support command '{command[0]}'.", fatal=True)
+        raise MegaLibError(
+            message=f"The library does not support command '{command[0]}'.", fatal=True
+        )
 
     # if 'command' is ('ls', '-l', '--tree'), then 'megacmd' name will be 'mega-ls'
     megacmd_name: str = f"mega-{command[0]}"
@@ -546,11 +548,13 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
     except FileNotFoundError:
         logger.error(f"Mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
-        raise MegaLibError(f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
+        raise MegaLibError(message=f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
     except Exception as e:
         logger.exception(f"Unexpected error running '{cmd_to_exec[0]}'")
         # Wrap unexpected errors
-        raise MegaCmdError(f"Unexpected error running '{cmd_to_exec[0]}': {e}") from e
+        raise MegaCmdError(
+            message=f"Unexpected error running '{cmd_to_exec[0]}': {e}", response=None
+        ) from e
 
 
 ###########################################################################
@@ -942,7 +946,7 @@ async def mega_put(
     """
     if not local_path:
         logger.error("Error! Local file is not specified for upload.")
-        raise MegaLibError("Local file is not specified for upload.", fatal=True)
+        raise MegaLibError(message="Local file is not specified for upload.", fatal=True)
 
     # Base of the command
     cmd = ["put"]
@@ -1103,7 +1107,7 @@ async def mega_get(
 
     if not remote_path:
         logger.error("Error! Remote path not specified for download.")
-        raise MegaLibError("Remote path not specified!", fatal=False)
+        raise MegaLibError(message="Remote path not specified!", fatal=False)
 
     # Optional args
     if queue:
