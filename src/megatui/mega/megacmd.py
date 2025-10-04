@@ -510,8 +510,9 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         process = await asyncio.create_subprocess_exec(
             cmd,
             *cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.DEVNULL,
         )
 
         stdout, stderr = await process.communicate()
