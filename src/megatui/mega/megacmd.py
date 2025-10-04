@@ -832,8 +832,12 @@ async def mega_cd_ls(
     effective_target_path = target_path if target_path else "/"
     logger.info(f"Changing directory and listing contents for {effective_target_path}")
 
-    await mega_cd(effective_target_path)
-    items = await mega_ls(effective_target_path, ls_flags)
+    results = await asyncio.gather(
+        mega_cd(effective_target_path), mega_ls(effective_target_path, ls_flags)
+    )
+
+    items: MegaItems = results[1]
+
     logger.info(f"Finished cd and ls for {effective_target_path}. Found {len(items)} items.")
 
     return items
