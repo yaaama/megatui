@@ -5,12 +5,11 @@ import logging
 import math
 import pathlib
 import re
-import subprocess
 from collections import deque
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePath
-from typing import Final, Literal, LiteralString, NamedTuple, TypedDict, override
+from typing import Final, LiteralString, NamedTuple, TypedDict, override
 
 MEGA_LOGTOFILE = True
 
@@ -29,9 +28,9 @@ logger = logging.getLogger(__name__)
 # This will hide all INFO and DEBUG messages from asyncio.
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
-logger.info(f"================")
-logger.info(f"'megacmd' LOADED.")
-logger.info(f"================")
+logger.info("================")
+logger.info("'megacmd' LOADED.")
+logger.info("================")
 
 
 # XXX ISO6081 is a typo, it should be 8601
@@ -210,9 +209,7 @@ class MegaCmdResponse:
     @property
     def failed(self) -> bool:
         """Return True if cmd returned non-zero or has stderr output."""
-        if (self.return_code) or (self.stderr):
-            return True
-        return False
+        return bool(self.return_code or self.stderr)
 
     @override
     def __repr__(self) -> str:
@@ -749,14 +746,12 @@ async def mega_du(
     include_version_info: bool = False,
     units: MegaSizeUnits | None = None,
 ):
-    """
-    Get disk usage. 'recurse' if 'True', will then calculate disk
+    """Get disk usage. 'recurse' if 'True', will then calculate disk
     usage for all subfolders too.
     'human' toggles whether it should use the '-h' flag and return the value in those units.
     'units' must be one of the values specified by SIZE_UNIT enum.
     If human is 'True' then 'units' value will be ignored.
     """
-
     # Prepare our command
     cmd: list[str] = ["du"]
 
@@ -1166,7 +1161,7 @@ async def mega_df(human: bool = True) -> str | None:
 
     if response.err_output:
         logger.error(f"Error running 'df': {response.err_output}")
-        raise MegaCmdError(message=f"Error running mega-df", response=response)
+        raise MegaCmdError(message="Error running mega-df", response=response)
 
     return response.stdout
 
@@ -1262,10 +1257,7 @@ async def mega_mkdir(name: str, path: str | None = None) -> bool:
         base_path = path.strip().rstrip("/")
 
         # If 'path' was '/'
-        if not base_path:
-            remote_path = f"/{clean_name}"
-        else:
-            remote_path = f"{base_path}/{clean_name}"
+        remote_path = f"/{clean_name}" if not base_path else f"{base_path}/{clean_name}"
 
     # Else if no path was given
     else:
