@@ -32,17 +32,17 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     app: "MegaTUI"
 
     BINDING_GROUP_TITLE = "Local File Explorer"
+
     BINDINGS = [
-        Binding("h", "cursor_parent", "Cursor to parent", show=False),
-        Binding("L", "cursor_parent_next_sibling", "Cursor to next ancestor", show=False),
-        Binding("shift+up", "cursor_previous_sibling", "Cursor to previous sibling", show=False),
-        Binding("shift+down", "cursor_next_sibling", "Cursor to next sibling", show=False),
-        Binding("full_stop", "toggle_hidden", "Toggle Hidden", show=False),
-        Binding("space", "select_cursor", "Select", show=False),
-        Binding("tab", "toggle_node", "Toggle", show=False),
-        Binding("shift+tab", "toggle_expand_all", "Expand or collapse all", show=False),
-        Binding("k", "cursor_up", "Cursor Up", show=False),
-        Binding("j", "cursor_down", "Cursor Down", show=False),
+        Binding("h", "cursor_parent", "move to parent", show=False),
+        Binding("ctrl+j", "cursor_parent_next_sibling", "next parent", show=False),
+        Binding("ctrl+k", "cursor_parent_previous_sibling", "prev parent", show=False),
+        Binding("j", "cursor_down", "cursor down", show=False),
+        Binding("k", "cursor_up", "cursor up", show=False),
+        Binding("space", "select_cursor", "select", show=False),
+        Binding("tab", "toggle_node", "toggle expansion", show=False),
+        Binding("shift+tab", "toggle_expand_all", "expand or collapse all", show=False),
+        Binding("full_stop", "toggle_hidden", "hidden files", show=False),
     ]
 
     COMPONENT_CLASSES = {
@@ -161,10 +161,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
             return True
 
         # If any ancestor is explicitly selected, it's implicitly selected.
-        if any(path.is_relative_to(p) for p in self._selected_items):
-            return True
-
-        return False
+        return bool(any(path.is_relative_to(p) for p in self._selected_items))
 
     @override
     def render_label(self, node: TreeNode[DirEntry], base_style: Style, style: Style) -> Text:
@@ -229,8 +226,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
             child.refresh()
 
     def get_selected_items_path(self) -> Iterable[Path]:
-        """
-        Computes and returns the final set of selected file paths by resolving
+        """Computes and returns the final set of selected file paths by resolving
         parent selections and child deselections.
         """
         final_paths: set[Path] = set()
