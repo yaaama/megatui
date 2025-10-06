@@ -53,6 +53,31 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     UNSELECTED_NODE_PREFIX = " "
 
     @override
+    def action_cursor_parent_next_sibling(self) -> None:
+        """Move the cursor to the parent's next sibling."""
+        cursor_node = self.cursor_node
+        if cursor_node is None or cursor_node.parent is None:
+            return
+
+        next = cursor_node.parent.next_sibling
+        if next is None:
+            return
+
+        self.move_cursor(next, animate=False)
+
+    def action_cursor_parent_previous_sibling(self) -> None:
+        """Move cursor to parents previous sibling."""
+        cursor_node = self.cursor_node
+        if cursor_node is None or cursor_node.parent is None:
+            return
+
+        prev = cursor_node.parent.previous_sibling
+        if prev is None:
+            return
+
+        self.move_cursor(prev, animate=False)
+
+    @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         """Filters paths based on the current filter_type."""
         match self.filter_type:
