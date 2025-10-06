@@ -3,16 +3,32 @@
 
 * TODO
 
+
 ** User Interface
 
 *** TODO Better Date Handling
 - Use ~mega-ls --time-format=ISO6081_WITH_TIME~ for a standardised time format
 - Parse it into ~datetime~ object
 
-
 ** File Operations
 
-*** [ ] Copy files
+
+
+*** TODO Copying files
+
+**** Functional Outline
+
+- User selects file(s)
+- Presses some keybinding, e.g. 'y'
+- Enters 'copy' mode
+- User navigates into different directory and then can press 'p' to paste file there.
+
+
+*** TODO Cutting files
+
+- Instead of the user selecting files and then navigating to a directory to move
+them, we should enter 'cut' mode after pressing some keybinding.
+
 
 ** Handle Console Resizing
 
