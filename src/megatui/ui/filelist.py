@@ -59,24 +59,24 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     """ Border subtitle. """
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
+
     DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
 
     # * State #################################################################
 
-    _row_data_map: dict[str, MegaItem]
-    """ Row and associated MegaItem mapping for current directory. """
+    _row_data_map: dict[
+        str, MegaItem
+    ]  # Row and associated MegaItem mapping for current directory.
 
-    _selected_items: dict[str, MegaItem]
-    """ Dict to store selected MegaItem(s), indexed by their handles. """
+    _selected_items: dict[
+        str, MegaItem
+    ]  # Dict to store selected MegaItem(s), indexed by their handles.
 
-    _curr_path: str
-    """ Current path we are in. """
+    _curr_path: str  # Current path we are in.
 
-    _loading_path: str
-    """ Path we are currently loading. """
+    _loading_path: str  # Path we are currently loading.
 
-    _path_history: deque[int]
-    """ Stores cursor index before navigating into a child folder. """
+    _cursor_index_stack: deque[int]  # Stores cursor index before navigating into a child folder.
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
@@ -84,7 +84,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             key="r",
             key_display="r",
             action="refresh",
-            description="refresh current directory",
+            description="refresh dir",
             show=True,
         ),
         Binding(
@@ -159,7 +159,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self._loading_path = self._curr_path
         self._row_data_map = {}
         self._selected_items = {}
-        self._path_history = deque()
+        self._cursor_index_stack = deque()
 
     @override
     def on_mount(self) -> None:
@@ -255,7 +255,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Folder to enter
         to_enter = selected_item_data.full_path
         # Add cursor index to our cursor position stack
-        self._path_history.append(self.cursor_row)
+        self._cursor_index_stack.append(self.cursor_row)
         path_str: str = str(to_enter)
 
         # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
@@ -275,7 +275,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             return
 
         parent_path: PurePath = PurePath(curr_path).parent
-        curs_index = self._path_history.pop()
+        curs_index = self._cursor_index_stack.pop()
 
         # Useful to stop the flickering
         with self.app.batch_update():
