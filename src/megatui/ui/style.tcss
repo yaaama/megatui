@@ -106,15 +106,17 @@ RenameDialog {
         height: auto;
     }
 
-    Input {
+
+    #title-label {
+        margin-left: 2;
+        color: $accent;
+    }
+
+    #input-box {
         margin: 1;
         width: 1fr;
         color: $foreground;
-    }
-
-    Label {
-        margin-left: 2;
-        color: $accent;
+        height: 2;
     }
 }
 

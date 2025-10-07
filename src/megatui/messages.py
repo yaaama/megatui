@@ -27,9 +27,7 @@ class StatusUpdate(Message):
 
 
 class UploadRequest(Message):
-    def __init__(
-        self, files: Iterable[Path], destination: PurePath | str | None
-    ) -> None:
+    def __init__(self, files: Iterable[Path], destination: PurePath | str | None) -> None:
         super().__init__()
         self.files: Iterable[Path] = files
         self.destination: PurePath | str | None = destination

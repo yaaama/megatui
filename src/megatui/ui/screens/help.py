@@ -66,19 +66,13 @@ class MegaTUIBindingsTable(BindingsTable):
             action_to_bindings = defaultdict(list)
             for _, binding, enabled, tooltip in table_bindings:
                 if not binding.system:
-                    action_to_bindings[binding.action].append(
-                        (binding, enabled, tooltip)
-                    )
+                    action_to_bindings[binding.action].append((binding, enabled, tooltip))
 
-            description_style = self.get_component_rich_style(
-                "bindings-table--description"
-            )
+            description_style = self.get_component_rich_style("bindings-table--description")
 
             def render_description(binding: Binding) -> Text:
                 """Render description text from a binding."""
-                text = Text.from_markup(
-                    binding.description, end="", style=description_style
-                )
+                text = Text.from_markup(binding.description, end="", style=description_style)
                 if binding.tooltip:
                     if binding.description:
                         text.append(" ")

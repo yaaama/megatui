@@ -70,6 +70,7 @@ ignore = [
   "C901", # McCabe complexity warning
   "E501", # Line too long
   "E722", # Do not use bare `except`
+  "PLC0415" # Import statement should be at top of file
 ]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

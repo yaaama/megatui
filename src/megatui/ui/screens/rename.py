@@ -52,17 +52,18 @@ class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
     @override
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Label(self.prompt, id="label-new-file-name")
+            yield Label(self.prompt, id="title-label")
             yield Input(
                 placeholder=self._initial or "Enter new name...",
                 max_length=60,
                 valid_empty=False,
-                id="input-rename-file",
+                id="input-box",
                 validators=[Regex("^[a-zA-Z0-9_.\\s]*")],
                 validate_on=["changed", "submitted"],
+                compact=True,
             )
 
-    @on(Input.Submitted, "#input-rename-file")
+    @on(Input.Submitted, "#input-box")
     def action_submit_rename(self) -> tuple[str, MegaItem] | None:
         if value := self.query_one(Input).value.strip():
             self.dismiss(result=(value, self.node))

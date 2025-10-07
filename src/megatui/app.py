@@ -44,9 +44,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     BINDING_GROUP_TITLE = "Main Application"
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding(
-            key="ctrl+c", action="quit", description="quit", show=False, priority=True
-        ),
+        Binding(key="ctrl+c", action="quit", description="quit", show=False, priority=True),
         Binding(key="q", action="quit", description="quit", show=False),
         Binding(
             "f2",
@@ -154,9 +152,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     #
 
     @on(FileList.ToggledSelection)
-    def on_file_list_toggled_selection(
-        self, message: FileList.ToggledSelection
-    ) -> None:
+    def on_file_list_toggled_selection(self, message: FileList.ToggledSelection) -> None:
         """Update counter when selecting/unselecting an item."""
         selection_label = self.query_one("#label-selected-count", Label)
         if message.count == 0:

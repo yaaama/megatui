@@ -4,20 +4,17 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 
 from collections import deque
-from collections.abc import Iterable
 from pathlib import Path, PurePath
 from typing import (
     Annotated,
     Any,
     ClassVar,
-    Literal,
     LiteralString,
-    assert_type,
     override,
 )
 
 from rich.text import Text
-from textual import on, work
+from textual import work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
@@ -127,9 +124,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         Binding("j", "cursor_down", "Cursor Down", key_display="j", show=False),
         Binding("k", "cursor_up", "Cursor Up", key_display="k", show=False),
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l", show=False),
-        Binding(
-            "h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False
-        ),
+        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False),
     ]
     """ Binds related to navigation. """
 
@@ -212,7 +207,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.move_cursor(row=cursor_index)
 
         filenames = [str(item.full_path) for item in selected]
-        deletion_msg = ", ".join(filenames)
+        ", ".join(filenames)
 
         self.notify(
             message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
@@ -221,7 +216,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
-        self.log.info(f"Uploading file(s)")
+        self.log.info("Uploading file(s)")
 
         files = [str(path) for path in msg.files]
         destination = str(msg.destination) if msg.destination else self._curr_path
@@ -233,7 +228,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     async def action_upload_file(self) -> None:
         """Toggle upload file screen."""
-
         await self.app.push_screen(UploadFilesModal())
 
     # ** Navigation ############################################################
@@ -285,17 +279,14 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     # ** File Actions ######################################################
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
-        if quiet == False:
-            self.post_message(
-                StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
-            )
+        if not quiet:
+            self.post_message(StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2))
 
         with self.app.batch_update():
             # Keep point at curr index when refreshing
             curs_index = self.cursor_row
             await self.load_directory(self._curr_path)
-            if curs_index > self.row_count - 1:
-                curs_index = self.row_count - 1
+            curs_index = min(curs_index, self.row_count - 1)
             self.move_cursor(row=curs_index)
 
     # *** Selection #######################################################
@@ -323,9 +314,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             row_item: MegaItem = self._row_data_map[key]
             return row_item
         except KeyError:
-            self.log.error(
-                f"Could not find data for row key '{key}'. State is inconsistent."
-            )
+            self.log.error(f"Could not find data for row key '{key}'. State is inconsistent.")
             return None
 
     def _get_curr_row_megaitem(self) -> MegaItem | None:
@@ -343,7 +332,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         return self._get_row_megaitem(row_key)
 
     def action_toggle_file_selection(self) -> None:
-        """Toggles selection state of row under cursor"""
+        """Toggles selection state of row under cursor."""
         megaitem = self._get_curr_row_megaitem()
 
         # Exit if there is no megaitem
@@ -514,17 +503,13 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             # If name is duplicate
             if name in filenames:
                 self.log.info(f"File already exists with the name '{name}'.")
-                self.post_message(
-                    StatusUpdate(message=f"File '{name}' already exists!")
-                )
+                self.post_message(StatusUpdate(message=f"File '{name}' already exists!"))
                 return
 
             success = await m.mega_mkdir(name=name, path=None)
             if not success:
                 self.post_message(
-                    StatusUpdate(
-                        message=f"Could not create directory '{name}' for some reason."
-                    )
+                    StatusUpdate(message=f"Could not create directory '{name}' for some reason.")
                 )
                 return
 
@@ -560,9 +545,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             )
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
             title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
-            self.notify(
-                f"'{file.name}' finished downloading ", title=f"{title}", markup=True
-            )
+            self.notify(f"'{file.name}' finished downloading ", title=f"{title}", markup=True)
 
     async def action_download(self) -> None:
         """Download the currently highlighted file or a selection of files.
@@ -646,9 +629,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
         found_selected_items: bool = False
 
-        row_generator = (
-            (node, self._prepare_row_contents(node)) for node in fetched_items
-        )
+        row_generator = ((node, self._prepare_row_contents(node)) for node in fetched_items)
 
         # Go through each item and create new row for them
         for node, row_cells in row_generator:
@@ -735,9 +716,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Get number of files
         file_count: int = len(fetched_items)
 
-        self.log.debug(
-            f"Worker success for path '{self._loading_path}', items: {file_count}"
-        )
+        self.log.debug(f"Worker success for path '{self._loading_path}', items: {file_count}")
         # Update FileList
 
         with self.app.batch_update():
@@ -787,9 +766,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             # We are in an empty directory!
             return None
 
-        assert row_key.value, (
-            "We should definitely have a 'value' attribute for our rowkey."
-        )
+        assert row_key.value, "We should definitely have a 'value' attribute for our rowkey."
 
         return self._row_data_map.get(row_key.value)
 
@@ -807,9 +784,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         # When nothing is highlighted
         if not highlighted:
-            self.log.error(
-                "Could not default to highlighted item, returning empty list."
-            )
+            self.log.error("Could not default to highlighted item, returning empty list.")
             return ()
 
         return (highlighted,)
