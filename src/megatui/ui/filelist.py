@@ -3,6 +3,7 @@ Contains actions and is the main way to interact with the application.
 """
 # UI Components Related to Files
 
+import asyncio
 from collections import deque
 from pathlib import Path, PurePath
 from typing import (
@@ -574,15 +575,21 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def action_view_transfer_list(self):
         pass
 
-    async def move_files(self, files: MegaItems, new_path: str) -> None:
+    async def _move_files(self, files: MegaItems, new_path: str) -> None:
         """Helper function to move MegaItems to a new path."""
         if not files:
             self.log.warning("No files received to move.")
             return
 
+        tasks: list[asyncio.Task[None]] = []
         for f in files:
-            self.log.info(f"Moving `{f.name}` from `{f.path}`  to: `{new_path}`")
-            await m.mega_mv(file_path=f.path, target_path=new_path)
+            self.log.info(f"Queueing move for `{f.name}` from `{f.path}` to: `{new_path}`")
+            task = asyncio.create_task(m.mega_mv(file_path=f.path, target_path=new_path))
+            tasks.append(task)
+
+        # The function will wait here until all move operations are complete.
+        await asyncio.gather(*tasks)
+        self.log.info("All file move operations completed.")
 
     async def action_move_files(self):
         """Move selected files to current directory."""
@@ -590,9 +597,10 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         cwd = self._curr_path
 
         self.log.info(f"Moving files to {cwd}")
-        await self.move_files(files, cwd)
-        self.action_unselect_all_files()
-        await self.action_refresh(True)
+        await self._move_files(files, cwd)
+        with self.app.batch_update():
+            self.action_unselect_all_files()
+            await self.action_refresh(True)
 
     async def action_delete_file(self):
         pass
