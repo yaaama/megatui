@@ -791,18 +791,15 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         Default to returning highlighted item if is nothing selected.
         """
         # If we have selected items return those
-        if len(self._selected_items.keys()) > 0:
-            return tuple(self._selected_items.values())
-
-        # When we don't have any items selected
-        highlighted = self.highlighted_item
+        if self.selected_items:
+            return self.selected_items
 
         # When nothing is highlighted
-        if not highlighted:
+        if not self.highlighted_item:
             self.log.error("Could not default to highlighted item, returning empty list.")
             return ()
 
-        return (highlighted,)
+        return (self.highlighted_item,)
 
     @property
     def selected_items(self) -> MegaItems:
