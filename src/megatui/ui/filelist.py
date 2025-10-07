@@ -120,8 +120,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         Binding(key="D", key_display="D", action="delete_files", description="delete"),
         Binding(key="f3", key_display="f3", action="download", description="download"),
         Binding(
-            "f4",
-            key_display="f4",
+            "M",
+            key_display="M",
             action="move_files",
             description="move",
         ),
