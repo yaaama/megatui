@@ -3,7 +3,6 @@ import typing
 from collections.abc import Iterable
 from enum import Enum, auto
 from pathlib import Path
-from string import Template
 from typing import ClassVar, override
 
 from rich.style import Style
@@ -11,7 +10,7 @@ from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Vertical
+from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import DirectoryTree, Label
 from textual.widgets._directory_tree import DirEntry
@@ -105,20 +104,6 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
 
         await self._reload_and_recenter()
 
-    def _selection_status_node_label(self, node: TreeNode[DirEntry], selected: bool):
-        """Helper function to produce node label with 'selected' status."""
-        # When selected
-        template = Template("$sel$label")
-        kwds: dict[str, str] = {}
-        if selected:
-            kwds["sel"] = self.SELECTED_NODE_PREFIX
-        else:
-            kwds["sel"] = ""
-
-        kwds["label"] = str(node.label)
-
-        return Text.from_markup(template.substitute(kwds))
-
     def _set_node_selection_state(self, node: TreeNode[DirEntry], select: bool) -> None:
         """Applies a specific selection state (select=True or select=False) to a single node."""
         if not (node and node.data and node.data.path):
@@ -209,28 +194,41 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         self._cleanup_descendant_states(path)
 
         if is_currently_selected:
-            # GOAL: Deselect the node.
+            # Deselect the node.
             self._selected_items.discard(path)
             # If an ancestor is selected, this node becomes an explicit exception.
             is_ancestor_selected = any(path.is_relative_to(p) for p in self._selected_items)
             if is_ancestor_selected:
-                self._deselected_items.add(path)
+                # TODO Make this an operation later.
+                return
+                # self._deselected_items.add(path)
         else:
-            # GOAL: Select the node.
+            # Select the node.
             self._deselected_items.discard(path)
             self._selected_items.add(path)
 
         # Refresh the display of the node and its immediate children
         node.refresh()
+        # TODO Walk the subnodes and refresh them (if they are visible).
+        # This is because if we just refresh the immediate children, the nested
+        # nodes will not have their selection toggled visually.
         for child in node.children:
             child.refresh()
 
+    # TODO: Make this more efficient.
+    # - Instead of looping around so often, perhaps we could return a list of
+    # trees/paths.
+    # - Each tree would be a directory that was explicitly selected,
+    # and their leaf-nodes would be the files that were explicitly unselected.
+    # - This would save us from having to specify each individual file within each directory.
+    # - Or perhaps unselecting an item that falls within a directory that was selected
+    # should just be a NO-OP for now?
     def get_selected_items_path(self) -> Iterable[Path]:
         """Computes and returns the final set of selected file paths by resolving
         parent selections and child deselections.
         """
         final_paths: set[Path] = set()
-        # 1. Add all files from explicitly selected items
+        # Add all files from explicitly selected items
         for path in self._selected_items:
             if path.is_file():
                 final_paths.add(path)
@@ -239,7 +237,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
                     if file_path.is_file():
                         final_paths.add(file_path)
 
-        # 2. Remove any files that are part of a deselected group
+        # Remove any files that are part of a deselected group
         if not self._deselected_items:
             return final_paths
 
@@ -250,14 +248,16 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         }
 
     @on(DirectoryTree.FileSelected)
-    def on_file_selected(self, msg: DirectoryTree.FileSelected) -> None:
+    def on_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Handles file selection events."""
-        self._toggle_selection(msg.node)
+        event.stop()
+        self._toggle_selection(event.node)
 
     @on(DirectoryTree.DirectorySelected)
-    def on_directory_selected(self, msg: DirectoryTree.DirectorySelected) -> None:
+    def on_directory_selected(self, event: DirectoryTree.DirectorySelected) -> None:
         """Handles directory selection events."""
-        self._toggle_selection(msg.node)
+        event.stop()
+        self._toggle_selection(event.node)
 
     def __init__(self, path: str, id: str):
         super().__init__(path=path, id=id)
@@ -279,7 +279,9 @@ class UploadFilesModal(ModalScreen[None]):
     app: "MegaTUI"
 
     BINDINGS: ClassVar[list[BindingType]] = [
+        # Escape / Q to quit
         Binding(key="escape,q", action="app.pop_screen", show=False, priority=True),
+        # Press 'enter' to send upload message
         Binding(key="enter", action="finished", show=True),
     ]
 
@@ -298,7 +300,7 @@ class UploadFilesModal(ModalScreen[None]):
 
     @override
     def compose(self) -> ComposeResult:
-        with Vertical(id="verticalcontainer"):
+        with Container(id="container"):
             yield Label("Select file to upload", id="uploadfiles-heading")
             yield LocalSystemFileTree(
                 path=str(Path.home()),

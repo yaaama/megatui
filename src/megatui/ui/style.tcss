@@ -159,7 +159,7 @@ UploadFilesModal {
         /* background: transparent; */
     }
 
-    Vertical {
+    #container {
         height: 80%;
         width: 60%;
         align: center middle;
