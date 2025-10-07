@@ -1210,8 +1210,8 @@ async def mega_df_dict() -> StorageOverview | None:
         "version_size_bytes": None,
     }
 
-    for line in lines:
-        line = line.strip()
+    for line_base in lines:
+        line = line_base.strip()
         if match := DF_LOCATION_REGEXP.match(line):
             name, size, files, folders = match.groups()
             parsed_data["locations"].append(
