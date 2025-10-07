@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 # Rename popup
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from rich.text import Text
 from textual import on
@@ -12,8 +14,12 @@ from textual.widgets import Input, Label
 
 from megatui.mega.megacmd import MegaItem
 
+if TYPE_CHECKING:
+    from megatui.app import MegaTUI
+
 
 class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
+    app: "MegaTUI"
     BINDINGS: list[BindingType] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_rename", show=True),

@@ -7,10 +7,12 @@ from textual.screen import ModalScreen
 from textual.widgets._key_panel import BindingsTable
 
 if TYPE_CHECKING:
-    pass
+    from megatui.app import MegaTUI
 
 
 class MegaTUIBindingsTable(BindingsTable):
+    app: "MegaTUI"
+
     """A widget to display bindings."""
 
     COMPONENT_CLASSES = {
@@ -35,6 +37,8 @@ class MegaTUIBindingsTable(BindingsTable):
 
         from rich import box
         from rich.text import Text
+
+        self.binds: dict[str, ActiveBinding]
 
         bindings = self.binds.values()
 
@@ -102,12 +106,13 @@ class MegaTUIBindingsTable(BindingsTable):
     def render(self) -> Table:
         return self.render_bindings_table()
 
-    def __init__(self, binds, widget_id: str):
+    def __init__(self, binds: dict[str, ActiveBinding], widget_id: str):
         super().__init__(id=widget_id)
         self.binds = binds
 
 
 class HelpScreen(ModalScreen[None]):
+    app: "MegaTUI"
     BINDINGS: list[BindingType] = [
         Binding(key="escape", action="quit_help", show=False, priority=True),
     ]

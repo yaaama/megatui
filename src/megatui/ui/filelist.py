@@ -6,6 +6,7 @@ Contains actions and is the main way to interact with the application.
 from collections import deque
 from pathlib import Path, PurePath
 from typing import (
+    TYPE_CHECKING,
     Annotated,
     Any,
     ClassVar,
@@ -29,11 +30,17 @@ from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
 
+if TYPE_CHECKING:
+    from megatui.app import MegaTUI
+
+
 DL_PATH = Annotated[Path, "Default download path."]
 
 
 class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[reportExplicitAny]
     """A DataTable widget to display files and their information."""
+
+    app: "MegaTUI"
 
     # * UI Elements ###########################################################
 

@@ -99,6 +99,7 @@ reportUnreachable = false
 reportExplicitAny = false
 reportAny = false
 reportUnnecessaryTypeIgnoreComment = false
+reportImportCycles = false
 
 
 pythonVersion = "3.13"

@@ -120,6 +120,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     def action_show_help_screen(self) -> None:
         """Show bindings help screen."""
         # Prevent opening a new help window when one is already there
+        self.app: MegaTUI
         if self.app.screen.name == "help":
             self.pop_screen()
             return
