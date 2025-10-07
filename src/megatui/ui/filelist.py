@@ -489,9 +489,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 initial_input=selected_item.name,
             ),
             callback=_on_rename_dialog_closed,
+            wait_for_dismiss=True,
         )
-
-        await self.action_refresh()
 
     @work(
         group="megacmd",
