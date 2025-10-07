@@ -102,8 +102,8 @@ class MegaTUIBindingsTable(BindingsTable):
     def render(self) -> Table:
         return self.render_bindings_table()
 
-    def __init__(self, binds, id):
-        super().__init__(id=id)
+    def __init__(self, binds, widget_id: str):
+        super().__init__(id=widget_id)
         self.binds = binds
 
 
@@ -121,6 +121,6 @@ class HelpScreen(ModalScreen[None]):
 
     @override
     def compose(self) -> ComposeResult:
-        binding_table = MegaTUIBindingsTable(self.display_keys, id="megabindings-table")
+        binding_table = MegaTUIBindingsTable(self.display_keys, widget_id="megabindings-table")
 
         yield binding_table

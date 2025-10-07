@@ -422,24 +422,24 @@ class MegaItem:
         return path
 
     @staticmethod
-    def get_size_in(bytes: int, unit: MegaSizeUnits) -> int:
+    def get_size_in(bytes_used: int, unit: MegaSizeUnits) -> int:
         """Returns size of file in specified unit.
-        Args: 'bytes' Size of file in bytes.
+        Args: 'bytes_used' Size of file in bytes.
               'unit' Unit of size to convert bytes to.
         """
         match unit:
             case MegaSizeUnits.B:
-                return bytes
+                return bytes_used
             # Bit shifting
             case MegaSizeUnits.KB:
-                return bytes >> 10
+                return bytes_used >> 10
             case MegaSizeUnits.MB:
-                return bytes >> 20
+                return bytes_used >> 20
             case MegaSizeUnits.GB:
-                return bytes >> 30
+                return bytes_used >> 30
             case MegaSizeUnits.TB:
-                return bytes >> 40
-        return bytes
+                return bytes_used >> 40
+        return bytes_used
 
 
 # Alias

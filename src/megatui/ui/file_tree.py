@@ -58,11 +58,11 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         if cursor_node is None or cursor_node.parent is None:
             return
 
-        next = cursor_node.parent.next_sibling
-        if next is None:
+        next_sib = cursor_node.parent.next_sibling
+        if next_sib is None:
             return
 
-        self.move_cursor(next, animate=False)
+        self.move_cursor(next_sib, animate=False)
 
     def action_cursor_parent_previous_sibling(self) -> None:
         """Move cursor to parents previous sibling."""
@@ -70,11 +70,11 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         if cursor_node is None or cursor_node.parent is None:
             return
 
-        prev = cursor_node.parent.previous_sibling
-        if prev is None:
+        prev_sib = cursor_node.parent.previous_sibling
+        if prev_sib is None:
             return
 
-        self.move_cursor(prev, animate=False)
+        self.move_cursor(prev_sib, animate=False)
 
     @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
@@ -259,8 +259,8 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         event.stop()
         self._toggle_selection(event.node)
 
-    def __init__(self, path: str, id: str):
-        super().__init__(path=path, id=id)
+    def __init__(self, path: str, widget_id: str):
+        super().__init__(path=path, id=widget_id)
         # Do not auto expand selected folders
         self.auto_expand = False
         # Keep cursor in the center
@@ -304,5 +304,5 @@ class UploadFilesModal(ModalScreen[None]):
             yield Label("Select file to upload", id="uploadfiles-heading")
             yield LocalSystemFileTree(
                 path=str(Path.home()),
-                id="filetree",
+                widget_id="filetree",
             )
