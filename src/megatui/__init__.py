@@ -1,2 +1,2 @@
-"""megatui"""
+"""megatui."""
 # megatui

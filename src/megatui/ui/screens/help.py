@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, override
+from typing import TYPE_CHECKING, override
 
 from rich.table import Table
 from textual.app import ComposeResult
@@ -7,7 +7,7 @@ from textual.screen import ModalScreen
 from textual.widgets._key_panel import BindingsTable
 
 if TYPE_CHECKING:
-    from megatui.app import MegaTUI
+    pass
 
 
 class MegaTUIBindingsTable(BindingsTable):

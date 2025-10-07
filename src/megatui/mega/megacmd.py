@@ -845,7 +845,7 @@ async def mega_cd_ls(
 ###############################################################################
 ###############################################################################
 async def mega_cp(file_path: str, target_path: str) -> None:
-    """Copy file from 'file_path' to 'target_path'"""
+    """Copy file from 'file_path' to 'target_path'."""
     logger.info(f"Copying file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("cp", file_path, target_path)

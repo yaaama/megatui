@@ -34,7 +34,7 @@ class TopStatusBar(Horizontal):
 
     @override
     def compose(self) -> ComposeResult:
-        """Create the child widgets"""
+        """Create the child widgets."""
         # Yield the labels. Their content will be set by the watch methods
         # immediately after this, and then every time the reactive var changes.
         yield Label(id=self.PATH_LABEL_ID)

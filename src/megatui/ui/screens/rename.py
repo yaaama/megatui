@@ -1,5 +1,5 @@
 # Rename popup
-from typing import ClassVar, override
+from typing import override
 
 from rich.text import Text
 from textual import on

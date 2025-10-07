@@ -1,5 +1,4 @@
-"""
-messages.py
+"""messages.py
 Messages that are used throughout the application.
 """
 
@@ -34,7 +33,7 @@ class UploadRequest(Message):
 
 
 class Notification(Message):
-    """Send a notification to the user"""
+    """Send a notification to the user."""
 
     def __init__(
         self,

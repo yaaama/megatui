@@ -3,10 +3,9 @@ import logging
 import sys
 from typing import ClassVar, override
 
-import rich
 from textual import on
 from textual.app import App, ComposeResult
-from textual.binding import ActiveBinding, Binding, BindingType
+from textual.binding import Binding, BindingType
 from textual.containers import Vertical
 from textual.content import Content
 from textual.logging import TextualHandler
@@ -191,7 +190,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         status_bar.status_msg = message.message
 
         def clear_status_msg():
-            """Clear TopStatusBar of all its contents"""
+            """Clear TopStatusBar of all its contents."""
             self.log.info("Clearing status message in top bar.")
             status_bar.clear_status_msg()
 
@@ -204,19 +203,18 @@ class MegaTUI(App[None], inherit_bindings=False):
     # Widget access.
     @property
     def file_list(self):
-        """Return FileList widget"""
+        """Return FileList widget."""
         return self.query_one(FileList)
 
     @property
     def top_status_bar(self):
-        """Return TopStatusBar of UI"""
+        """Return TopStatusBar of UI."""
         return self.query_one(TopStatusBar)
 
 
 # Run the application #####################################################################
 async def run_app() -> None:
     """Checks login and runs the Textual app."""
-
     # Start the TUI
     app = MegaTUI()
     app.animation_level = "none"
