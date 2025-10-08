@@ -301,3 +301,4 @@ class UploadFilesModal(ModalScreen[None]):
                 path=str(Path.home()),
                 widget_id="filetree",
             )
+            # TODO: Add a label here that will display the count of selected files etc
