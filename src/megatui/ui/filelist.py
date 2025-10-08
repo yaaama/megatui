@@ -202,10 +202,14 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Selected files
         selected = self.selected_or_highlighted_items
 
+        tasks: list[asyncio.Task[None]] = []
         for item in selected:
             if item.is_dir:
-                await m.mega_rm(fpath=item.path, flags=("-r", "-f"))
-            await m.mega_rm(fpath=item.path, flags=None)
+                tasks.append(asyncio.create_task(m.mega_rm(fpath=item.path, flags=("-r", "-f"))))
+            else:
+                tasks.append(asyncio.create_task(m.mega_rm(fpath=item.path, flags=None)))
+
+        await asyncio.gather(*tasks)
 
         with self.app.batch_update():
             self.action_unselect_all_files()
