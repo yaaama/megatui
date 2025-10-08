@@ -224,18 +224,13 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
     # - Or perhaps unselecting an item that falls within a directory that was selected
     # should just be a NO-OP for now?
     def get_selected_items_path(self) -> Iterable[Path]:
-        """Computes and returns the final set of selected file paths by resolving
-        parent selections and child deselections.
+        """Computes and returns the final set of selected file paths by
+        resolving parent selections and child deselections.
         """
         final_paths: set[Path] = set()
         # Add all files from explicitly selected items
         for path in self._selected_items:
-            if path.is_file():
-                final_paths.add(path)
-            elif path.is_dir():
-                for file_path in path.rglob("*"):
-                    if file_path.is_file():
-                        final_paths.add(file_path)
+            final_paths.add(path)
 
         # Remove any files that are part of a deselected group
         if not self._deselected_items:
