@@ -6,10 +6,10 @@ import math
 import pathlib
 import re
 from collections import deque
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePath
-from collections.abc import Iterable
 from typing import Final, LiteralString, NamedTuple, TypedDict, override
 
 MEGA_LOGTOFILE = True
@@ -610,7 +610,6 @@ async def mega_ls(
         list[MegaItem]: A list of MegaItem objects representing the contents.
                         Returns an empty list if the path is invalid or an error occurs.
     """
-
     cmd: list[str] = [
         "ls",
         "-l",
@@ -905,7 +904,7 @@ async def node_rename(file_path: PurePath, new_name: str) -> None:
 async def mega_rm(fpath: PurePath, flags: tuple[str, ...] | None) -> None:
     """Remove a file."""
     str_path = str(fpath)
-    logger.info(f"Removing file {str(fpath)} with flags: {flags} ")
+    logger.info(f"Removing file {fpath!s} with flags: {flags} ")
 
     cmd: list[str] = ["rm", str_path, *flags] if flags else ["rm", str_path]
 
