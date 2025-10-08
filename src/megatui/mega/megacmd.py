@@ -9,6 +9,7 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from pathlib import Path, PurePath
+from collections.abc import Iterable
 from typing import Final, LiteralString, NamedTuple, TypedDict, override
 
 MEGA_LOGTOFILE = True
@@ -325,16 +326,12 @@ class MegaItem:
 
     name: str  # Name of item
     """Name of file/folder item."""
-
-    parent_path: str
+    parent_path: PurePath
     """ Path of parent directory of file/directory. """
-
-    path: str
+    path: PurePath
     """ Full path of item. """
-
     bytes: int
     """ Size of file in BYTES, will be 0 for dirs."""
-
     size: float
     """ Size of file (human readable) """
 
@@ -356,7 +353,7 @@ class MegaItem:
     def __init__(
         self,
         name: str,
-        parent_path: str,
+        parent_path: PurePath,
         size: int,
         mtime: datetime,
         ftype: MegaFileTypes,
@@ -371,7 +368,7 @@ class MegaItem:
         self.version = version
         self.handle = handle
 
-        self.path = str(self.full_path)
+        self.path = parent_path / name
 
         # Human friendly sizing #############################################################
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
@@ -600,7 +597,9 @@ async def check_mega_login() -> tuple[bool, str | None]:
 ###########################################################################
 
 
-async def mega_ls(path: str | None = "/", flags: tuple[str, ...] | None = None) -> MegaItems:
+async def mega_ls(
+    path: PurePath | None = None, flags: tuple[str, ...] | None = None
+) -> MegaItems:
     """Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
     Args:
@@ -611,17 +610,6 @@ async def mega_ls(path: str | None = "/", flags: tuple[str, ...] | None = None) 
         list[MegaItem]: A list of MegaItem objects representing the contents.
                         Returns an empty list if the path is invalid or an error occurs.
     """
-    curr_path_for_items: str
-
-    if path:
-        target_path: str = path if path.startswith("/") else f"/{path}"
-        curr_path_for_items = target_path
-        logger.info(f"Listing contents of MEGA path: {target_path}")
-
-    else:
-        target_path = "."
-        curr_path_for_items = "/"
-        logger.info("Target path not specified: Listing nodes of current path.")
 
     cmd: list[str] = [
         "ls",
@@ -633,19 +621,27 @@ async def mega_ls(path: str | None = "/", flags: tuple[str, ...] | None = None) 
     if flags:
         cmd.extend(flags)
 
-    cmd.append(target_path)
+    if not path:
+        logger.debug("Target path not specified: Listing nodes of current path.")
+        target_path = await mega_pwd()
+    else:
+        target_path = path
+
+    logger.info(f"Listing contents of MEGA path: {target_path}")
+
+    cmd.append(str(target_path))
 
     response: MegaCmdResponse = await run_megacmd(tuple(cmd))
 
     error_msg = response.err_output
     if error_msg:
-        logger.error(f"Error listing files in '{target_path}': {error_msg}")
+        logger.error(f"Error listing files in '{path}': {error_msg}")
         return ()
 
     items: deque[MegaItem] = deque()
 
-    # Remove first element (it will be the header line)
     lines = response.stdout.strip().split("\n")
+    # Remove first element (it will be the header line)
     del lines[0]
 
     # Handle empty output
@@ -716,7 +712,7 @@ async def mega_ls(path: str | None = "/", flags: tuple[str, ...] | None = None) 
         items.append(
             MegaItem(
                 name=_name,
-                parent_path=curr_path_for_items,
+                parent_path=target_path,
                 size=item_size,
                 mtime=mtime_obj,
                 ftype=_file_type,
@@ -790,11 +786,15 @@ async def mega_du(
 
 
 ###############################################################################
-async def mega_cd(target_path: str = "/"):
+async def mega_cd(target_path: PurePath | None):
     """Change directories."""
+    if not target_path:
+        logger.debug("No target path. Will cd to root")
+        target_path = PurePath("/")
+
     logger.info(f"Changing directory to {target_path}")
 
-    cmd: list[str] = ["cd", target_path]
+    cmd: list[str] = ["cd", str(target_path)]
     response = await run_megacmd(tuple(cmd))
 
     error_msg = response.err_output
@@ -805,8 +805,8 @@ async def mega_cd(target_path: str = "/"):
     logger.info(f"Successfully changed directory to '{target_path}'")
 
 
-async def mega_pwd() -> str:
-    """Change directories."""
+async def mega_pwd() -> PurePath:
+    """Returns current working directory"""
     logger.info("Getting current working directory.")
 
     cmd: tuple[str, ...] = ("pwd",)
@@ -818,26 +818,26 @@ async def mega_pwd() -> str:
         logger.error(f"Error printing working directory: {error_msg}")
         raise MegaCmdError(f"Failed to get working directory: {error_msg}")
 
-    pwd_path = response.stdout.strip()
+    pwd_path = PurePath(response.stdout.strip())
     logger.info(f"Current working directory: {pwd_path}")
     return pwd_path
 
 
 ###############################################################################
 async def mega_cd_ls(
-    target_path: str | None = "/", ls_flags: tuple[str, ...] | None = None
+    target_path: PurePath | None, ls_flags: tuple[str, ...] | None = None
 ) -> MegaItems:
     """Change directories and ls."""
-    effective_target_path = target_path if target_path else "/"
-    logger.info(f"Changing directory and listing contents for {effective_target_path}")
+    if not target_path:
+        target_path = PurePath("/")
 
-    results = await asyncio.gather(
-        mega_cd(effective_target_path), mega_ls(effective_target_path, ls_flags)
-    )
+    logger.info(f"Changing directory and listing contents for {target_path}")
+
+    results = await asyncio.gather(mega_cd(target_path), mega_ls(target_path, ls_flags))
 
     items: MegaItems = results[1]
 
-    logger.info(f"Finished cd and ls for {effective_target_path}. Found {len(items)} items.")
+    logger.info(f"Finished cd and ls for {target_path}. Found {len(items)} items.")
 
     return items
 
@@ -863,11 +863,11 @@ async def mega_cp(file_path: str, target_path: str) -> None:
 
 
 ###############################################################################
-async def mega_mv(file_path: str, target_path: str) -> None:
+async def mega_mv(file_path: PurePath, target_path: PurePath) -> None:
     """Move a file (or rename it)."""
     logger.info(f"Moving file {file_path} to {target_path}")
 
-    cmd: tuple[str, ...] = ("mv", file_path, target_path)
+    cmd: tuple[str, ...] = ("mv", str(file_path), str(target_path))
     response = await run_megacmd(cmd)
 
     error_msg = response.err_output
@@ -880,56 +880,52 @@ async def mega_mv(file_path: str, target_path: str) -> None:
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
-async def node_exists(file_path: str) -> bool:
+async def node_exists(file_path: PurePath) -> bool:
     ls_result = await mega_ls(path=file_path)
-
     return len(ls_result) > 0
 
 
-async def node_rename(file_path: str, new_name: str) -> None:
+async def node_rename(file_path: PurePath, new_name: str) -> None:
     assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
 
     assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
 
-    fpath_pure: PurePath = PurePath(file_path)
-
     # Check if we are at the root path
-    if str(fpath_pure) == "/":
+    if file_path.match("/"):
         logger.error("Cannot rename root directory!")
         raise AssertionError("Cannot rename root directory!")
         return
 
-    new_path: PurePath = PurePath(fpath_pure.parent / new_name)
+    new_path: PurePath = PurePath(file_path.parent / new_name)
 
-    await mega_mv(file_path, str(new_path))
+    await mega_mv(file_path, new_path)
 
 
 ###############################################################################
-async def mega_rm(file: str, flags: tuple[str, ...] | None) -> None:
+async def mega_rm(fpath: PurePath, flags: tuple[str, ...] | None) -> None:
     """Remove a file."""
-    logger.info(f"Removing file {file} with flags: {flags} ")
+    str_path = str(fpath)
+    logger.info(f"Removing file {str(fpath)} with flags: {flags} ")
 
-    cmd: tuple[str, ...]
+    cmd: list[str] = ["rm", str_path, *flags] if flags else ["rm", str_path]
 
-    cmd = ("rm", file, *flags) if flags else ("rm", file)
-
-    response = await run_megacmd(cmd)
+    response = await run_megacmd(tuple(cmd))
 
     error_msg = response.err_output
     if error_msg:
-        logger.error(f"Error removing file '{file}' with flags '{flags}': {error_msg}")
+        logger.error(f"Error removing file '{fpath}' with flags '{flags}': {error_msg}")
         raise MegaCmdError(
             message=f"MegaCmdError during `{cmd}` ",
             response=response,
         )
 
-    logger.info(f"Successfully removed '{file}' with flags '{flags}'")
+    logger.info(f"Successfully removed '{fpath}' with flags '{flags}'")
 
 
 ###############################################################################
 async def mega_put(
-    local_path: str | tuple[str, ...],
-    target_path: str = "/",
+    local_paths: Path | Iterable[Path],
+    target_path: PurePath | None = None,
     queue: bool = True,
     create_remote_dir: bool = True,
 ):
@@ -939,10 +935,14 @@ async def mega_put(
         'queue' refers to whether we should queue the file (prevents blocking).
         'create_remote_dir' will mean we create a directory on the remote if it does not yet exist.
     """
-    if not local_path:
+    if not local_paths:
         logger.error("Error! Local file is not specified for upload.")
         raise MegaLibError(message="Local file is not specified for upload.", fatal=True)
 
+    if not target_path:
+        target_path = await mega_pwd()
+
+    path_str = str(target_path)
     # Base of the command
     cmd = ["put"]
 
@@ -954,27 +954,33 @@ async def mega_put(
         cmd.append("-c")
 
     # Add path to upload
-    if isinstance(local_path, tuple):
-        cmd.extend(local_path)
-        logger.info(f"Uploading {len(local_path)} files: {local_path} to {target_path}")
+    # This correctly handles the ambiguity of Path also being an Iterable.
+    if isinstance(local_paths, Path):
+        logger.info(f"Uploading file: {local_paths} to {path_str}")
+        # Convert the single Path to a string before appending.
+        cmd.append(str(local_paths))
     else:
-        cmd.append(local_path)
-        logger.info(f"Uploading file: {local_path} to {target_path}")
+        # If it's not a single Path, it must be our intended Iterable[Path].
+        # Convert to a list to safely get its length and prevent issues with one-time iterators.
+        paths_to_upload = [str(p) for p in local_paths]
+        logger.info(f"Uploading {len(paths_to_upload)} files to {path_str}")
+        # Extend the command list with the new list of strings.
+        cmd.extend(paths_to_upload)
 
     # Remote destination
-    cmd.append(target_path)
+    cmd.append(path_str)
 
     response = await run_megacmd(tuple(cmd))
 
     error_msg = response.err_output
     if error_msg:
-        logger.error(f"Error uploading files '{local_path}' to '{target_path}': {error_msg}")
+        logger.error(f"Error uploading files '{local_paths}' to '{target_path}': {error_msg}")
         raise MegaCmdError(
-            message=f"Error uploading files '{local_path}' to '{target_path}': {error_msg}",
+            message=f"Error uploading files '{local_paths}' to '{target_path}': {error_msg}",
             response=response,
         )
 
-    logger.info(f"Successfully initiated upload of '{local_path}' to '{target_path}'")
+    logger.info(f"Successfully initiated upload of '{local_paths}' to '{target_path}'")
 
 
 def _verify_handle_structure(handle: str) -> bool:
@@ -1005,7 +1011,7 @@ async def path_from_handle(handle: str) -> PurePath | None:
 
     # cd to root
     try:
-        await mega_cd("/")
+        await mega_cd(PurePath("/"))
     except MegaCmdError as e:
         logger.error(f"Could not navigate to root directory: {e}")
         raise e

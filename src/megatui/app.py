@@ -168,7 +168,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
         """Update TopStatusBar when path changes."""
         status_bar: TopStatusBar = self.query_one(TopStatusBar)
-        status_bar.path = message.path
+        status_bar.path = str(message.path)
         status_bar.clear_status_msg()
 
     @on(FileList.EmptyDirectory)

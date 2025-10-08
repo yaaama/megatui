@@ -26,10 +26,16 @@ class StatusUpdate(Message):
 
 
 class UploadRequest(Message):
-    def __init__(self, files: Iterable[Path], destination: PurePath | str | None) -> None:
+    def __init__(self, files: Iterable[Path], destination: PurePath | None) -> None:
         super().__init__()
         self.files: Iterable[Path] = files
-        self.destination: PurePath | str | None = destination
+        self.destination: PurePath | None = destination
+
+
+class MakeRemoteDirectory(Message):
+    def __init__(self, dir_path: PurePath):
+        super().__init__()
+        self.dir_path = dir_path
 
 
 class Notification(Message):

@@ -1,5 +1,5 @@
 # Make directory screen
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from rich.text import Text
 from textual import on
@@ -10,8 +10,13 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
+if TYPE_CHECKING:
+    from megatui.app import MegaTUI
+
 
 class MkdirDialog(ModalScreen[str | None]):
+    app: "MegaTUI"
+
     BINDINGS: list[BindingType] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
         Binding(key="enter", action="submit_mkdir", show=True),

@@ -73,9 +73,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         str, MegaItem
     ]  # Dict to store selected MegaItem(s), indexed by their handles.
 
-    _curr_path: str  # Current path we are in.
+    _curr_path: PurePath  # Current path we are in.
 
-    _loading_path: str  # Path we are currently loading.
+    _loading_path: PurePath  # Path we are currently loading.
 
     _cursor_index_stack: deque[int]  # Stores cursor index before navigating into a child folder.
 
@@ -156,7 +156,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # TODO: Think of something useful to add here
         # self.border_title = "MEGA"
         self.border_subtitle = "Initializing view..."
-        self._curr_path = "/"
+        self._curr_path = PurePath("/")
         self._loading_path = self._curr_path
         self._row_data_map = {}
         self._selected_items = {}
@@ -204,8 +204,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         for item in selected:
             if item.is_dir:
-                await m.mega_rm(file=item.path, flags=("-r", "-f"))
-            await m.mega_rm(file=item.path, flags=None)
+                await m.mega_rm(fpath=item.path, flags=("-r", "-f"))
+            await m.mega_rm(fpath=item.path, flags=None)
 
         with self.app.batch_update():
             self.action_unselect_all_files()
@@ -226,13 +226,13 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def on_upload_request(self, msg: UploadRequest):
         self.log.info("Uploading file(s)")
 
-        files = [str(path) for path in msg.files]
-        destination = str(msg.destination) if msg.destination else self._curr_path
+        files = [path for path in msg.files]
+        destination = msg.destination if msg.destination else self._curr_path
 
-        filenames = ", ".join(files)
+        filenames = ", ".join(str(files))
         self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
 
-        await m.mega_put(local_path=tuple(files), target_path=destination, queue=True)
+        await m.mega_put(local_paths=tuple(files), target_path=destination, queue=True)
 
     async def action_upload_file(self) -> None:
         """Toggle upload file screen."""
@@ -243,30 +243,27 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def action_navigate_in(self) -> None:
         """Navigate into directory under cursor."""
         selected_item_data = self.highlighted_item
-        # Fail: Selected item is None.
+        # Selected item is None.
         if not selected_item_data:
             self.log.info("Nothing to navigate into.")
             return
 
-        # Fail: Is a regular file
+        # Is a regular file
         if selected_item_data.is_file:  # Check if it's a directory
             self.log.debug("Cannot enter into a file.")
             return
 
         # Folder to enter
-        to_enter = selected_item_data.full_path
+        to_enter = selected_item_data.path
         # Add cursor index to our cursor position stack
         self._cursor_index_stack.append(self.cursor_row)
-        path_str: str = str(to_enter)
 
-        # self.post_message(StatusUpdate(f"Loading '{to_enter}'...", timeout=2))
-        await self.load_directory(path_str)
-        await m.mega_cd(target_path=path_str)
+        asyncio.gather(self.load_directory(to_enter), m.mega_cd(target_path=to_enter))
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
         self.log.info(f"Navigating out of directory {self._curr_path}")
-        curr_path: str = self._curr_path
+        curr_path: str = str(self._curr_path)
 
         # Avoid going above root "/"
         if curr_path == "/":
@@ -275,13 +272,13 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             )
             return
 
-        parent_path: PurePath = PurePath(curr_path).parent
+        parent_path: PurePath = self._curr_path.parent
         curs_index = self._cursor_index_stack.pop()
 
         # Useful to stop the flickering
         with self.app.batch_update():
-            await self.load_directory(str(parent_path))
-            await m.mega_cd(target_path=str(parent_path))
+            await self.load_directory(parent_path)
+            await m.mega_cd(target_path=parent_path)
             self.move_cursor(row=curs_index)
 
     # ** File Actions ######################################################
@@ -454,7 +451,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.log.error("No highlighted file to rename.")
             return
 
-        node_path: str = selected_item.path
+        node_path: str = str(selected_item.path)
 
         assert node_path != "/", "Cannot rename the root directory."
 
@@ -575,7 +572,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def action_view_transfer_list(self):
         pass
 
-    async def _move_files(self, files: MegaItems, new_path: str) -> None:
+    async def _move_files(self, files: MegaItems, new_path: PurePath) -> None:
         """Helper function to move MegaItems to a new path."""
         if not files:
             self.log.warning("No files received to move.")
@@ -630,7 +627,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         return (cell_icon, cell_name, cell_mtime, cell_size)
 
-    def _update_list_on_success(self, path: str, fetched_items: MegaItems) -> None:
+    def _update_list_on_success(self, path: PurePath, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.log.debug(f"Updating UI for path: {path}")
         self._curr_path = path
@@ -674,7 +671,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         name="fetch_files",
         description="mega-ls - Fetching dir listings",
     )
-    async def fetch_files(self, path: str) -> MegaItems | None:
+    async def fetch_files(self, path: PurePath) -> MegaItems | None:
         """Asynchronously fetches items from MEGA for the given path.
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
@@ -697,7 +694,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
-    async def load_directory(self, path: str) -> None:
+    async def load_directory(self, path: PurePath) -> None:
         """Initiates asynchronous loading using the worker."""
         self.log.info(f"FileList.load_directory: Received request for path='{path}'")
 
@@ -820,18 +817,18 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         'PathChanged.path': The path changed into.
         """
 
-        def __init__(self, path: str) -> None:
+        def __init__(self, path: PurePath) -> None:
             super().__init__()
-            self.path: str = path
+            self.path = path
 
     class LoadSuccess(Message):
         """Message sent when items are loaded successfully.
         'LoadSuccess.path': Newly loaded path.
         """
 
-        def __init__(self, path: str) -> None:
+        def __init__(self, path: PurePath) -> None:
             super().__init__()
-            self.path: str = path
+            self.path = path
 
     class LoadError(Message):
         """Message sent when loading items fails.
@@ -839,9 +836,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         'LoadError.error': An error message.
         """
 
-        def __init__(self, path: str, error: Exception) -> None:
+        def __init__(self, path: PurePath, error: Exception) -> None:
             super().__init__()
-            self.path: str = path
+            self.path: PurePath = path
             self.error: Exception = error  # Include the error
 
     class EmptyDirectory(Message):
