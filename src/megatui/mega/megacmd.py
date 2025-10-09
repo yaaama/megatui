@@ -12,7 +12,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Final, LiteralString, NamedTuple, TypedDict, override
 
-MEGA_LOGTOFILE = True
+MEGA_LOGTOFILE = False
 
 if MEGA_LOGTOFILE:
     logging.basicConfig(
@@ -741,7 +741,8 @@ class MegaDiskUsage(NamedTuple):
 async def mega_du(
     dir_path: MegaPath | None,
     include_version_info: bool = False,
-    units: MegaSizeUnits | None = None,
+    # TODO Integrate units param into func
+    units: MegaSizeUnits | None = None,  # pyright: ignore[reportUnusedParameter]
 ):
     """Get disk usage.
     'dir_path' is the path of the directory or if None, the current directory.
@@ -1253,7 +1254,7 @@ async def mega_df_dict() -> StorageOverview | None:
     return parsed_data
 
 
-async def mega_mkdir(name: str, path: str | None = None) -> bool:
+async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     """Create a new directory in the current path.
 
     Args:
@@ -1271,13 +1272,8 @@ async def mega_mkdir(name: str, path: str | None = None) -> bool:
     cmd = ["mkdir", "-p"]
 
     if path:
-        # Remove whitespace and '/' from the right
-        base_path = path.strip().rstrip("/")
+        remote_path = MegaPath(path, clean_name).str
 
-        # If 'path' was '/'
-        remote_path = f"/{clean_name}" if not base_path else f"{base_path}/{clean_name}"
-
-    # Else if no path was given
     else:
         remote_path = f"{clean_name}"
 
