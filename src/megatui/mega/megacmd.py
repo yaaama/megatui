@@ -9,7 +9,7 @@ from collections import deque
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Final, LiteralString, NamedTuple, TypedDict, override
 
 MEGA_LOGTOFILE = True
@@ -32,6 +32,19 @@ logging.getLogger("asyncio").setLevel(logging.WARNING)
 logger.info("================")
 logger.info("'megacmd' LOADED.")
 logger.info("================")
+
+
+class MegaPath(pathlib.PurePosixPath):
+    """A path object that always behaves like a POSIX path for MEGA operations.
+    Inherits from pathlib.PurePosixPath to ensure forward slashes
+    are always used as path separators.
+    """
+
+    @property
+    def str(self) -> str:
+        return self.__str__()
+
+    pass
 
 
 # XXX ISO6081 is a typo, it should be 8601
@@ -316,7 +329,6 @@ class MegaItem:
         "handle",
         "mtime",
         "name",
-        "parent_path",
         "path",
         "size",
         "size_unit",
@@ -325,9 +337,7 @@ class MegaItem:
 
     name: str  # Name of item
     """Name of file/folder item."""
-    parent_path: PurePath
-    """ Path of parent directory of file/directory. """
-    path: PurePath
+    path: MegaPath
     """ Full path of item. """
     bytes: int
     """ Size of file in BYTES, will be 0 for dirs."""
@@ -352,7 +362,7 @@ class MegaItem:
     def __init__(
         self,
         name: str,
-        parent_path: PurePath,
+        path: MegaPath,
         size: int,
         mtime: datetime,
         ftype: MegaFileTypes,
@@ -360,14 +370,13 @@ class MegaItem:
         handle: str,
     ):
         self.name = name
-        self.parent_path = parent_path
         self.bytes = size
         self.mtime = mtime
         self.ftype = ftype
         self.version = version
         self.handle = handle
 
-        self.path = parent_path / name
+        self.path = path
 
         # Human friendly sizing #############################################################
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
@@ -410,12 +419,6 @@ class MegaItem:
     @property
     def is_dir(self) -> bool:
         return self.ftype == MegaFileTypes.DIRECTORY
-
-    @property
-    def full_path(self) -> PurePath:
-        folder: PurePath = PurePath(self.parent_path)
-        path: PurePath = folder / self.name
-        return path
 
     @staticmethod
     def get_size_in(bytes_used: int, unit: MegaSizeUnits) -> int:
@@ -498,7 +501,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     """
     # Construct the actual executable name (e.g., "mega-ls")
     cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
-    logger.info(f"Running cmd: '{' '.join(cmd_to_exec)}'")
+    logger.info(f"Running cmd:\n'{' '.join(cmd_to_exec)}'")
     cmd, *cmd_args = cmd_to_exec
 
     try:
@@ -529,14 +532,14 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         if process.returncode != 0:
             error_message = stderr_str if stderr_str else stdout_str
             logger.error(
-                f"Command '{' '.join(command)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
+                f"FAIL :: '{' '.join(cmd_to_exec)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
             )
             raise MegaCmdError(
-                f"Command '{' '.join(command)}' FAILED: {error_message}",
+                f"FAIL :: '{' '.join(cmd_to_exec)}' FAILED: {error_message}",
                 response=cmd_response,  # Use stderr if available
             )
 
-        logger.debug(f"Cmd '{' '.join(command)}' 'SUCCESS'.")
+        logger.debug(f"SUCCESS :: '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
         return cmd_response
 
     except FileNotFoundError:
@@ -597,7 +600,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
 
 
 async def mega_ls(
-    path: PurePath | None = None, flags: tuple[str, ...] | None = None
+    path: MegaPath | None = None, flags: tuple[str, ...] | None = None
 ) -> MegaItems:
     """Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
@@ -710,7 +713,7 @@ async def mega_ls(
         items.append(
             MegaItem(
                 name=_name,
-                parent_path=target_path,
+                path=MegaPath(target_path, _name),
                 size=item_size,
                 mtime=mtime_obj,
                 ftype=_file_type,
@@ -731,12 +734,12 @@ async def mega_ls(
 
 
 class MegaDiskUsage(NamedTuple):
-    location: str
+    location: MegaPath
     usage: int | None
 
 
 async def mega_du(
-    dir_path: PurePath | None,
+    dir_path: MegaPath | None,
     include_version_info: bool = False,
     units: MegaSizeUnits | None = None,
 ):
@@ -749,12 +752,12 @@ async def mega_du(
     cmd: list[str] = ["du"]
 
     if not dir_path:
-        dir_path = PurePath("/")
+        dir_path = MegaPath("/")
 
     if include_version_info:
         cmd.append("--versions")
 
-    cmd.append(dir_path)
+    cmd.append(dir_path.str)
 
     response = await run_megacmd(tuple(cmd))
     err_msg = response.err_output
@@ -782,19 +785,19 @@ async def mega_du(
 
     assert _filename
     assert _size
-    return MegaDiskUsage(location=_filename, usage=int(_size))
+    return MegaDiskUsage(location=MegaPath(_filename), usage=int(_size))
 
 
 ###############################################################################
-async def mega_cd(target_path: PurePath | None):
+async def mega_cd(target_path: MegaPath | None):
     """Change directories."""
     if not target_path:
         logger.debug("No target path. Will cd to root")
-        target_path = PurePath("/")
+        target_path = MegaPath("/")
 
     logger.info(f"Changing directory to {target_path}")
 
-    cmd: list[str] = ["cd", str(target_path)]
+    cmd: list[str] = ["cd", target_path.str]
     response = await run_megacmd(tuple(cmd))
 
     error_msg = response.err_output
@@ -805,7 +808,7 @@ async def mega_cd(target_path: PurePath | None):
     logger.info(f"Successfully changed directory to '{target_path}'")
 
 
-async def mega_pwd() -> PurePath:
+async def mega_pwd() -> MegaPath:
     """Returns current working directory"""
     logger.info("Getting current working directory.")
 
@@ -818,18 +821,18 @@ async def mega_pwd() -> PurePath:
         logger.error(f"Error printing working directory: {error_msg}")
         raise MegaCmdError(f"Failed to get working directory: {error_msg}")
 
-    pwd_path = PurePath(response.stdout.strip())
+    pwd_path = MegaPath(response.stdout.strip())
     logger.info(f"Current working directory: {pwd_path}")
     return pwd_path
 
 
 ###############################################################################
 async def mega_cd_ls(
-    target_path: PurePath | None, ls_flags: tuple[str, ...] | None = None
+    target_path: MegaPath | None, ls_flags: tuple[str, ...] | None = None
 ) -> MegaItems:
     """Change directories and ls."""
     if not target_path:
-        target_path = PurePath("/")
+        target_path = MegaPath("/")
 
     logger.info(f"Changing directory and listing contents for {target_path}")
 
@@ -844,11 +847,11 @@ async def mega_cd_ls(
 
 ###############################################################################
 ###############################################################################
-async def mega_cp(file_path: PurePath, target_path: PurePath) -> None:
+async def mega_cp(file_path: MegaPath, target_path: MegaPath) -> None:
     """Copy file from 'file_path' to 'target_path'."""
     logger.info(f"Copying file {file_path} to {target_path}")
 
-    cmd: tuple[str, ...] = ("cp", file_path, target_path)
+    cmd: tuple[str, ...] = ("cp", file_path.str, target_path.str)
     response = await run_megacmd(cmd)
 
     error_msg = response.err_output
@@ -863,11 +866,11 @@ async def mega_cp(file_path: PurePath, target_path: PurePath) -> None:
 
 
 ###############################################################################
-async def mega_mv(file_path: PurePath, target_path: PurePath) -> None:
+async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
     """Move a file (or rename it)."""
     logger.info(f"Moving file {file_path} to {target_path}")
 
-    cmd: tuple[str, ...] = ("mv", str(file_path), str(target_path))
+    cmd: tuple[str, ...] = ("mv", file_path.str, target_path.str)
     response = await run_megacmd(cmd)
 
     error_msg = response.err_output
@@ -880,20 +883,22 @@ async def mega_mv(file_path: PurePath, target_path: PurePath) -> None:
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
-async def node_exists(file_path: PurePath) -> bool:
+async def node_exists(file_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
     ls_result = await mega_ls(path=file_path)
     return len(ls_result) > 0
 
 
-async def node_rename(file_path: PurePath, new_name: str) -> None:
+async def node_rename(file_path: MegaPath, new_name: str) -> None:
     """Rename a node.
+
     Args:
         file_path: Path of node to rename.
         new_name: New name for node.
     """
     assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    if not node_exists(file_path):
+    exists = await node_exists(file_path)
+    if not exists:
         logger.warning(f"Path '{file_path}' does not exist!")
         raise MegaCmdError(f"Path '{file_path}' does not exist!", response=None)
 
@@ -903,13 +908,13 @@ async def node_rename(file_path: PurePath, new_name: str) -> None:
         raise MegaCmdError("Cannot rename root directory!", None)
         return
 
-    new_path: PurePath = PurePath(file_path.parent / new_name)
+    new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
     await mega_mv(file_path, new_path)
 
 
 ###############################################################################
-async def mega_rm(fpath: PurePath, flags: tuple[str, ...] | None) -> None:
+async def mega_rm(fpath: MegaPath, flags: tuple[str, ...] | None) -> None:
     """Remove a file."""
     str_path = str(fpath)
     logger.info(f"Removing file {fpath!s} with flags: {flags} ")
@@ -932,7 +937,7 @@ async def mega_rm(fpath: PurePath, flags: tuple[str, ...] | None) -> None:
 ###############################################################################
 async def mega_put(
     local_paths: Path | Iterable[Path],
-    target_path: PurePath | None = None,
+    target_path: MegaPath | None = None,
     queue: bool = True,
     create_remote_dir: bool = True,
 ):
@@ -1013,12 +1018,12 @@ def _verify_handle_structure(handle: str) -> bool:
     return True
 
 
-async def path_from_handle(handle: str) -> PurePath | None:
+async def path_from_handle(handle: str) -> MegaPath | None:
     assert _verify_handle_structure(handle), "Handle does not conform to structure."
 
     # cd to root
     try:
-        await mega_cd(PurePath("/"))
+        await mega_cd(MegaPath("/"))
     except MegaCmdError as e:
         logger.error(f"Could not navigate to root directory: {e}")
         raise e
@@ -1040,7 +1045,7 @@ async def path_from_handle(handle: str) -> PurePath | None:
     try:
         split = response.stdout.partition("\n")
         # Parse Path (first partition)
-        path = PurePath(split[0])
+        path = MegaPath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
         raise MegaCmdError(message=f"Could not parse path from handle `{handle}` :: {e}")

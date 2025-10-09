@@ -5,7 +5,7 @@ Contains actions and is the main way to interact with the application.
 
 import asyncio
 from collections import deque
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -25,7 +25,7 @@ from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems
+from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
 from megatui.messages import StatusUpdate, UploadRequest
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
@@ -73,9 +73,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         str, MegaItem
     ]  # Dict to store selected MegaItem(s), indexed by their handles.
 
-    _curr_path: PurePath  # Current path we are in.
+    _curr_path: MegaPath  # Current path we are in.
 
-    _loading_path: PurePath  # Path we are currently loading.
+    _loading_path: MegaPath  # Path we are currently loading.
 
     _cursor_index_stack: deque[int]  # Stores cursor index before navigating into a child folder.
 
@@ -156,7 +156,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # TODO: Think of something useful to add here
         # self.border_title = "MEGA"
         self.border_subtitle = "Initializing view..."
-        self._curr_path = PurePath("/")
+        self._curr_path = MegaPath("/")
         self._loading_path = self._curr_path
         self._row_data_map = {}
         self._selected_items = {}
@@ -218,7 +218,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             await self.action_refresh(quiet=True)
             self.move_cursor(row=cursor_index)
 
-        filenames = [str(item.full_path) for item in selected]
+        filenames = [str(item.path) for item in selected]
         ", ".join(filenames)
 
         self.notify(
@@ -262,22 +262,26 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Add cursor index to our cursor position stack
         self._cursor_index_stack.append(self.cursor_row)
 
-        asyncio.gather(self.load_directory(to_enter), m.mega_cd(target_path=to_enter))
+        await self.load_directory(to_enter)
+        await m.mega_cd(target_path=to_enter)
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
         self.log.info(f"Navigating out of directory {self._curr_path}")
-        curr_path: str = str(self._curr_path)
+        curr_path: str = self._curr_path.str
 
         # Avoid going above root "/"
         if curr_path == "/":
-            self.post_message(
-                StatusUpdate("Cannot navigate out any further, you're already at '/'")
-            )
+            # self.post_message(
+            #     StatusUpdate("Cannot navigate out any further, you're already at '/'")
+            # )
             return
 
-        parent_path: PurePath = self._curr_path.parent
-        curs_index = self._cursor_index_stack.pop()
+        parent_path: MegaPath = self._curr_path.parent
+        if len(self._cursor_index_stack) > 0:
+            curs_index = self._cursor_index_stack.pop()
+        else:
+            curs_index = 0
 
         # Useful to stop the flickering
         with self.app.batch_update():
@@ -549,7 +553,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             )
             await m.mega_get(
                 target_path=str(DL_PATH),
-                remote_path=str(file.full_path),
+                remote_path=str(file.path),
                 is_dir=file.is_dir,
             )
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
@@ -576,7 +580,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def action_view_transfer_list(self):
         pass
 
-    async def _move_files(self, files: MegaItems, new_path: PurePath) -> None:
+    async def _move_files(self, files: MegaItems, new_path: MegaPath) -> None:
         """Helper function to move MegaItems to a new path."""
         if not files:
             self.log.warning("No files received to move.")
@@ -631,7 +635,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         return (cell_icon, cell_name, cell_mtime, cell_size)
 
-    def _update_list_on_success(self, path: PurePath, fetched_items: MegaItems) -> None:
+    def _update_list_on_success(self, path: MegaPath, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.log.debug(f"Updating UI for path: {path}")
         self._curr_path = path
@@ -675,7 +679,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         name="fetch_files",
         description="mega-ls - Fetching dir listings",
     )
-    async def fetch_files(self, path: PurePath) -> MegaItems | None:
+    async def fetch_files(self, path: MegaPath) -> MegaItems | None:
         """Asynchronously fetches items from MEGA for the given path.
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
@@ -698,7 +702,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure
 
-    async def load_directory(self, path: PurePath) -> None:
+    async def load_directory(self, path: MegaPath) -> None:
         """Initiates asynchronous loading using the worker."""
         self.log.info(f"FileList.load_directory: Received request for path='{path}'")
 
@@ -821,7 +825,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         'PathChanged.path': The path changed into.
         """
 
-        def __init__(self, path: PurePath) -> None:
+        def __init__(self, path: MegaPath) -> None:
             super().__init__()
             self.path = path
 
@@ -830,7 +834,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         'LoadSuccess.path': Newly loaded path.
         """
 
-        def __init__(self, path: PurePath) -> None:
+        def __init__(self, path: MegaPath) -> None:
             super().__init__()
             self.path = path
 
@@ -840,9 +844,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         'LoadError.error': An error message.
         """
 
-        def __init__(self, path: PurePath, error: Exception) -> None:
+        def __init__(self, path: MegaPath, error: Exception) -> None:
             super().__init__()
-            self.path: PurePath = path
+            self.path: MegaPath = path
             self.error: Exception = error  # Include the error
 
     class EmptyDirectory(Message):

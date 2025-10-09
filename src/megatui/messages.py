@@ -3,9 +3,11 @@ Messages that are used throughout the application.
 """
 
 from collections.abc import Iterable
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from textual.message import Message
+
+from megatui.mega.megacmd import MegaPath
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -26,14 +28,14 @@ class StatusUpdate(Message):
 
 
 class UploadRequest(Message):
-    def __init__(self, files: Iterable[Path], destination: PurePath | None) -> None:
+    def __init__(self, files: Iterable[Path], destination: MegaPath | None) -> None:
         super().__init__()
         self.files: Iterable[Path] = files
-        self.destination: PurePath | None = destination
+        self.destination: MegaPath | None = destination
 
 
 class MakeRemoteDirectory(Message):
-    def __init__(self, dir_path: PurePath):
+    def __init__(self, dir_path: MegaPath):
         super().__init__()
         self.dir_path = dir_path
 

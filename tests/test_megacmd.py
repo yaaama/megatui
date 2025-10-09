@@ -19,7 +19,7 @@ def test_megaitem_file_creation_size_calculation():
     assert item.size_unit == megacmd.MegaSizeUnits.KB
     assert item.is_file()
     assert not item.is_dir()
-    assert str(item.full_path) == "/remote/test.txt"  # Or PurePath("/remote/test.txt")
+    assert str(item.path) == "/remote/test.txt"  # Or PurePath("/remote/test.txt")
 
 
 def test_megaitem_directory_creation():
