@@ -98,7 +98,6 @@ DU_REGEXP: re.Pattern[str] = re.compile(
     r"^(.+?):\s+(\d+)"
 )  # Parses du output for a real filename and their size
 
-
 MEGA_COMMANDS_ALL: set[str] = {
     "attr",
     "fuse-remove",
@@ -645,7 +644,7 @@ async def mega_ls(
 
     # Handle empty output
     if not lines or not lines[0].strip():
-        logger.info(f"No items found in '{target_path}' or output is empty.")
+        logger.info(f"No items found in '{target_path}' or dir is empty.")
         return ()
 
     # Parse the lines we receive
@@ -737,18 +736,20 @@ class MegaDiskUsage(NamedTuple):
 
 
 async def mega_du(
-    dir_path: str = "/",
+    dir_path: PurePath | None,
     include_version_info: bool = False,
     units: MegaSizeUnits | None = None,
 ):
-    """Get disk usage. 'recurse' if 'True', will then calculate disk
-    usage for all subfolders too.
-    'human' toggles whether it should use the '-h' flag and return the value in those units.
+    """Get disk usage.
+    'dir_path' is the path of the directory or if None, the current directory.
+    'include_version_info' includes sizes of versions.
     'units' must be one of the values specified by SIZE_UNIT enum.
-    If human is 'True' then 'units' value will be ignored.
     """
     # Prepare our command
     cmd: list[str] = ["du"]
+
+    if not dir_path:
+        dir_path = PurePath("/")
 
     if include_version_info:
         cmd.append("--versions")
@@ -843,7 +844,7 @@ async def mega_cd_ls(
 
 ###############################################################################
 ###############################################################################
-async def mega_cp(file_path: str, target_path: str) -> None:
+async def mega_cp(file_path: PurePath, target_path: PurePath) -> None:
     """Copy file from 'file_path' to 'target_path'."""
     logger.info(f"Copying file {file_path} to {target_path}")
 
@@ -880,19 +881,26 @@ async def mega_mv(file_path: PurePath, target_path: PurePath) -> None:
 
 
 async def node_exists(file_path: PurePath) -> bool:
+    """Check for the existence of a node using its path."""
     ls_result = await mega_ls(path=file_path)
     return len(ls_result) > 0
 
 
 async def node_rename(file_path: PurePath, new_name: str) -> None:
+    """Rename a node.
+    Args:
+        file_path: Path of node to rename.
+        new_name: New name for node.
+    """
     assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
-
-    assert node_exists(file_path), f"Node path does not exist: `{file_path}`"
+    if not node_exists(file_path):
+        logger.warning(f"Path '{file_path}' does not exist!")
+        raise MegaCmdError(f"Path '{file_path}' does not exist!", response=None)
 
     # Check if we are at the root path
     if file_path.match("/"):
         logger.error("Cannot rename root directory!")
-        raise AssertionError("Cannot rename root directory!")
+        raise MegaCmdError("Cannot rename root directory!", None)
         return
 
     new_path: PurePath = PurePath(file_path.parent / new_name)
