@@ -34,6 +34,11 @@ class UploadRequest(Message):
         self.destination: MegaPath | None = destination
 
 
+class RefreshRequest(Message):
+    def __init__(self):
+        super().__init__()
+
+
 class MakeRemoteDirectory(Message):
     def __init__(self, dir_path: MegaPath):
         super().__init__()

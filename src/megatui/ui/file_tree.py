@@ -289,8 +289,7 @@ class UploadFilesModal(ModalScreen[None]):
             return
 
         else:
-            filelist = self.app.query_one("#filelist")
-            filelist.post_message(UploadRequest(files=selected, destination=None))
+            self.app.post_message(UploadRequest(files=selected, destination=None))
             self.dismiss()
 
     @override

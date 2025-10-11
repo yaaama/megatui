@@ -3,7 +3,7 @@ import logging
 import sys
 from typing import ClassVar, override
 
-from textual import on
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
@@ -12,7 +12,7 @@ from textual.logging import TextualHandler
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
-from megatui.messages import StatusUpdate
+from megatui.messages import RefreshRequest, StatusUpdate, UploadRequest
 from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
 from megatui.ui.top_status_bar import TopStatusBar
@@ -150,6 +150,20 @@ class MegaTUI(App[None], inherit_bindings=False):
     #
     # # Message Handlers ###########################################################
     #
+    @work(name="upload")
+    async def on_upload_request(self, msg: UploadRequest):
+        """Handle upload requests."""
+        self.log.info("Uploading file(s)")
+
+        files = [path for path in msg.files]
+        destination = msg.destination if msg.destination else m.MegaPath()
+        filenames = ", ".join(str(files))
+        self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
+
+        await m.mega_put(local_paths=tuple(files), target_path=destination, queue=True)
+        # TODO We should request a refresh when the upload is completed, not
+        # when it has been initiated.
+        self.file_list.post_message(RefreshRequest())
 
     @on(FileList.ToggledSelection)
     def on_file_list_toggled_selection(self, message: FileList.ToggledSelection) -> None:

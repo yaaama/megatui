@@ -16,7 +16,7 @@ from typing import (
 )
 
 from rich.text import Text
-from textual import work
+from textual import work, on
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
@@ -26,7 +26,7 @@ from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
-from megatui.messages import StatusUpdate, UploadRequest
+from megatui.messages import StatusUpdate, UploadRequest, RefreshRequest
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
@@ -226,18 +226,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             title="Deletion",
         )
 
-    @work(name="upload")
-    async def on_upload_request(self, msg: UploadRequest):
-        self.log.info("Uploading file(s)")
-
-        files = [path for path in msg.files]
-        destination = msg.destination if msg.destination else self._curr_path
-
-        filenames = ", ".join(str(files))
-        self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
-
-        await m.mega_put(local_paths=tuple(files), target_path=destination, queue=True)
-
     async def action_upload_file(self) -> None:
         """Toggle upload file screen."""
         await self.app.push_screen(UploadFilesModal())
@@ -290,17 +278,23 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.move_cursor(row=curs_index)
 
     # ** File Actions ######################################################
-    async def action_refresh(self, quiet: bool = False) -> None:
-        """Refreshes current working directory."""
-        if not quiet:
-            self.post_message(StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2))
-
+    @on(RefreshRequest)
+    async def on_refresh_request(self, event: RefreshRequest) -> None:
+        """Handles refresh requests."""
+        event.stop()
         with self.app.batch_update():
             # Keep point at curr index when refreshing
             curs_index = self.cursor_row
             await self.load_directory(self._curr_path)
             curs_index = min(curs_index, self.row_count - 1)
             self.move_cursor(row=curs_index)
+
+    async def action_refresh(self, quiet: bool = False) -> None:
+        """Refreshes current working directory."""
+        if not quiet:
+            self.post_message(StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2))
+
+        self.post_message(RefreshRequest())
 
     # *** Selection #######################################################
     def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
