@@ -543,7 +543,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         return cmd_response
 
     except FileNotFoundError:
-        logger.error(f"Mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
+        logger.error(f"mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
         raise MegaLibError(message=f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
     except Exception as e:
         logger.exception(f"Unexpected error running '{cmd_to_exec[0]}'")
