@@ -13,6 +13,7 @@ from textual.validation import Regex
 from textual.widgets import Input, Label
 
 from megatui.mega.megacmd import MegaItem
+from megatui.messages import RenameNodeRequest
 
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
@@ -72,7 +73,8 @@ class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
     @on(Input.Submitted, "#input-box")
     def action_submit_rename(self) -> tuple[str, MegaItem] | None:
         if value := self.query_one(Input).value.strip():
-            self.dismiss(result=(value, self.node))
+            self.app.post_message(RenameNodeRequest(self.node, value))
+        self.dismiss()
 
     def action_close_window(self) -> None:
         self.app.pop_screen()

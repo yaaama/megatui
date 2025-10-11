@@ -7,7 +7,7 @@ from pathlib import Path
 
 from textual.message import Message
 
-from megatui.mega.megacmd import MegaPath
+from megatui.mega.megacmd import MegaItem, MegaPath
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -37,6 +37,13 @@ class UploadRequest(Message):
 class RefreshRequest(Message):
     def __init__(self):
         super().__init__()
+
+
+class RenameNodeRequest(Message):
+    def __init__(self, node: MegaItem, new_name: str):
+        super().__init__()
+        self.node = node
+        self.new_name = new_name
 
 
 class MakeRemoteDirectory(Message):

@@ -16,7 +16,7 @@ from typing import (
 )
 
 from rich.text import Text
-from textual import work, on
+from textual import on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
@@ -26,7 +26,7 @@ from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
-from megatui.messages import StatusUpdate, UploadRequest, RefreshRequest
+from megatui.messages import RefreshRequest, StatusUpdate, UploadRequest
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
@@ -457,24 +457,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         assert node_path != "/", "Cannot rename the root directory."
 
-        async def _on_rename_dialog_closed(result: tuple[str, MegaItem] | None) -> None:
-            """Callback executed after the RenameDialog closes.
-
-            Handles the actual file renaming logic.
-            """
-            # We have not got a result
-            if not result:
-                return
-
-            new_name, node = result
-            if not new_name or not node:
-                self.log.debug("File rename operation was cancelled or failed.")
-                return
-
-            self.log.info(f"Renaming node `{node.name}` to `{new_name}`")
-
-            await m.node_rename(node.path, new_name)
-
         await self.app.push_screen(
             RenameDialog(
                 popup_prompt=f"Rename {selected_item.name}",
@@ -484,7 +466,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 ),
                 initial_input=selected_item.name,
             ),
-            callback=_on_rename_dialog_closed,
             wait_for_dismiss=True,
         )
 

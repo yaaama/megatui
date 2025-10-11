@@ -12,7 +12,7 @@ from textual.logging import TextualHandler
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
-from megatui.messages import RefreshRequest, StatusUpdate, UploadRequest
+from megatui.messages import RefreshRequest, RenameNodeRequest, StatusUpdate, UploadRequest
 from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
 from megatui.ui.top_status_bar import TopStatusBar
@@ -150,6 +150,12 @@ class MegaTUI(App[None], inherit_bindings=False):
     #
     # # Message Handlers ###########################################################
     #
+
+    @work(name="rename")
+    async def on_rename_node_request(self, msg: RenameNodeRequest):
+        self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
+        await m.node_rename(msg.node.path, msg.new_name)
+
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
         """Handle upload requests."""
