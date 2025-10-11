@@ -264,11 +264,11 @@ class MegaCmdError(Exception):
         super().__init__(message)
         self.message = message
 
-        assert response, "No response object given."
         # If a response object is given, use its data.
         # This makes it the source of truth.
 
-        self.response = response
+        if response:
+            self.response = response
 
         # Centralized logging
         logger.error(
@@ -634,6 +634,9 @@ async def mega_ls(
 
     response: MegaCmdResponse = await run_megacmd(tuple(cmd))
 
+    if response.return_code == 53:
+        raise MegaCmdError("Resource not found.", response=response)
+
     error_msg = response.err_output
     if error_msg:
         logger.error(f"Error listing files in '{path}': {error_msg}")
@@ -884,10 +887,14 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
-async def node_exists(file_path: MegaPath) -> bool:
+async def node_exists(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
-    ls_result = await mega_ls(path=file_path)
-    return len(ls_result) > 0
+    try:
+        ls_result = await mega_ls(path=node_path)
+    except MegaCmdError as e:
+        return False
+
+    return True
 
 
 async def node_rename(file_path: MegaPath, new_name: str) -> None:
