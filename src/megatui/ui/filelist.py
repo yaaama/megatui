@@ -390,7 +390,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self.refresh()
         self._update_count += 1
 
-        self.post_message(self.ToggledSelection(0))
+        self.app.post_message(self.ToggledSelection(0))
 
     def action_select_item(self) -> None:
         """Toggles the selection state of the currently hovered-over item (row).
@@ -431,7 +431,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self.refresh()
         # Need this hack to refresh the UI
         self._update_count += 1
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
+        self.app.post_message(self.ToggledSelection(len(self._selected_items)))
 
     # ** Rename node ######################################################
 
