@@ -891,7 +891,7 @@ async def node_exists(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
     try:
         ls_result = await mega_ls(path=node_path)
-    except MegaCmdError as e:
+    except MegaCmdError:
         return False
 
     return True

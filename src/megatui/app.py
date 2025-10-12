@@ -12,7 +12,13 @@ from textual.logging import TextualHandler
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
-from megatui.messages import RefreshRequest, RenameNodeRequest, StatusUpdate, UploadRequest
+from megatui.messages import (
+    MakeRemoteDirectory,
+    RefreshRequest,
+    RenameNodeRequest,
+    StatusUpdate,
+    UploadRequest,
+)
 from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
 from megatui.ui.top_status_bar import TopStatusBar
@@ -150,6 +156,22 @@ class MegaTUI(App[None], inherit_bindings=False):
     #
     # # Message Handlers ###########################################################
     #
+
+    @work(name="mkdir")
+    async def on_make_remote_directory(self, event: MakeRemoteDirectory) -> None:
+        # If no path return
+        if not event.dir_path:
+            return
+
+        success = await m.mega_mkdir(name=event.dir_path.str, path=None)
+        if not success:
+            self.post_message(
+                StatusUpdate(
+                    message=f"Could not create directory '{event.dir_path.str}' for some reason."
+                )
+            )
+
+        await self.file_list.action_refresh()
 
     @work(name="rename")
     async def on_rename_node_request(self, msg: RenameNodeRequest):

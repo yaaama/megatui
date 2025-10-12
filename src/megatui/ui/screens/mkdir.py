@@ -10,11 +10,14 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
+from megatui.mega.megacmd import MegaPath
+from megatui.messages import MakeRemoteDirectory
+
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
 
 
-class MkdirDialog(ModalScreen[str | None]):
+class MkdirDialog(ModalScreen[None]):
     app: "MegaTUI"
 
     BINDINGS: list[BindingType] = [
@@ -26,6 +29,7 @@ class MkdirDialog(ModalScreen[str | None]):
         self,
         popup_prompt: str,
         emoji_markup_prepended: str,
+        curr_path: MegaPath,
         initial_input: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
@@ -37,12 +41,10 @@ class MkdirDialog(ModalScreen[str | None]):
             initial_input: The initial value for the input box.
         """
         super().__init__()
-        self._emoji = emoji_markup_prepended
-        # Emoji to prepend the prompt.
-        self._prompt = popup_prompt
-        # Label to display above input box.
-        self._initial = initial_input
-        # The initial value to use for the input.
+        self._emoji = emoji_markup_prepended  # Emoji to prepend the prompt.
+        self._prompt = popup_prompt  # Label to display above input box.
+        self._initial = initial_input  # The initial value to use for the input.
+        self.curr_path = curr_path
 
         txt = f"{self._emoji} {self._prompt}"
         self.prompt: Text = Text.from_markup(txt)
@@ -62,9 +64,11 @@ class MkdirDialog(ModalScreen[str | None]):
             )
 
     @on(Input.Submitted, "#input-mkdir")
-    def action_submit_mkdir(self) -> str | None:
+    def action_submit_mkdir(self):
         if value := self.query_one(Input).value.strip():
-            self.dismiss(result=value)
+            self.app.post_message(MakeRemoteDirectory(self.curr_path.joinpath(value)))
+
+        self.dismiss()
 
     def action_close_window(self) -> None:
         self.app.pop_screen()

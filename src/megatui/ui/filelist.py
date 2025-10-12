@@ -26,7 +26,7 @@ from textual.worker import Worker  # Import worker types
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
-from megatui.messages import RefreshRequest, StatusUpdate, UploadRequest
+from megatui.messages import RefreshRequest, StatusUpdate
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
@@ -434,11 +434,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     # ** Rename node ######################################################
 
-    @work(
-        group="megacmd",
-        name="rename_file",
-        description="Renames a file/directory.",
-    )
     async def action_rename_node(self) -> None:
         """Rename a file by showing a dialog to prompt for the new name.
 
@@ -468,47 +463,15 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             wait_for_dismiss=True,
         )
 
-    @work(
-        group="megacmd",
-        name="make_dir",
-        description="Make a new directory.",
-    )
     async def action_mkdir(self) -> None:
         """Make a directory."""
-
-        async def make_directory(name: str | None) -> None:
-            # If no name return
-            if not name:
-                return
-
-            # TODO Should use set comprehension
-            filenames: set[str] = set()
-
-            for item in self._row_data_map.values():
-                filenames.add(item.name)
-
-            # If name is duplicate
-            if name in filenames:
-                self.log.info(f"File already exists with the name '{name}'.")
-                self.post_message(StatusUpdate(message=f"File '{name}' already exists!"))
-                return
-
-            success = await m.mega_mkdir(name=name, path=None)
-            if not success:
-                self.post_message(
-                    StatusUpdate(message=f"Could not create directory '{name}' for some reason.")
-                )
-                return
-
-            await self.action_refresh()
-
         await self.app.push_screen(
             MkdirDialog(
                 popup_prompt=f"Make New Directory(s) '{self._curr_path}'",
                 emoji_markup_prepended=":open_file_folder:",
+                curr_path=self._curr_path,
                 initial_input=None,
             ),
-            callback=make_directory,
         )
 
     async def _download_files(self, files: MegaItems) -> None:
