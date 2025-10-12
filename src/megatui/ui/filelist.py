@@ -441,13 +441,13 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """
         self.log.info("Renaming file.")
 
-        selected_item: MegaItem | None = self.highlighted_item
+        selected_item = self.highlighted_item
 
         if not selected_item:
             self.log.error("No highlighted file to rename.")
             return
 
-        node_path: str = str(selected_item.path)
+        node_path = str(selected_item.path)
 
         assert node_path != "/", "Cannot rename the root directory."
 
@@ -582,9 +582,9 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Use a dictionary comprehension
         self._row_data_map = {item.handle: item for item in fetched_items}
 
-        height: int = 1
+        height = 1
         selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
-        found_selected_items: bool = False
+        found_selected_items = False
 
         row_generator = ((node, self._prepare_row_contents(node)) for node in fetched_items)
 
@@ -671,7 +671,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         # Success
         # Get number of files
-        file_count: int = len(fetched_items)
+        file_count = len(fetched_items)
 
         self.log.debug(f"Worker success for path '{self._loading_path}', items: {file_count}")
         # Update FileList
@@ -754,8 +754,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """Message sent after item is selected by user."""
 
         def __init__(self, count: int) -> None:
-            self.count: int = count
             super().__init__()
+            self.count = count
 
     class PathChanged(Message):
         """Message for when the path has changed.
@@ -783,8 +783,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         def __init__(self, path: MegaPath, error: Exception) -> None:
             super().__init__()
-            self.path: MegaPath = path
-            self.error: Exception = error  # Include the error
+            self.path = path
+            self.error = error  # Include the error
 
     class EmptyDirectory(Message):
         """Message to signal the entered directory is empty."""
