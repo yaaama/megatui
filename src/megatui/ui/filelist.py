@@ -282,19 +282,18 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     async def on_refresh_request(self, event: RefreshRequest) -> None:
         """Handles refresh requests."""
         event.stop()
-        with self.app.batch_update():
-            # Keep point at curr index when refreshing
-            curs_index = self.cursor_row
-            await self.load_directory(self._curr_path)
-            curs_index = min(curs_index, self.row_count - 1)
-            self.move_cursor(row=curs_index)
+        await self.action_refresh(quiet=True)
 
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
         if not quiet:
             self.post_message(StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2))
 
-        self.post_message(RefreshRequest())
+        with self.app.batch_update():
+            curs_index = self.cursor_row
+            await self.load_directory(self._curr_path)
+            curs_index = min(curs_index, self.row_count - 1)
+            self.move_cursor(row=curs_index)
 
     # *** Selection #######################################################
     def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem | None:
