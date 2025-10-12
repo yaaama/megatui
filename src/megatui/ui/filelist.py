@@ -297,7 +297,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         self.post_message(RefreshRequest())
 
     # *** Selection #######################################################
-    def _get_row_megaitem(self, rowkey: RowKey | str) -> MegaItem | None:
+    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem | None:
         """Return MegaItem for row index (rowkey).
 
         Args:
@@ -324,7 +324,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             self.log.error(f"Could not find data for row key '{key}'. State is inconsistent.")
             return None
 
-    def _get_curr_row_megaitem(self) -> MegaItem | None:
+    def _get_megaitem_at_cursor(self) -> MegaItem | None:
         """Returns MegaItem under the current cursor.
 
         Returns:
@@ -336,11 +336,11 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         if not row_key or not row_key.value:
             return None
 
-        return self._get_row_megaitem(row_key)
+        return self._get_megaitem_at_row(row_key)
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
-        megaitem = self._get_curr_row_megaitem()
+        megaitem = self._get_megaitem_at_cursor()
 
         # Exit if there is no megaitem
         if not megaitem:
@@ -381,9 +381,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         for key in self._selected_items:
             # Check if selected item is within the curr list of rows
             if key in self.rows:
+                # Remove selection labels from currently displayed row labels
                 self.rows[RowKey(key)].label = new_label
-            else:
-                pass
 
         self._selected_items.clear()
 
