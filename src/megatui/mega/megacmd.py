@@ -1037,23 +1037,32 @@ async def mega_put(
 
 
 def _verify_handle_structure(handle: str) -> bool:
+    """Verifies the structure of a handle.
+
+    Args:
+        handle: The handle string to verify.
+
+    Returns:
+        True if the handle has a valid structure, False otherwise.
+    """
     logger.info(f"Verifying handle: '{handle}'")
 
-    if not handle:
-        logger.error("Empty string cannot be a valid handle.")
-        return False
+    match handle:
+        case "":
+            logger.error("Empty string cannot be a valid handle.")
+            return False
+        case str() if len(handle) < 8:
+            logger.error("Handle should be longer than 8 characters.")
+            return False
+        case str() if not handle.startswith("H:"):
+            logger.error("Handles should start with 'H:'")
+            return False
+        case _:
+            pass
 
-    handle_len = len(handle)
-    if handle_len < 8:
-        logger.error("Handle should be longer than 8 characters.")
-        return False
-
-    if not handle.startswith("H:"):
-        logger.error("Handles should start with 'H:'")
-        return False
-
-    if not handle.isalnum():
-        logger.error("Handle received is not alpha-numerical.")
+    content = handle[2:]
+    if not content.isalnum():
+        logger.error("Handle content is not alpha-numerical.")
         return False
 
     return True
