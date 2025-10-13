@@ -44,8 +44,6 @@ class MegaPath(pathlib.PurePosixPath):
     def str(self) -> str:
         return self.__str__()
 
-    pass
-
 
 # XXX ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
@@ -813,7 +811,7 @@ async def mega_cd(target_path: MegaPath | None):
 
 
 async def mega_pwd() -> MegaPath:
-    """Returns current working directory"""
+    """Returns current working directory."""
     logger.info("Getting current working directory.")
 
     cmd: tuple[str, ...] = ("pwd",)
@@ -890,7 +888,7 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
 async def node_exists(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
     try:
-        ls_result = await mega_ls(path=node_path)
+        _ = await mega_ls(path=node_path)
     except MegaCmdError:
         return False
 
@@ -1278,11 +1276,7 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     # Base command. The -p flag creates parent directories as needed (e.g., for 'a/b/c').
     cmd = ["mkdir", "-p"]
 
-    if path:
-        remote_path = MegaPath(path, clean_name).str
-
-    else:
-        remote_path = f"{clean_name}"
+    remote_path = MegaPath(path, clean_name).str if path else f"{clean_name}"
 
     cmd.append(remote_path)
 
