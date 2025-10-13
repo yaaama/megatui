@@ -177,6 +177,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     async def on_rename_node_request(self, msg: RenameNodeRequest):
         self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
         await m.node_rename(msg.node.path, msg.new_name)
+        await self.file_list.action_refresh()
 
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
