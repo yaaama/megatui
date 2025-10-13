@@ -1106,9 +1106,9 @@ async def mega_get_from_handle(
     assert _verify_handle_structure(handle), "Handle verification failed."
 
     cmd: list[str] = ["get"]
+
     if queue:
         cmd.append("-q")
-        logger.debug("Queuing option enabled ('-q')")
 
     if merge:
         cmd.append("-m")
@@ -1121,8 +1121,6 @@ async def mega_get_from_handle(
     if not io_path.exists():
         logger.info(f"Target path '{target_path}' does not exist, will create it.")
         io_path.mkdir(exist_ok=False, parents=True)
-    else:
-        logger.info(f"Target path '{target_path}' exists.")
 
     cmd.append(target_path)
 
@@ -1143,7 +1141,6 @@ async def mega_get_from_handle(
 async def mega_get(
     target_path: str,
     remote_path: str,
-    is_dir: bool,
     queue: bool = True,
     merge: bool = False,
 ):
@@ -1167,15 +1164,11 @@ async def mega_get(
     if queue:
         cmd.append("-q")
 
-    if is_dir and merge:
+    if merge:
         cmd.append("-m")
-        logger.info(
-            f"Downloading directory '{remote_path}' to '{target_path}' with merge option."
-        )
-    elif is_dir:
-        logger.info(f"Downloading directory '{remote_path}' to '{target_path}'.")
+        logger.info(f"Downloading '{remote_path}' to '{target_path}' using '-m' (merge)")
     else:
-        logger.info(f"Downloading file '{remote_path}' to '{target_path}'.")
+        logger.info(f"Downloading node '{remote_path}' to '{target_path}'")
 
     # Append remote path
     cmd.append(remote_path)
@@ -1186,13 +1179,11 @@ async def mega_get(
         logger.info(
             f"Target local path not specified, defaulting to home directory: {target_path}"
         )
-    io_path: Path = Path(target_path)
+    io_path = Path(target_path)
 
     if not io_path.exists():
         logger.info(f"Target path '{target_path}' does not exist, will create it.")
         io_path.mkdir(exist_ok=False, parents=True)
-    else:
-        logger.info(f"Target path '{target_path}' exists.")
 
     cmd.append(target_path)
 
@@ -1319,6 +1310,10 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     try:
         logger.info(f"Attempting to create remote directory: '{remote_path}'")
         response = await run_megacmd(tuple(cmd))
+        # Handle folder already existing
+        if response.return_code == 54:
+            logger.warning("Folder already exists.")
+            raise MegaCmdError("Folder already exists.", response=response)
 
         # megacmd often puts non-critical info or warnings in stderr.
         error_msg = response.err_output
