@@ -34,6 +34,41 @@ logger.info("'megacmd' LOADED.")
 logger.info("================")
 
 
+class MegaCmdErrorCode(Enum):
+    """An enumeration for 'megacmd' output codes, with their descriptions.
+    Reference for errors in megaCMD:
+    https://github.com/meganz/MEGAcmd/blob/e6ea71c9e4f7d606d8b3555507b3a733e5914bed/src/megacmdcommonutils.h#L63.
+    """
+
+    OK = (0, "Everything OK")
+    CONFIRM_NO = (-12, 'User response to confirmation is "no"')
+    EARGS = (-51, "Wrong arguments")
+    INVALIDEMAIL = (-52, "Invalid email")
+    NOTFOUND = (-53, "Resource not found")
+    INVALIDSTATE = (-54, "Invalid state")
+    INVALIDTYPE = (-55, "Invalid type")
+    NOTPERMITTED = (-56, "Operation not allowed")
+    NOTLOGGEDIN = (-57, "Needs logging in")
+    NOFETCH = (-58, "Nodes not fetched")
+    EUNEXPECTED = (-59, "Unexpected failure")
+    REQCONFIRM = (-60, "Confirmation required")
+    REQSTRING = (-61, "String required")
+    PARTIALOUT = (-62, "Partial output provided")
+    PARTIALERR = (-63, "Partial error output provided")
+    EXISTS = (-64, "Resource already exists")
+    REQRESTART = (-71, "Restart required")
+
+    @property
+    def code(self) -> int:
+        """The integer error code."""
+        return self.value[0]
+
+    @property
+    def description(self) -> str:
+        """The string description of the code."""
+        return self.value[1]
+
+
 class MegaPath(pathlib.PurePosixPath):
     """A path object that always behaves like a POSIX path for MEGA operations.
     Inherits from pathlib.PurePosixPath to ensure forward slashes
