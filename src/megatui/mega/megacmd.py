@@ -495,7 +495,7 @@ class MegaMediaInfo:
         self.playtime = playtime
 
 
-def build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
+def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """Constructs a list containing the command to run and arguments.
     This list will transform something like: [ls, -l] into [mega-ls, -l]
     Also performs checking to see if the command is valid.
@@ -533,7 +533,7 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
     """
     # Construct the actual executable name (e.g., "mega-ls")
-    cmd_to_exec: tuple[str, ...] = build_megacmd_cmd(command)
+    cmd_to_exec: tuple[str, ...] = _build_megacmd_cmd(command)
     logger.info(f"Running cmd:\n'{' '.join(cmd_to_exec)}'")
     cmd, *cmd_args = cmd_to_exec
 
@@ -1125,7 +1125,7 @@ async def mega_get_from_handle(
 
     cmd.append(handle)
 
-    io_path: Path = Path(target_path)
+    io_path = Path(target_path)
 
     if not io_path.exists():
         logger.info(f"Target path '{target_path}' does not exist, will create it.")
