@@ -490,7 +490,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             await m.mega_get(
                 target_path=str(DL_PATH),
                 remote_path=str(file.path),
-                is_dir=file.is_dir,
             )
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
             title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
