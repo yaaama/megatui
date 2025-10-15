@@ -1315,14 +1315,9 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
         # megacmd often puts non-critical info or warnings in stderr.
         error_msg = response.err_output
         if error_msg:
-            # Check for the common "already exists" case, which we treat as a success.
-            if "already exists" in error_msg:
-                logger.warning(f"Directory '{remote_path}' already exists.")
-                return True
-            else:
-                # A real error occurred.
-                logger.error(f"Error creating directory '{remote_path}': {error_msg}")
-                return False
+            # A real error occurred.
+            logger.error(f"Error creating directory '{remote_path}': {error_msg}")
+            return False
 
         logger.info(f"Successfully created directory: '{remote_path}'")
         return True
