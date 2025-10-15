@@ -631,11 +631,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             # Post error message from the worker (thread-safe)
             self.post_message(self.LoadError(path, e))
             return None  # Indicate failure by returning None
-        except Exception as e:
-            self.log.error(f"FileList: Unexpected error loading path '{path}': {e}")
-            # Post error message from the worker (thread-safe)
-            self.post_message(self.LoadError(path, e))
-            return None  # Indicate failure
 
     async def load_directory(self, path: MegaPath) -> None:
         """Initiates asynchronous loading using the worker."""
@@ -700,10 +695,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
         except RowDoesNotExist:
             self.log.error("Could not return any row.")
-            return None
-        except Exception as e:
-            # Catch potential errors if cursor is out of sync
-            self.log.error(f"Error getting current row. {e}")
             return None
 
     def get_column_widths(self):

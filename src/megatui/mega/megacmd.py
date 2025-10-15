@@ -578,12 +578,6 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     except FileNotFoundError:
         logger.error(f"mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
         raise MegaLibError(message=f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
-    except Exception as e:
-        logger.exception(f"Unexpected error running '{cmd_to_exec[0]}'")
-        # Wrap unexpected errors
-        raise MegaCmdError(
-            message=f"Unexpected error running '{cmd_to_exec[0]}': {e}", response=None
-        ) from e
 
 
 ###########################################################################
@@ -624,9 +618,6 @@ async def check_mega_login() -> tuple[bool, str | None]:
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during login check: {e}")
         return False, f"Login check failed due to command error: {e.message}"
-    except Exception as e:
-        logger.exception("An unexpected error occurred during login check.")
-        return False, f"An unexpected error occurred: {e}"
 
 
 ###########################################################################
@@ -1099,9 +1090,6 @@ async def path_from_handle(handle: str) -> MegaPath | None:
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
         raise MegaCmdError(message=f"Could not parse path from handle `{handle}` :: {e}")
-    except Exception as e:
-        logger.error(f"Some other error occured: {e}")
-        return None
 
     return path
 
@@ -1341,9 +1329,4 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
 
     except MegaCmdError as e:
         logger.error(f"MegaCmdError while creating directory '{remote_path}': {e}")
-        raise
-    except Exception:
-        logger.exception(
-            f"An unexpected error occurred while creating directory '{remote_path}'."
-        )
         raise
