@@ -29,9 +29,7 @@ logger = logging.getLogger(__name__)
 # This will hide all INFO and DEBUG messages from asyncio.
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
-logger.info("================")
 logger.info("'megacmd' LOADED.")
-logger.info("================")
 
 
 class MegaCmdErrorCode(Enum):
@@ -82,6 +80,8 @@ class MegaPath(pathlib.PurePosixPath):
 
 # XXX ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
+
+MEGA_LS_DEFAULT_ARGS = ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"]
 
 # A dictionary defining the components of the 'ls' output.
 # These keys will become the named capture groups in the final regex.
@@ -368,7 +368,7 @@ class MegaItem:
         "version",
     )
 
-    name: str  # Name of item
+    name: str
     """Name of file/folder item."""
     path: MegaPath
     """ Full path of item. """
@@ -411,7 +411,7 @@ class MegaItem:
 
         self.path = path
 
-        # Human friendly sizing #############################################################
+        # Human friendly sizing
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
             self.size = 0.0
             self.size_unit = MegaSizeUnits.B
@@ -636,12 +636,9 @@ async def mega_ls(
         list[MegaItem]: A list of MegaItem objects representing the contents.
                         Returns an empty list if the path is invalid or an error occurs.
     """
-    cmd: list[str] = [
-        "ls",
-        "-l",
-        "--show-handles",
-        f"--time-format={MEGA_LS_DATEFMT_DEFAULT}",
-    ]
+
+    cmd: list[str] = ["ls"]
+    cmd.extend(MEGA_LS_DEFAULT_ARGS)
 
     if flags:
         cmd.extend(flags)

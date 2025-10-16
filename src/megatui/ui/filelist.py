@@ -81,27 +81,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding(
-            key="r",
-            key_display="r",
-            action="refresh",
-            description="refresh dir",
-            show=True,
-        ),
-        Binding(
-            key="R",
-            key_display="R",
-            action="rename_node",
-            description="rename a node",
-            show=True,
-        ),
-        Binding(
-            key="plus",
-            key_display="+",
-            action="mkdir",
-            description="make new directory",
-            show=True,
-        ),
+        # Select a file
         Binding(
             key="space",
             key_display="␠",
@@ -109,6 +89,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             description="select a file",
             show=True,
         ),
+        # Unselect all files
         Binding(
             key="u",
             key_display="u",
@@ -116,9 +97,37 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             description="unselect all",
             show=True,
         ),
+        # Refresh current directory
+        Binding(
+            key="r",
+            key_display="r",
+            action="refresh",
+            description="refresh dir",
+            show=True,
+        ),
+        # Rename a node/file
+        Binding(
+            key="R",
+            key_display="R",
+            action="rename_node",
+            description="rename a node",
+            show=True,
+        ),
+        # Make directory
+        Binding(
+            key="plus",
+            key_display="+",
+            action="mkdir",
+            description="make new directory",
+            show=True,
+        ),
+        # Open local filesystem
         Binding(key="o", key_display="o", action="upload_file", description="upload"),
+        # Delete files
         Binding(key="D", key_display="D", action="delete_files", description="delete"),
+        # Download files
         Binding(key="f3", key_display="f3", action="download", description="download"),
+        # Move files
         Binding(
             "M",
             key_display="M",
@@ -237,12 +246,12 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         selected_item_data = self.highlighted_item
         # Selected item is None.
         if not selected_item_data:
-            self.log.info("Nothing to navigate into.")
+            self.log.info("Nothing to navigate into...")
             return
 
         # Is a regular file
         if selected_item_data.is_file:  # Check if it's a directory
-            self.log.debug("Cannot enter into a file.")
+            # self.log.debug("Cannot enter into a file.")
             return
 
         # Folder to enter
