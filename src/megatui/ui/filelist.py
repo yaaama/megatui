@@ -1,20 +1,12 @@
 """FileList widget.
 Contains actions and is the main way to interact with the application.
 """
-# UI Components Related to Files
 
+# UI Components Related to Files
 import asyncio
 from collections import deque
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Annotated,
-    Any,
-    ClassVar,
-    Final,
-    LiteralString,
-    override,
-)
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, LiteralString, override
 
 from rich.style import Style
 from rich.text import Text
@@ -24,7 +16,7 @@ from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
-from textual.worker import Worker  # Import worker types
+from textual.worker import Worker
 
 import megatui.mega.megacmd as m
 from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
@@ -40,7 +32,7 @@ if TYPE_CHECKING:
 DL_PATH = Annotated[Path, "Default download path."]
 
 
-class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[reportExplicitAny]
+class FileList(DataTable[Any], inherit_bindings=False):
     """A DataTable widget to display files and their information."""
 
     app: "MegaTUI"
@@ -281,10 +273,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
             return
 
         parent_path: MegaPath = self._curr_path.parent
-        if len(self._cursor_index_stack) > 0:
-            curs_index = self._cursor_index_stack.pop()
-        else:
-            curs_index = 0
+        curs_index = self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
 
         # Useful to stop the flickering
         with self.app.batch_update():
@@ -569,8 +558,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         row.
         """
         if node.is_dir:
-            size_str = ""
             icon = self.NODE_ICONS["directory"]
+            size_str = "-"
         else:
             icon = self.NODE_ICONS["file"]
             size_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
