@@ -636,7 +636,6 @@ async def mega_ls(
         list[MegaItem]: A list of MegaItem objects representing the contents.
                         Returns an empty list if the path is invalid or an error occurs.
     """
-
     cmd: list[str] = ["ls"]
     cmd.extend(MEGA_LS_DEFAULT_ARGS)
 

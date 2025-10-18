@@ -475,7 +475,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         """Make a directory."""
         await self.app.push_screen(
             MkdirDialog(
-                popup_prompt=f"Make New Directory(s) '{self._curr_path}'",
+                popup_prompt=f"Make New Directory '{self._curr_path}'",
                 emoji_markup_prepended=":open_file_folder:",
                 curr_path=self._curr_path,
                 initial_input=None,
@@ -598,6 +598,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Go through each item and create new row for them
         for node, row_cells in row_generator:
             # Pass data as individual arguments for each column
+
             rowkey = self.add_row(
                 *row_cells,
                 # Unique key to reference the node
@@ -652,9 +653,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         worker_obj: Worker[MegaItems | None]
         worker_obj = self.fetch_files(path)
 
-        await worker_obj.wait()
-
-        fetched_items: MegaItems | None = worker_obj.result
+        fetched_items = await worker_obj.wait()
 
         # Cancelled
         if worker_obj.is_cancelled:
