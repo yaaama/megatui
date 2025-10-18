@@ -18,8 +18,17 @@ from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
-import megatui.mega.megacmd as m
-from megatui.mega.megacmd import MegaCmdError, MegaItem, MegaItems, MegaPath
+from megatui.mega.megacmd import (
+    MegaCmdError,
+    MegaItem,
+    MegaItems,
+    MegaPath,
+    mega_cd,
+    mega_get,
+    mega_ls,
+    mega_mv,
+    mega_rm,
+)
 from megatui.messages import RefreshRequest, StatusUpdate
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.screens.mkdir import MkdirDialog
@@ -212,9 +221,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         tasks: list[asyncio.Task[None]] = []
         for item in selected:
             if item.is_dir:
-                tasks.append(asyncio.create_task(m.mega_rm(fpath=item.path, flags=("-r", "-f"))))
+                tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=("-r", "-f"))))
             else:
-                tasks.append(asyncio.create_task(m.mega_rm(fpath=item.path, flags=None)))
+                tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=None)))
 
         await asyncio.gather(*tasks)
 
@@ -258,7 +267,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._cursor_index_stack.append(self.cursor_row)
 
         await self.load_directory(to_enter)
-        await m.mega_cd(target_path=to_enter)
+        await mega_cd(target_path=to_enter)
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
@@ -278,7 +287,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Useful to stop the flickering
         with self.app.batch_update():
             await self.load_directory(parent_path)
-            await m.mega_cd(target_path=parent_path)
+            await mega_cd(target_path=parent_path)
             self.move_cursor(row=curs_index)
 
     # ** File Actions ######################################################
@@ -491,7 +500,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.post_message(
                 StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
             )
-            await m.mega_get(
+            await mega_get(
                 target_path=str(DL_PATH),
                 remote_path=str(file.path),
             )
@@ -528,7 +537,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         tasks: list[asyncio.Task[None]] = []
         for f in files:
             self.log.info(f"Queueing move for `{f.name}` from `{f.path}` to: `{new_path}`")
-            task = asyncio.create_task(m.mega_mv(file_path=f.path, target_path=new_path))
+            task = asyncio.create_task(mega_mv(file_path=f.path, target_path=new_path))
             tasks.append(task)
 
         # The function will wait here until all move operations are complete.
@@ -625,7 +634,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.log.info(f"FileList: Worker starting fetch for path: {path}")
         try:
             # Fetch and sort items
-            fetched_items: MegaItems = await m.mega_ls(path)
+            fetched_items: MegaItems = await mega_ls(path)
             # Return the result or empty list
             return fetched_items or ()
 
