@@ -265,7 +265,8 @@ async def run_app() -> None:
     # Check login status before starting TUI
     # print("Checking MEGA login status...")
     app.log.info("Checking MEGA login status...")
-    logged_in, message = await m.check_mega_login()
+    async with asyncio.timeout(2.0):
+        logged_in, message = await m.check_mega_login()
 
     if not logged_in:
         print(f"MEGA Login Check Failed: {message}", file=sys.stderr)
