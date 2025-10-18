@@ -16,6 +16,7 @@ from typing import (
     override,
 )
 
+from rich.style import Style
 from rich.text import Text
 from textual import on, work
 from textual.binding import Binding, BindingType
@@ -58,6 +59,8 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
+    SELECTION_STYLE = Style(color="red", bold=True, italic=True)
+    SELECTION_LABEL = Text(text=SELECTION_INDICATOR, style=SELECTION_STYLE)
 
     BORDER_SUBTITLE = ""
     """Border subtitle."""
@@ -592,7 +595,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Use a dictionary comprehension
         self._row_data_map = {item.handle: item for item in fetched_items}
 
-        selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
         found_selected_items = False
 
         row_generator = ((node, self._prepare_row_contents(node)) for node in fetched_items)
@@ -611,7 +613,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 label=" ",
             )
             if node.handle in self._selected_items:
-                self.rows[rowkey].label = selection_label
+                self.rows[rowkey].label = self.SELECTION_LABEL
                 found_selected_items = True
 
         if found_selected_items:
