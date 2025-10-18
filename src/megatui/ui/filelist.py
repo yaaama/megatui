@@ -11,6 +11,7 @@ from typing import (
     Annotated,
     Any,
     ClassVar,
+    Final,
     LiteralString,
     override,
 )
@@ -44,20 +45,22 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
     app: "MegaTUI"
 
     # * UI Elements ###########################################################
+    FILELIST_ROW_HEIGHT: Final = 1
+    """The height for rows in the table."""
 
     DEFAULT_CSS = """ """
 
     FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
-    """ Markup used for file icon. """
+    """Markup used for file icon."""
 
     DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
-    """ Markup used for directory icon. """
+    """Markup used for directory icon."""
 
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
-    """ Character to indicate a file has been selected. """
+    """Character to indicate a file has been selected."""
 
     BORDER_SUBTITLE = ""
-    """ Border subtitle. """
+    """Border subtitle."""
 
     COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
 
@@ -589,7 +592,6 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         # Use a dictionary comprehension
         self._row_data_map = {item.handle: item for item in fetched_items}
 
-        height = 1
         selection_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
         found_selected_items = False
 
@@ -604,7 +606,7 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
                 # Unique key to reference the node
                 key=node.handle,
                 # Height of each row
-                height=height,
+                height=self.FILELIST_ROW_HEIGHT,
                 # Selection label should be empty
                 label=" ",
             )
