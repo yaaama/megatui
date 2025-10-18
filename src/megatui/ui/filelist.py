@@ -50,11 +50,11 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
 
     DEFAULT_CSS = """ """
 
-    FILE_ICON_MARKUP: ClassVar[LiteralString] = ":page_facing_up:"
-    """Markup used for file icon."""
-
-    DIR_ICON_MARKUP: ClassVar[LiteralString] = ":file_folder:"
-    """Markup used for directory icon."""
+    NODE_ICONS: ClassVar[dict[str, str]] = {
+        "directory": "📁",
+        "file": "📄",
+    }
+    """Icons for different kind of nodes."""
 
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
@@ -566,18 +566,18 @@ class FileList(DataTable[Any], inherit_bindings=False):  # pyright: ignore[repor
         row.
         """
         if node.is_dir:
-            icon_markup = self.DIR_ICON_MARKUP
             size_str = ""
+            icon = self.NODE_ICONS["directory"]
         else:
-            icon_markup = self.FILE_ICON_MARKUP
+            icon = self.NODE_ICONS["file"]
             size_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
 
-        cell_icon = Content.from_rich_text(Text.from_markup(icon_markup))
+        cell_icon = Content(icon)
         cell_name = Content.from_rich_text(
             Text(text=node.name, overflow="ellipsis", no_wrap=True)
         )
         # NOTE: We can display time in different formats from here for the UI
-        cell_mtime = Content.from_rich_text(Text(text=str(node.mtime), style="italic"))
+        cell_mtime = Content.styled(text=str(node.mtime), style="italic")
         cell_size = Content(text=size_str)
 
         return (cell_icon, cell_name, cell_mtime, cell_size)
