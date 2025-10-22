@@ -66,7 +66,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     BORDER_SUBTITLE = ""
     """Border subtitle."""
 
-    COLUMNS: ClassVar[list[LiteralString]] = ["icon", "name", "modified", "size"]
+    COLUMNS: ClassVar[list[str]] = ["icon", "name", "modified", "size"]
 
     DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
 
