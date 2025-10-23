@@ -19,6 +19,7 @@ from megatui.mega.data import (
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
     MegaDFOutput,
+    MEGA_ROOT_PATH,
     MegaDiskUsage,
     MegaPath,
 )
@@ -576,7 +577,7 @@ async def mega_du(
     cmd: list[str] = ["du"]
 
     if not dir_path:
-        dir_path = MegaPath("/")
+        dir_path = MEGA_ROOT_PATH
 
     if include_version_info:
         cmd.append("--versions")

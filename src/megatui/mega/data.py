@@ -131,6 +131,9 @@ class MegaPath(pathlib.PurePosixPath):
         return self.__str__()
 
 
+MEGA_ROOT_PATH: Final[MegaPath] = MegaPath("/")
+
+
 @dataclass(frozen=True)
 class MegaDiskUsage:
     location: MegaPath
