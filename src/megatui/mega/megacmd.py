@@ -979,7 +979,7 @@ async def mega_get(
     logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
 
 
-async def mega_df(human: bool = True) -> str | None:
+async def mega_df(human: bool = True) -> MegaDFOutput | None:
     """Returns storage information for main folders.
 
     Args:
@@ -995,20 +995,19 @@ async def mega_df(human: bool = True) -> str | None:
         logger.error(f"Error running 'df': {response.err_output}")
         raise MegaCmdError(message="Error running mega-df", response=response)
 
-    return response.stdout
+    return _parse_df(response.stdout)
 
 
-async def mega_df_dict() -> MegaDFOutput | None:
+def _parse_df(df_output: str) -> MegaDFOutput | None:
     """Returns overview of mounted folders as a dictionary."""
-    output: str | None = await mega_df()
-    if not output:
+    if not df_output:
         logger.error("Received no output from 'mega_df'")
         return None
 
-    logger.debug(f"'df' output:\n`{output}`")
+    logger.debug(f"'df' output:\n`{df_output}`")
 
     # Split by lines
-    lines = output.strip().split("\n")
+    lines = df_output.strip().split("\n")
 
     locations_list: list[MegaDFOutput.LocationInfo] = []
     summary_data: MegaDFOutput.UsageSummary | None = None
