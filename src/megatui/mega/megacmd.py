@@ -370,15 +370,11 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         # Handle cases where mega-* commands might print errors to stdout
         if process.returncode != 0:
             error_message = stderr_str if stderr_str else stdout_str
-            logger.error(
-                f"FAIL :: '{' '.join(cmd_to_exec)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
-            )
-            raise MegaCmdError(
-                f"FAIL :: '{' '.join(cmd_to_exec)}' FAILED: {error_message}",
-                response=cmd_response,  # Use stderr if available
-            )
+            err_output = f"'{' '.join(cmd_to_exec)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
+            logger.error(err_output)
+            raise MegaCmdError(err_output, response=cmd_response)
 
-        logger.debug(f"SUCCESS :: '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
+        logger.debug(f"OK : '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
         return cmd_response
 
     except FileNotFoundError:
