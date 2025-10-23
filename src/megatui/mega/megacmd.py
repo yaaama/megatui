@@ -7,10 +7,11 @@ import pathlib
 import re
 from collections import deque
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Final, LiteralString, NamedTuple, TypedDict, override
+from typing import Final, LiteralString, NamedTuple, override
 
 MEGA_LOGTOFILE = False
 
@@ -126,16 +127,21 @@ LS_REGEXP: Final[re.Pattern[str]] = re.compile(
 #       ---------------------------------------------------------------------------
 #       Total size taken up by file versions:    306416706
 #
-DF_LOCATION_REGEXP: re.Pattern[str] = re.compile(
-    r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)"
-)  # Regexp to parse mount info
+_DF_PATTERN_COMPONENTS: Final[dict[str, str]] = {
+    "location": r"^(.+?):\s+(\d+)\s+in\s+(\d+)\s+file\(s\) and\s+(\d+)\s+folder\(s\)",
+    "summary": r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)",
+    "versions": r"^Total size taken up by file versions:\s+(\d+)",
+}
 
-DF_SUMMARY_REGEXP: re.Pattern[str] = re.compile(
-    r"^USED STORAGE:\s+(\d+)\s+([\d\.]+)%\s+of\s+(\d+)"
-)  # Regexp to parse total storage usage.
-DF_VERSIONS_REGEXP: re.Pattern[str] = re.compile(
-    r"^Total size taken up by file versions:\s+(\d+)"
-)  # Regexp to parse storage taken up by file versions
+DF_REGEXPS: Final[dict[str, re.Pattern[str]]] = {
+    key: re.compile(pattern) for key, pattern in _DF_PATTERN_COMPONENTS.items()
+}
+
+
+DU_PATTERN_COMPONENTS = {
+    "header": r"^FILENAME\s+SIZE$",
+    "file_size": r"^(.+?):\s+(\d+)",
+}
 
 DU_HEADER_REGEXP: re.Pattern[str] = re.compile(
     r"^FILENAME\s+SIZE$"
@@ -1209,32 +1215,33 @@ async def mega_df(human: bool = True) -> str | None:
     return response.stdout
 
 
-class LocationInfo(TypedDict):
-    """Type definition for a single location entry."""
+@dataclass(frozen=True)
+class MegaDFOutput:
+    """Dataclass representing parsed 'df' output."""
 
-    name: str
-    size_bytes: int
-    files: int
-    folders: int
+    @dataclass(frozen=True)
+    class LocationInfo:
+        """Represents storage information for a single location."""
 
+        name: str
+        size_bytes: int
+        files: int
+        folders: int
 
-class UsageSummary(TypedDict):
-    """Type definition for the usage summary line."""
+    @dataclass(frozen=True)
+    class UsageSummary:
+        """Represents the overall storage usage summary."""
 
-    used_bytes: int
-    percentage: float
-    total_bytes: int
-
-
-class StorageOverview(TypedDict):
-    """Dictionary representing parsed 'df' output."""
+        used_bytes: int
+        percentage: float
+        total_bytes: int
 
     locations: list[LocationInfo]
-    usage_summary: UsageSummary | None  # Can be UsageSummary or None
-    version_size_bytes: int | None  # Can be int or None
+    usage_summary: UsageSummary | None
+    version_size_bytes: int | None
 
 
-async def mega_df_dict() -> StorageOverview | None:
+async def mega_df_dict() -> MegaDFOutput | None:
     """Returns overview of mounted folders as a dictionary."""
     output: str | None = await mega_df()
     if not output:
@@ -1246,36 +1253,45 @@ async def mega_df_dict() -> StorageOverview | None:
     # Split by lines
     lines = output.strip().split("\n")
 
-    # Initialise our dict
-    parsed_data: StorageOverview = {
-        "locations": [],
-        "usage_summary": None,
-        "version_size_bytes": None,
-    }
+    locations_list: list[MegaDFOutput.LocationInfo] = []
+    summary_data: MegaDFOutput.UsageSummary | None = None
+    versions_size: int | None = None
 
     for line_base in lines:
         line = line_base.strip()
-        if match := DF_LOCATION_REGEXP.match(line):
-            name, size, files, folders = match.groups()
-            parsed_data["locations"].append(
-                {
-                    "name": name.strip(),
-                    "size_bytes": int(size),
-                    "files": int(files),
-                    "folders": int(folders),
-                }
-            )
-        elif match := DF_SUMMARY_REGEXP.match(line):
-            used, pct, total = match.groups()
-            parsed_data["usage_summary"] = {
-                "used_bytes": int(used),
-                "percentage": float(pct),
-                "total_bytes": int(total),
-            }
-        elif match := DF_VERSIONS_REGEXP.match(line):
-            parsed_data["version_size_bytes"] = int(match.group(1))
 
-    return parsed_data
+        # Skip over empty lines or header seperators
+        if (not line) or line.startswith("---"):
+            continue
+
+        for key, pattern in DF_REGEXPS.items():
+            if match := pattern.match(line):
+                if key == "location":
+                    name, size, files, folders = match.groups()
+                    locations_list.append(
+                        MegaDFOutput.LocationInfo(
+                            name=name.strip(),
+                            size_bytes=int(size),
+                            files=int(files),
+                            folders=int(folders),
+                        )
+                    )
+                elif key == "summary":
+                    used, pct, total = match.groups()
+                    summary_data = MegaDFOutput.UsageSummary(
+                        used_bytes=int(used),
+                        percentage=float(pct),
+                        total_bytes=int(total),
+                    )
+                elif key == "versions":
+                    versions_size = int(match.group(1))
+                break
+
+    return MegaDFOutput(
+        locations=locations_list,
+        usage_summary=summary_data,
+        version_size_bytes=versions_size,
+    )
 
 
 async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
