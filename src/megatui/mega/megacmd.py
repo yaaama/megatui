@@ -12,6 +12,17 @@ from enum import Enum
 from pathlib import Path
 from typing import override
 
+from megatui.mega.data import (
+    DF_REGEXPS,
+    DU_REGEXPS,
+    LS_REGEXP,
+    MEGA_COMMANDS_SUPPORTED,
+    MEGA_DEFAULT_CMD_ARGS,
+    MegaDFOutput,
+    MegaDiskUsage,
+    MegaPath,
+)
+
 MEGA_LOGTOFILE = False
 
 if MEGA_LOGTOFILE:
