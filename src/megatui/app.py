@@ -12,6 +12,7 @@ from textual.logging import TextualHandler
 from textual.widgets import Footer, Header, Label
 
 from megatui.mega import megacmd as m
+from megatui.mega.data import MegaPath
 from megatui.messages import (
     MakeRemoteDirectory,
     RefreshRequest,
@@ -110,9 +111,8 @@ class MegaTUI(App[None], inherit_bindings=False):
         Performs initial load and some initialisation.
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
-        # Get the FileList widget and load the root directory
-        file_list = self.query_one(FileList)
-        await file_list.load_directory(file_list._curr_path)  # pyright: ignore[reportPrivateUsage]
+
+        asyncio.create_task(self.file_list.load_directory(self.file_list._curr_path))
 
     # """
     # Actions #############################################################
@@ -176,7 +176,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     @work(name="rename")
     async def on_rename_node_request(self, msg: RenameNodeRequest):
         self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
-        await m.node_rename(msg.node.path, msg.new_name)
+        await m.mega_node_rename(msg.node.path, msg.new_name)
         await self.file_list.action_refresh()
 
     @work(name="upload")
@@ -185,7 +185,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         self.log.info("Uploading file(s)")
 
         files = [path for path in msg.files]
-        destination = msg.destination if msg.destination else m.MegaPath()
+        destination = msg.destination if msg.destination else MegaPath()
         filenames = ", ".join(str(files))
         self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
 

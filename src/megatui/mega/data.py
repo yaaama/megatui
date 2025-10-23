@@ -132,6 +132,7 @@ class MegaPath(pathlib.PurePosixPath):
 
 
 MEGA_ROOT_PATH: Final[MegaPath] = MegaPath("/")
+"""The root path for a MEGA cloud drive."""
 
 
 @dataclass(frozen=True)

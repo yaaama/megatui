@@ -365,14 +365,17 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
         if stderr_str:
             cmd_response.stderr = stderr_str
-            logger.warning(f"Command '{' '.join(cmd_to_exec)}' produced stderr: '{stderr_str}'")
+            logger.error(f"'{cmd[0]}' produced stderr: : {cmd_response.err_output}")
+            raise MegaCmdError(message=f"Error running '{cmd[0]}'", response=cmd_response)
 
         # Handle cases where mega-* commands might print errors to stdout
         if process.returncode != 0:
-            error_message = stderr_str if stderr_str else stdout_str
-            err_output = f"'{' '.join(cmd_to_exec)}' FAILED: ReturnCode='{process.returncode}', ErrMsg='{error_message}'"
-            logger.error(err_output)
-            raise MegaCmdError(err_output, response=cmd_response)
+            # Error printed by megacmd
+            command_error_output = stderr_str if stderr_str else stdout_str
+            # Formatted error
+            formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{process.returncode}', StdErr='{command_error_output}'"
+            logger.error(formatted_err_msg)
+            raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
 
         logger.debug(f"OK : '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
         return cmd_response
@@ -452,17 +455,8 @@ async def mega_ls(
 
     logger.info(f"Listing contents of MEGA path: {target_path}")
 
-    cmd.append(str(target_path))
-
+    cmd.append(target_path.str)
     response: MegaCmdResponse = await run_megacmd(tuple(cmd))
-
-    if response.return_code == 53:
-        raise MegaCmdError("Resource not found.", response=response)
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error listing files in '{path}': {error_msg}")
-        return ()
 
     items: deque[MegaItem] = deque()
 
@@ -581,13 +575,6 @@ async def mega_du(
     cmd.append(dir_path.str)
 
     response = await run_megacmd(tuple(cmd))
-    err_msg = response.err_output
-    if err_msg:
-        logger.error(f"Ran into problems running 'du' for path '{dir_path}': {err_msg}")
-        raise MegaCmdError(
-            f"Ran into problems running 'du' for path '{dir_path}': {err_msg}",
-            response=response,
-        )
 
     logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
 
@@ -614,18 +601,12 @@ async def mega_cd(target_path: MegaPath | None):
     """Change directories."""
     if not target_path:
         logger.debug("No target path. Will cd to root")
-        target_path = MegaPath("/")
+        target_path = MEGA_ROOT_PATH
 
     logger.info(f"Changing directory to {target_path}")
 
     cmd: list[str] = ["cd", target_path.str]
-    response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error changing directories to '{target_path}': {error_msg}")
-        raise MegaCmdError(f"Failed to change directory to '{target_path}': {error_msg}")
-
+    await run_megacmd(tuple(cmd))
     logger.info(f"Successfully changed directory to '{target_path}'")
 
 
@@ -636,14 +617,7 @@ async def mega_pwd() -> MegaPath:
     cmd: tuple[str, ...] = ("pwd",)
     response = await run_megacmd(cmd)
 
-    error_msg = response.err_output
-
-    if error_msg:
-        logger.error(f"Error printing working directory: {error_msg}")
-        raise MegaCmdError(f"Failed to get working directory: {error_msg}")
-
     pwd_path = MegaPath(response.stdout.strip())
-    logger.info(f"Current working directory: {pwd_path}")
     return pwd_path
 
 
@@ -655,13 +629,13 @@ async def mega_cd_ls(
     if not target_path:
         target_path = MegaPath("/")
 
-    logger.info(f"Changing directory and listing contents for {target_path}")
+    logger.debug(f"Changing directory and listing contents for {target_path}")
 
     results = await asyncio.gather(mega_cd(target_path), mega_ls(target_path, ls_flags))
 
     items: MegaItems = results[1]
 
-    logger.info(f"Finished cd and ls for {target_path}. Found {len(items)} items.")
+    logger.debug(f"Finished cd and ls for {target_path}. Found {len(items)} items.")
 
     return items
 
@@ -673,17 +647,9 @@ async def mega_cp(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Copying file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("cp", file_path.str, target_path.str)
-    response = await run_megacmd(cmd)
+    await run_megacmd(cmd)
 
-    error_msg = response.err_output
-
-    if error_msg:
-        logger.error(f"Error copying file '{file_path}' to '{target_path}': {error_msg}")
-        raise MegaCmdError(
-            "Error copying file '{file_path}' to '{target_path}'", response=response
-        )
-
-        logger.info(f"Successfully copied '{file_path}' to '{target_path}'")
+    logger.info(f"Successfully copied '{file_path}' to '{target_path}'")
 
 
 ###############################################################################
@@ -692,19 +658,12 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Moving file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("mv", file_path.str, target_path.str)
-    response = await run_megacmd(cmd)
-
-    error_msg = response.err_output
-    if error_msg:
-        error_msg = response.stderr if response.stderr else response.stdout
-        logger.error(f"Error moving file '{file_path}' to '{target_path}': {error_msg}")
-        # TODO Make this raise an exception
-        raise MegaCmdError(f"Failed to move {file_path} to {target_path}", response=response)
+    await run_megacmd(cmd)
 
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
-async def node_exists(node_path: MegaPath) -> bool:
+async def mega_node_exists(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
     try:
         _ = await mega_ls(path=node_path)
@@ -714,7 +673,7 @@ async def node_exists(node_path: MegaPath) -> bool:
     return True
 
 
-async def node_rename(file_path: MegaPath, new_name: str) -> None:
+async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
     """Rename a node.
 
     Args:
@@ -722,7 +681,7 @@ async def node_rename(file_path: MegaPath, new_name: str) -> None:
         new_name: New name for node.
     """
     assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
-    exists = await node_exists(file_path)
+    exists = await mega_node_exists(file_path)
     if not exists:
         logger.warning(f"Path '{file_path}' does not exist!")
         raise MegaCmdError(f"Path '{file_path}' does not exist!", response=None)
@@ -731,7 +690,6 @@ async def node_rename(file_path: MegaPath, new_name: str) -> None:
     if file_path.match("/"):
         logger.error("Cannot rename root directory!")
         raise MegaCmdError("Cannot rename root directory!", None)
-        return
 
     new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
@@ -741,20 +699,12 @@ async def node_rename(file_path: MegaPath, new_name: str) -> None:
 ###############################################################################
 async def mega_rm(fpath: MegaPath, flags: tuple[str, ...] | None) -> None:
     """Remove a file."""
-    str_path = str(fpath)
+    str_path = fpath.str
     logger.info(f"Removing file {fpath!s} with flags: {flags} ")
 
     cmd: list[str] = ["rm", str_path, *flags] if flags else ["rm", str_path]
 
-    response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error removing file '{fpath}' with flags '{flags}': {error_msg}")
-        raise MegaCmdError(
-            message=f"MegaCmdError during `{cmd}` ",
-            response=response,
-        )
+    await run_megacmd(tuple(cmd))
 
     logger.info(f"Successfully removed '{fpath}' with flags '{flags}'")
 
@@ -807,15 +757,7 @@ async def mega_put(
     # Remote destination
     cmd.append(path_str)
 
-    response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error uploading files '{local_paths}' to '{target_path}': {error_msg}")
-        raise MegaCmdError(
-            message=f"Error uploading files '{local_paths}' to '{target_path}': {error_msg}",
-            response=response,
-        )
+    await run_megacmd(tuple(cmd))
 
     logger.info(f"Successfully initiated upload of '{local_paths}' to '{target_path}'")
 
@@ -856,24 +798,12 @@ async def path_from_handle(handle: str) -> MegaPath | None:
     assert _verify_handle_structure(handle), "Handle does not conform to structure."
 
     # cd to root
-    try:
-        await mega_cd(MegaPath("/"))
-    except MegaCmdError as e:
-        logger.error(f"Could not navigate to root directory: {e}")
-        raise e
+    await mega_cd(MEGA_ROOT_PATH)
 
     # Have to use the 'ls' command to get the full path of a handle
     cmd: list[str] = ["ls", handle]
 
     response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error verifying handle: '{handle}': {error_msg}")
-        raise MegaCmdError(
-            message=f"Error verifying handle: '{handle}': {error_msg}",
-            response=response,
-        )
 
     # Parse result
     try:
@@ -888,9 +818,9 @@ async def path_from_handle(handle: str) -> MegaPath | None:
 
 
 async def mega_get_from_handle(
-    target_path: str, handle: str, queue: bool = True, merge: bool = False
+    target_path: str | Path, handle: str, queue: bool = True, merge: bool = False
 ):
-    """Download file using its HANDLE."""
+    """Download file using its HANDLE to `target_path`."""
     assert target_path, "You must specify a 'target_path'"
     assert handle, "'handle' not specified."
     assert _verify_handle_structure(handle), "Handle verification failed."
@@ -906,33 +836,22 @@ async def mega_get_from_handle(
 
     cmd.append(handle)
 
-    io_path = Path(target_path)
+    io_path = Path(target_path) if not isinstance(target_path, Path) else target_path
 
     if not io_path.exists():
         logger.info(f"Target path '{target_path}' does not exist, will create it.")
         io_path.mkdir(exist_ok=False, parents=True)
 
-    cmd.append(target_path)
+    cmd.append(str(target_path))
 
-    response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error downloading in '{target_path}': {error_msg}")
-        raise MegaCmdError(
-            message=f"Error downloading handle `{handle}` to '{target_path}'",
-            response=response,
-        )
+    await run_megacmd(tuple(cmd))
 
     logger.info(f"Successfully initiated download of '{handle}' to '{target_path}'")
 
 
 ###############################################################################
 async def mega_get(
-    target_path: str,
-    remote_path: str,
-    queue: bool = True,
-    merge: bool = False,
+    target_path: str | Path, remote_path: str, queue: bool = True, merge: bool = False
 ):
     """Download a file from the remote system to a local path.
 
@@ -969,20 +888,16 @@ async def mega_get(
         logger.info(
             f"Target local path not specified, defaulting to home directory: {target_path}"
         )
-    io_path = Path(target_path)
+
+    io_path = Path(target_path) if not isinstance(target_path, Path) else target_path
 
     if not io_path.exists():
         logger.info(f"Target path '{target_path}' does not exist, will create it.")
         io_path.mkdir(exist_ok=False, parents=True)
 
-    cmd.append(target_path)
+    cmd.append(str(target_path))
 
-    response = await run_megacmd(tuple(cmd))
-
-    error_msg = response.err_output
-    if error_msg:
-        logger.error(f"Error downloading file `{remote_path}` to `{target_path}`: {error_msg}")
-        raise MegaCmdError(message=f"Error downloading `{remote_path}` to `{target_path}`")
+    await run_megacmd(tuple(cmd))
 
     logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
 
@@ -998,10 +913,6 @@ async def mega_df(human: bool = True) -> MegaDiskFree | None:
         cmd.append("-h")
 
     response = await run_megacmd(tuple(cmd))
-
-    if response.err_output:
-        logger.error(f"Error running 'df': {response.err_output}")
-        raise MegaCmdError(message="Error running mega-df", response=response)
 
     return _parse_df(response.stdout)
 
@@ -1082,22 +993,11 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     # Try running command
     try:
         logger.info(f"Attempting to create remote directory: '{remote_path}'")
-        response = await run_megacmd(tuple(cmd))
-        # Handle folder already existing
-        if response.return_code == 54:
-            logger.warning("Folder already exists.")
-            raise MegaCmdError("Folder already exists.", response=response)
-
-        # megacmd often puts non-critical info or warnings in stderr.
-        error_msg = response.err_output
-        if error_msg:
-            # A real error occurred.
-            logger.error(f"Error creating directory '{remote_path}': {error_msg}")
-            return False
+        await run_megacmd(tuple(cmd))
 
         logger.info(f"Successfully created directory: '{remote_path}'")
         return True
 
     except MegaCmdError as e:
         logger.error(f"MegaCmdError while creating directory '{remote_path}': {e}")
-        raise
+        return False

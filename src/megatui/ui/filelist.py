@@ -18,6 +18,7 @@ from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
+from megatui.mega.data import MEGA_ROOT_PATH
 from megatui.mega.megacmd import (
     MegaCmdError,
     MegaItem,
@@ -173,7 +174,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # TODO: Think of something useful to add here
         # self.border_title = "MEGA"
         self.border_subtitle = "Initializing view..."
-        self._curr_path = MegaPath("/")
+        self._curr_path = MEGA_ROOT_PATH
         self._loading_path = self._curr_path
         self._row_data_map = {}
         self._selected_items = {}
@@ -676,8 +677,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._loading_path = path  # Track the path we are loading
 
         # Start the worker. Results handled by on_worker_state_changed.
-        worker_obj: Worker[MegaItems | None]
-        worker_obj = self.fetch_files(path)
+        worker_obj: Worker[MegaItems | None] = self.fetch_files(path)
 
         fetched_items = await worker_obj.wait()
 
