@@ -8,15 +8,13 @@ from typing import Final, LiteralString
 
 # TODO ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
+"""Default date formatting for `ls` output."""
 
 MEGA_DEFAULT_CMD_ARGS = {
-    "ls": ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"],
+    "ls": ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"]
 }
+"""Default arguments for `mega` commands."""
 
-
-"""
-Regular expressions.
-"""
 
 # A dictionary defining the components of the 'ls' output.
 # These keys will become the named capture groups in the final regex.
@@ -34,6 +32,7 @@ LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
     # Filename (captures everything until the end of the line)
     "filename": r".+",
 }
+"""Regular expressions for different pieces of output of `ls`."""
 
 # Default 'ls -l --show-handles --date-format=ISO6081_WITH_TIME' regular expression.
 # re.VERBOSE allows for this clean, multi-line, and commented format.

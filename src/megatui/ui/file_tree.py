@@ -44,9 +44,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         Binding("full_stop", "toggle_hidden", "hidden files", show=False),
     ]
 
-    COMPONENT_CLASSES = {
-        "node-selected",
-    }
+    COMPONENT_CLASSES = {"node-selected"}
 
     SELECTED_NODE_PREFIX = "[bold][red]*[/]"
     UNSELECTED_NODE_PREFIX = " "
@@ -124,7 +122,9 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         if child == parent:
             return False
         try:
-            return child.resolve(strict=True).is_relative_to(parent.resolve(strict=True))
+            return child.resolve(strict=True).is_relative_to(
+                parent.resolve(strict=True)
+            )
         except FileNotFoundError:
             return False
 
@@ -149,7 +149,9 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         return bool(any(path.is_relative_to(p) for p in self._selected_items))
 
     @override
-    def render_label(self, node: TreeNode[DirEntry], base_style: Style, style: Style) -> Text:
+    def render_label(
+        self, node: TreeNode[DirEntry], base_style: Style, style: Style
+    ) -> Text:
         """Render a label for the given node.
 
         Args:
@@ -197,7 +199,9 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
             # Deselect the node.
             self._selected_items.discard(path)
             # If an ancestor is selected, this node becomes an explicit exception.
-            is_ancestor_selected = any(path.is_relative_to(p) for p in self._selected_items)
+            is_ancestor_selected = any(
+                path.is_relative_to(p) for p in self._selected_items
+            )
             if is_ancestor_selected:
                 # TODO Make this an operation later.
                 return
@@ -239,7 +243,9 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         return {
             p
             for p in final_paths
-            if not any(p.is_relative_to(deselected) for deselected in self._deselected_items)
+            if not any(
+                p.is_relative_to(deselected) for deselected in self._deselected_items
+            )
         }
 
     @on(DirectoryTree.FileSelected)
@@ -296,8 +302,5 @@ class UploadFilesModal(ModalScreen[None]):
     def compose(self) -> ComposeResult:
         with Container(id="container"):
             yield Label("Select file to upload", id="uploadfiles-heading")
-            yield LocalSystemFileTree(
-                path=str(Path.home()),
-                widget_id="filetree",
-            )
+            yield LocalSystemFileTree(path=str(Path.home()), widget_id="filetree")
             # TODO: Add a label here that will display the count of selected files etc

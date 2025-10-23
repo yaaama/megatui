@@ -15,7 +15,9 @@ from megatui.mega.megacmd import MegaDiskFree
 class AccountInformationScreen(ModalScreen[None]):
     """Screen to display cloud storage account information."""
 
-    BINDINGS = (Binding(key="escape", action="app.pop_screen", show=False, priority=True),)
+    BINDINGS = (
+        Binding(key="escape", action="app.pop_screen", show=False, priority=True),
+    )
 
     def __init__(
         self, df_data: MegaDiskFree, pwd: str, whoami: str, mount: str, speedlimits: str

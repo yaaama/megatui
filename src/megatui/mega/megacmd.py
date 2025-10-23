@@ -95,11 +95,7 @@ class MegaCmdError(Exception):
     message: str
     response: MegaCmdResponse | None
 
-    def __init__(
-        self,
-        message: str,
-        response: MegaCmdResponse | None = None,
-    ):
+    def __init__(self, message: str, response: MegaCmdResponse | None = None):
         super().__init__(message)
         self.message = message
 
@@ -366,7 +362,9 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         if stderr_str:
             cmd_response.stderr = stderr_str
             logger.error(f"'{cmd[0]}' produced stderr: : {cmd_response.err_output}")
-            raise MegaCmdError(message=f"Error running '{cmd[0]}'", response=cmd_response)
+            raise MegaCmdError(
+                message=f"Error running '{cmd[0]}'", response=cmd_response
+            )
 
         # Handle cases where mega-* commands might print errors to stdout
         if process.returncode != 0:
@@ -381,7 +379,9 @@ async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         return cmd_response
 
     except FileNotFoundError:
-        logger.error(f"mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?")
+        logger.error(
+            f"mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?"
+        )
         raise MegaLibError(message=f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
 
 
@@ -418,7 +418,9 @@ async def check_mega_login() -> tuple[bool, str | None]:
             return True, username
 
         else:
-            logger.warning(f"Login status uncertain. Unexpected response: {response.stdout}")
+            logger.warning(
+                f"Login status uncertain. Unexpected response: {response.stdout}"
+            )
             return False, f"Login status uncertain. Response: {response}"
     except MegaCmdError as e:
         logger.error(f"MegaCmdError during login check: {e}")
@@ -680,7 +682,9 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
         file_path: Path of node to rename.
         new_name: New name for node.
     """
-    assert file_path and new_name, f"Cannot have empty args: `{file_path}`, `{new_name}`"
+    assert file_path and new_name, (
+        f"Cannot have empty args: `{file_path}`, `{new_name}`"
+    )
     exists = await mega_node_exists(file_path)
     if not exists:
         logger.warning(f"Path '{file_path}' does not exist!")
@@ -724,7 +728,9 @@ async def mega_put(
     """
     if not local_paths:
         logger.error("Error! Local file is not specified for upload.")
-        raise MegaLibError(message="Local file is not specified for upload.", fatal=True)
+        raise MegaLibError(
+            message="Local file is not specified for upload.", fatal=True
+        )
 
     if not target_path:
         target_path = await mega_pwd()
@@ -812,7 +818,9 @@ async def path_from_handle(handle: str) -> MegaPath | None:
         path = MegaPath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
-        raise MegaCmdError(message=f"Could not parse path from handle `{handle}` :: {e}")
+        raise MegaCmdError(
+            message=f"Could not parse path from handle `{handle}` :: {e}"
+        )
 
     return path
 
@@ -875,7 +883,9 @@ async def mega_get(
 
     if merge:
         cmd.append("-m")
-        logger.info(f"Downloading '{remote_path}' to '{target_path}' using '-m' (merge)")
+        logger.info(
+            f"Downloading '{remote_path}' to '{target_path}' using '-m' (merge)"
+        )
     else:
         logger.info(f"Downloading node '{remote_path}' to '{target_path}'")
 
@@ -899,7 +909,9 @@ async def mega_get(
 
     await run_megacmd(tuple(cmd))
 
-    logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
+    logger.info(
+        f"Successfully initiated download of '{remote_path}' to '{target_path}'"
+    )
 
 
 async def mega_df(human: bool = True) -> MegaDiskFree | None:

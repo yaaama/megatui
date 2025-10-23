@@ -38,11 +38,7 @@ class ConfirmationScreen(ModalScreen[bool]):
 
         with container:
             self.border_title = self.prompt_title
-            yield Label(
-                self.prompt,
-                id="confirmation-prompt",
-                expand=True,
-            )
+            yield Label(self.prompt, id="confirmation-prompt", expand=True)
             if self.extra_info:
                 yield Label(self.extra_info, id="confirmation-extra-info", expand=True)
             with Center():

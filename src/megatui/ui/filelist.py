@@ -6,7 +6,15 @@ Contains actions and is the main way to interact with the application.
 import asyncio
 from collections import deque
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Final, LiteralString, override
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Final,
+    LiteralString,
+    override,
+)
 
 from rich.style import Style
 from rich.text import Text
@@ -54,10 +62,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     DEFAULT_CSS = """ """
 
-    NODE_ICONS: ClassVar[dict[str, str]] = {
-        "directory": "📁",
-        "file": "📄",
-    }
+    NODE_ICONS: ClassVar[dict[str, str]] = {"directory": "📁", "file": "📄"}
     """Icons for different kind of nodes."""
 
     SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
@@ -86,7 +91,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     _loading_path: MegaPath  # Path we are currently loading.
 
-    _cursor_index_stack: deque[int]  # Stores cursor index before navigating into a child folder.
+    _cursor_index_stack: deque[
+        int
+    ]  # Stores cursor index before navigating into a child folder.
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
@@ -137,12 +144,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Download files
         Binding(key="f3", key_display="f3", action="download", description="download"),
         # Move files
-        Binding(
-            "M",
-            key_display="M",
-            action="move_files",
-            description="move",
-        ),
+        Binding("M", key_display="M", action="move_files", description="move"),
     ]
     """ Binds that deal with files. """
 
@@ -150,7 +152,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Binding("j", "cursor_down", "Cursor Down", key_display="j", show=False),
         Binding("k", "cursor_up", "Cursor Up", key_display="k", show=False),
         Binding("l,enter", "navigate_in", "Enter Dir", key_display="l", show=False),
-        Binding("h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False),
+        Binding(
+            "h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False
+        ),
     ]
     """ Binds related to navigation. """
 
@@ -186,10 +190,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         column_formatting = {
             "icon": {"label": " ", "width": 4},
             "name": {"label": "Name", "width": 50},
-            "modified": {
-                "label": "Modified",
-                "width": 20,
-            },
+            "modified": {"label": "Modified", "width": 20},
             "size": {"label": "Size", "width": 8},
         }
 
@@ -228,7 +229,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         tasks: list[asyncio.Task[None]] = []
         for item in files:
             if item.is_dir:
-                tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=("-r", "-f"))))
+                tasks.append(
+                    asyncio.create_task(mega_rm(fpath=item.path, flags=("-r", "-f")))
+                )
             else:
                 tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=None)))
 
@@ -307,7 +310,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return
 
         parent_path: MegaPath = self._curr_path.parent
-        curs_index = self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
+        curs_index = (
+            self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
+        )
 
         # Useful to stop the flickering
         with self.app.batch_update():
@@ -325,7 +330,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
         if not quiet:
-            self.post_message(StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2))
+            self.post_message(
+                StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
+            )
 
         with self.app.batch_update():
             curs_index = self.cursor_row
@@ -358,7 +365,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             row_item: MegaItem = self._row_data_map[key]
             return row_item
         except KeyError:
-            self.log.error(f"Could not find data for row key '{key}'. State is inconsistent.")
+            self.log.error(
+                f"Could not find data for row key '{key}'. State is inconsistent."
+            )
             return None
 
     def _get_megaitem_at_cursor(self) -> MegaItem | None:
@@ -508,7 +517,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 emoji_markup_prepended=":open_file_folder:",
                 curr_path=self._curr_path,
                 initial_input=None,
-            ),
+            )
         )
 
     async def _download_files(self, files: MegaItems) -> None:
@@ -525,13 +534,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.post_message(
                 StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
             )
-            await mega_get(
-                target_path=str(DL_PATH),
-                remote_path=str(file.path),
-            )
+            await mega_get(target_path=str(DL_PATH), remote_path=str(file.path))
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
             title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
-            self.notify(f"'{file.name}' finished downloading ", title=f"{title}", markup=True)
+            self.notify(
+                f"'{file.name}' finished downloading ", title=f"{title}", markup=True
+            )
 
     async def action_download(self) -> None:
         """Download the currently highlighted file or a selection of files.
@@ -561,7 +569,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         tasks: list[asyncio.Task[None]] = []
         for f in files:
-            self.log.info(f"Queueing move for `{f.name}` from `{f.path}` to: `{new_path}`")
+            self.log.info(
+                f"Queueing move for `{f.name}` from `{f.path}` to: `{new_path}`"
+            )
             task = asyncio.create_task(mega_mv(file_path=f.path, target_path=new_path))
             tasks.append(task)
 
@@ -620,7 +630,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         found_selected_items = False
 
-        row_generator = ((node, self._prepare_row_contents(node)) for node in fetched_items)
+        row_generator = (
+            (node, self._prepare_row_contents(node)) for node in fetched_items
+        )
 
         # Go through each item and create new row for them
         for node, row_cells in row_generator:
@@ -700,7 +712,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Get number of files
         file_count = len(fetched_items)
 
-        self.log.debug(f"Worker success for path '{self._loading_path}', items: {file_count}")
+        self.log.debug(
+            f"Worker success for path '{self._loading_path}', items: {file_count}"
+        )
         # Update FileList
 
         with self.app.batch_update():
@@ -746,7 +760,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # We are in an empty directory!
             return None
 
-        assert row_key.value, "We should definitely have a 'value' attribute for our rowkey."
+        assert row_key.value, (
+            "We should definitely have a 'value' attribute for our rowkey."
+        )
 
         return self._row_data_map.get(row_key.value)
 
@@ -761,7 +777,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # When nothing is highlighted
         if not self.highlighted_item:
-            self.log.error("Could not default to highlighted item, returning empty list.")
+            self.log.error(
+                "Could not default to highlighted item, returning empty list."
+            )
             return ()
 
         return (self.highlighted_item,)
