@@ -241,7 +241,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         filenames = [str(item.path) for item in selected]
         filenames_str = ", ".join(filenames)
 
-        async def check_confirmation(result):
+        async def check_confirmation(result) -> None:
             if result:
                 await self.delete_files(selected)
 
@@ -257,7 +257,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                     title="Deletion",
                 )
 
-        conf = self.app.push_screen(
+        self.app.push_screen(
             ConfirmationScreen(
                 title="Confirm Deletion",
                 prompt=f"Delete {len(selected)} files?",
