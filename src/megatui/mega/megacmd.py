@@ -19,6 +19,7 @@ from megatui.mega.data import (
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
     MEGA_ROOT_PATH,
+    MegaCmdErrorCode,
     MegaDiskFree,
     MegaDiskUsage,
     MegaPath,
@@ -669,8 +670,11 @@ async def mega_node_exists(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
     try:
         _ = await mega_ls(path=node_path)
-    except MegaCmdError:
-        return False
+    except MegaCmdError as e:
+        if e.return_code == MegaCmdErrorCode.NOTFOUND:
+            return False
+        else:
+            raise e
 
     return True
 
@@ -686,14 +690,16 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
         f"Cannot have empty args: `{file_path}`, `{new_name}`"
     )
     exists = await mega_node_exists(file_path)
+
+    # Check if it exists
     if not exists:
         logger.warning(f"Path '{file_path}' does not exist!")
-        raise MegaCmdError(f"Path '{file_path}' does not exist!", response=None)
+        raise RuntimeError(f"Path '{file_path}' does not exist!")
 
     # Check if we are at the root path
     if file_path.match("/"):
-        logger.error("Cannot rename root directory!")
-        raise MegaCmdError("Cannot rename root directory!", None)
+        logger.warning("Cannot rename root directory!")
+        raise RuntimeError("Cannot rename root directory!")
 
     new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
@@ -710,7 +716,7 @@ async def mega_rm(fpath: MegaPath, flags: tuple[str, ...] | None) -> None:
 
     await run_megacmd(tuple(cmd))
 
-    logger.info(f"Successfully removed '{fpath}' with flags '{flags}'")
+    logger.info(f"Successfully removed '{fpath}'")
 
 
 ###############################################################################
@@ -818,9 +824,7 @@ async def path_from_handle(handle: str) -> MegaPath | None:
         path = MegaPath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
-        raise MegaCmdError(
-            message=f"Could not parse path from handle `{handle}` :: {e}"
-        )
+        raise RuntimeError(f"Could not parse path from handle `{handle}` :: {e}")
 
     return path
 
@@ -914,21 +918,6 @@ async def mega_get(
     )
 
 
-async def mega_df(human: bool = True) -> MegaDiskFree | None:
-    """Returns storage information for main folders.
-
-    Args:
-        human (bool): Request human readable file sizes or bytes.
-    """
-    cmd = ["df"]
-    if human:
-        cmd.append("-h")
-
-    response = await run_megacmd(tuple(cmd))
-
-    return _parse_df(response.stdout)
-
-
 def _parse_df(df_output: str) -> MegaDiskFree | None:
     """Returns overview of mounted folders as a dictionary."""
     if not df_output:
@@ -979,6 +968,21 @@ def _parse_df(df_output: str) -> MegaDiskFree | None:
         usage_summary=summary_data,
         version_size_bytes=versions_size,
     )
+
+
+async def mega_df(human: bool = True) -> MegaDiskFree | None:
+    """Returns storage information for main folders.
+
+    Args:
+        human (bool): Request human readable file sizes or bytes.
+    """
+    cmd = ["df"]
+    if human:
+        cmd.append("-h")
+
+    response = await run_megacmd(tuple(cmd))
+
+    return _parse_df(response.stdout)
 
 
 async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
