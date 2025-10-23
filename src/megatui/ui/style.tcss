@@ -106,7 +106,6 @@ RenameDialog {
         height: auto;
     }
 
-
     #title-label {
         margin-left: 2;
         color: $accent;
@@ -190,6 +189,39 @@ UploadFilesModal {
                 color: $primary;
                 text-style: bold;
             }
+        }
+    }
+}
+
+ConfirmationScreen {
+    align: center middle;
+
+    #vert-container {
+        border: ascii $secondary;
+        width: 60%;
+        height: auto;
+
+        border-title-style: bold;
+        border-title-color: $secondary;
+        border-title-align: right;
+
+        #confirmation-prompt {
+            padding: 0 1;
+            margin: 1 0;
+            text-align: center;
+            text-style: bold reverse;
+            color: $foreground;
+        }
+        #confirmation-extra-info {
+            margin: 1 4;
+            color: $secondary;
+            border: hkey $secondary 40%;
+        }
+
+        #confirmation-instructions {
+            text-align: center;
+            margin: 1 1;
+            color: $foreground;
         }
     }
 }

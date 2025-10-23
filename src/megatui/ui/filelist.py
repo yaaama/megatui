@@ -31,6 +31,7 @@ from megatui.mega.megacmd import (
 )
 from megatui.messages import RefreshRequest, StatusUpdate
 from megatui.ui.file_tree import UploadFilesModal
+from megatui.ui.screens.confirmation import ConfirmationScreen
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
 
@@ -213,13 +214,18 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # * Actions #########################################################
 
-    async def action_delete_files(self) -> None:
+    @work
+    async def request_confirmation(self, conf_screen: ConfirmationScreen):
+        conf_result = await self.app.push_screen(conf_screen)
+        if conf_result:
+            return True
+        return False
+
+    async def delete_files(self, files: MegaItems):
         self.log.info("Deleting files")
-        # Selected files
-        selected = self.selected_or_highlighted_items
 
         tasks: list[asyncio.Task[None]] = []
-        for item in selected:
+        for item in files:
             if item.is_dir:
                 tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=("-r", "-f"))))
             else:
@@ -227,19 +233,37 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await asyncio.gather(*tasks)
 
-        with self.app.batch_update():
-            self.action_unselect_all_files()
-            deleted_count = len(selected)
-            cursor_index = self.cursor_row - deleted_count
-            await self.action_refresh(quiet=True)
-            self.move_cursor(row=cursor_index)
+    async def action_delete_files(self) -> None:
+        self.log.info("Deleting files")
+        # Selected files
+        selected = self.selected_or_highlighted_items
 
         filenames = [str(item.path) for item in selected]
-        ", ".join(filenames)
+        filenames_str = ", ".join(filenames)
 
-        self.notify(
-            message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
-            title="Deletion",
+        async def check_confirmation(result):
+            if result:
+                await self.delete_files(selected)
+
+                with self.app.batch_update():
+                    self.action_unselect_all_files()
+                    deleted_count = len(selected)
+                    cursor_index = self.cursor_row - deleted_count
+                    await self.action_refresh(quiet=True)
+                    self.move_cursor(row=cursor_index)
+
+                self.app.notify(
+                    message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
+                    title="Deletion",
+                )
+
+        conf = self.app.push_screen(
+            ConfirmationScreen(
+                title="Confirm Deletion",
+                prompt=f"Delete {len(selected)} files?",
+                extra_info=filenames_str,
+            ),
+            check_confirmation,
         )
 
     async def action_upload_file(self) -> None:
