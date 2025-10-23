@@ -18,8 +18,8 @@ from megatui.mega.data import (
     LS_REGEXP,
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
-    MegaDFOutput,
     MEGA_ROOT_PATH,
+    MegaDiskFree,
     MegaDiskUsage,
     MegaPath,
 )
@@ -260,7 +260,7 @@ class MegaItem:
         return self.ftype == MegaFileTypes.DIRECTORY
 
     @staticmethod
-    def get_size_in(bytes_used: int, unit: MegaSizeUnits) -> int:
+    def get_size_in(bytes_used: int, unit: MegaSizeUnits) -> float:
         """Returns size of file in specified unit.
         Args: 'bytes_used' Size of file in bytes.
               'unit' Unit of size to convert bytes to.
@@ -991,7 +991,7 @@ async def mega_get(
     logger.info(f"Successfully initiated download of '{remote_path}' to '{target_path}'")
 
 
-async def mega_df(human: bool = True) -> MegaDFOutput | None:
+async def mega_df(human: bool = True) -> MegaDiskFree | None:
     """Returns storage information for main folders.
 
     Args:
@@ -1010,7 +1010,7 @@ async def mega_df(human: bool = True) -> MegaDFOutput | None:
     return _parse_df(response.stdout)
 
 
-def _parse_df(df_output: str) -> MegaDFOutput | None:
+def _parse_df(df_output: str) -> MegaDiskFree | None:
     """Returns overview of mounted folders as a dictionary."""
     if not df_output:
         logger.error("Received no output from 'mega_df'")
@@ -1021,8 +1021,8 @@ def _parse_df(df_output: str) -> MegaDFOutput | None:
     # Split by lines
     lines = df_output.strip().split("\n")
 
-    locations_list: list[MegaDFOutput.LocationInfo] = []
-    summary_data: MegaDFOutput.UsageSummary | None = None
+    locations_list: list[MegaDiskFree.LocationInfo] = []
+    summary_data: MegaDiskFree.UsageSummary | None = None
     versions_size: int | None = None
 
     for line_base in lines:
@@ -1037,7 +1037,7 @@ def _parse_df(df_output: str) -> MegaDFOutput | None:
                 if key == "location":
                     name, size, files, folders = match.groups()
                     locations_list.append(
-                        MegaDFOutput.LocationInfo(
+                        MegaDiskFree.LocationInfo(
                             name=name.strip(),
                             size_bytes=int(size),
                             files=int(files),
@@ -1046,7 +1046,7 @@ def _parse_df(df_output: str) -> MegaDFOutput | None:
                     )
                 elif key == "summary":
                     used, pct, total = match.groups()
-                    summary_data = MegaDFOutput.UsageSummary(
+                    summary_data = MegaDiskFree.UsageSummary(
                         used_bytes=int(used),
                         percentage=float(pct),
                         total_bytes=int(total),
@@ -1055,7 +1055,7 @@ def _parse_df(df_output: str) -> MegaDFOutput | None:
                     versions_size = int(match.group(1))
                 break
 
-    return MegaDFOutput(
+    return MegaDiskFree(
         locations=locations_list,
         usage_summary=summary_data,
         version_size_bytes=versions_size,

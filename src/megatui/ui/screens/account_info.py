@@ -8,7 +8,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Header, Label
 
-from megatui.mega.megacmd import MegaDFOutput
+from megatui.mega.megacmd import MegaDiskFree
 
 
 # TODO Finish this
@@ -18,11 +18,11 @@ class AccountInformationScreen(ModalScreen[None]):
     BINDINGS = (Binding(key="escape", action="app.pop_screen", show=False, priority=True),)
 
     def __init__(
-        self, df_data: MegaDFOutput, pwd: str, whoami: str, mount: str, speedlimits: str
+        self, df_data: MegaDiskFree, pwd: str, whoami: str, mount: str, speedlimits: str
     ):
         super().__init__()
 
-        self._df_data: MegaDFOutput = df_data
+        self._df_data: MegaDiskFree = df_data
         self._pwd: str = pwd
         self._whoami: str = whoami
         self._mount: str = mount

@@ -141,7 +141,7 @@ class MegaDiskUsage:
 
 
 @dataclass(frozen=True)
-class MegaDFOutput:
+class MegaDiskFree:
     """Dataclass representing parsed 'df' output."""
 
     @dataclass(frozen=True)
