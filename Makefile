@@ -44,7 +44,7 @@ lint:
 
 upgrade:
 	@echo "--> Upgrading packages with uv..."
-	uv sync
+	uv sync --upgrade
 	@echo "--> Upgrading pre-commit hooks..."
 	pre-commit autoupdate
 
