@@ -78,7 +78,7 @@ class MegaPath(pathlib.PurePosixPath):
         return self.__str__()
 
 
-# XXX ISO6081 is a typo, it should be 8601
+# TODO ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
 
 MEGA_LS_DEFAULT_ARGS = ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"]
@@ -105,9 +105,9 @@ LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
 LS_REGEXP: Final[re.Pattern[str]] = re.compile(
     rf"""
     ^
-    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]})       \s+
-    (?P<version>{LS_PATTERN_COMPONENTS["version"]})   \s+
-    (?P<size>{LS_PATTERN_COMPONENTS["size"]})         \s+
+    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]}\s+
+    (?P<version>{LS_PATTERN_COMPONENTS["version"]}) \s+
+    (?P<size>{LS_PATTERN_COMPONENTS["size"]}) \s+
     (?P<datetime>{LS_PATTERN_COMPONENTS["datetime"]}) \s+
     (?P<filehandle>{LS_PATTERN_COMPONENTS["filehandle"]}) \s+
     (?P<filename>{LS_PATTERN_COMPONENTS["filename"]})
