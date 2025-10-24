@@ -111,7 +111,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
 
-        asyncio.create_task(self.file_list.load_directory(self.file_list._curr_path))
+        await asyncio.create_task(self.file_list.load_directory())
 
     # """
     # Actions #############################################################

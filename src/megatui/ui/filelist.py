@@ -26,12 +26,10 @@ from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
-from megatui.mega.data import MEGA_ROOT_PATH
+from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
 from megatui.mega.megacmd import (
-    MegaCmdError,
     MegaItem,
     MegaItems,
-    MegaPath,
     mega_cd,
     mega_get,
     mega_ls,
@@ -65,10 +63,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
     NODE_ICONS: ClassVar[dict[str, str]] = {"directory": "📁", "file": "📄"}
     """Icons for different kind of nodes."""
 
-    SELECTION_INDICATOR: ClassVar[LiteralString] = "*"
+    _SELECTION_STR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
-    SELECTION_STYLE = Style(color="red", bold=True, italic=True)
-    SELECTION_LABEL = Text(text=SELECTION_INDICATOR, style=SELECTION_STYLE)
+    _SELECTION_STYLE = Style(color="red", bold=True, italic=True)
+    SELECTED_LABEL = Text(text=_SELECTION_STR, style=_SELECTION_STYLE)
+    NOT_SELECTED_LABEL = Text(text="")
 
     BORDER_SUBTITLE = ""
     """Border subtitle."""
@@ -219,9 +218,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     @work
     async def request_confirmation(self, conf_screen: ConfirmationScreen):
         conf_result = await self.app.push_screen(conf_screen)
-        if conf_result:
-            return True
-        return False
+        return bool(conf_result)
 
     async def delete_files(self, files: MegaItems):
         self.log.info("Deleting files")
@@ -246,20 +243,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
         filenames_str = ", ".join(filenames)
 
         async def check_confirmation(result) -> None:
-            if result:
-                await self.delete_files(selected)
+            if not result:
+                return
 
-                with self.app.batch_update():
-                    self.action_unselect_all_files()
-                    deleted_count = len(selected)
-                    cursor_index = self.cursor_row - deleted_count
-                    await self.action_refresh(quiet=True)
-                    self.move_cursor(row=cursor_index)
+            await self.delete_files(selected)
 
-                self.app.notify(
-                    message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
-                    title="Deletion",
-                )
+            with self.app.batch_update():
+                self.action_unselect_all_files()
+                deleted_count = len(selected)
+                cursor_index = self.cursor_row - deleted_count
+                await self.action_refresh(quiet=True)
+                self.move_cursor(row=cursor_index)
+
+            self.app.notify(
+                message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
+                title="Deletion",
+            )
 
         self.app.push_screen(
             ConfirmationScreen(
@@ -393,26 +392,27 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.info("No item to toggle selection.")
             return
 
+        # There IS a row associated with a Megaitem
         item_handle = megaitem.handle
 
         # Debugging purposes
         row_key = self._get_curr_row_key()
-        assert row_key
+        if not row_key:
+            raise RuntimeError("Row key does not exist for this row!")
 
         # Unselect already selected items
         if item_handle in self._selected_items:
             del self._selected_items[item_handle]
-            new_label = Text("")
+            new_label = self.NOT_SELECTED_LABEL
             self.log.debug(f"Deselected row: {row_key.value}")
 
         else:
             # Action: SELECT
             self._selected_items[item_handle] = megaitem
-            new_label = Text(f"{self.SELECTION_INDICATOR} ", style="bold red")
+            new_label = self.SELECTED_LABEL
             self.log.debug(f"Selected row: {row_key.value}")
 
         self.rows[row_key].label = new_label
-
         self.refresh_row(self.cursor_row)
         self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
@@ -423,12 +423,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.debug("No items selected for us to unselect.")
             return
 
-        new_label = Text("")
         for key in self._selected_items:
             # Check if selected item is within the curr list of rows
             if key in self.rows:
                 # Remove selection labels from currently displayed row labels
-                self.rows[RowKey(key)].label = new_label
+                self.rows[RowKey(key)].label = self.NOT_SELECTED_LABEL
 
         self._selected_items.clear()
 
@@ -447,27 +446,21 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.info("No current row key to select/deselect.")
             return
 
-        try:
-            # Get the MegaItem
-            row_item: MegaItem = self._row_data_map[row_key.value]
-            # Get handle
-            item_handle = row_item.handle
-        except KeyError:
-            self.log.error(
-                f"Could not find data for row key '{row_key.value}'. State is inconsistent."
-            )
-            return
+        # Get the MegaItem
+        row_item: MegaItem = self._row_data_map[row_key.value]
+        # Get handle
+        item_handle = row_item.handle
 
         # Unselect already selected items
         if item_handle in self._selected_items:
             del self._selected_items[item_handle]
-            new_label = Text(" ")
+            new_label = self.NOT_SELECTED_LABEL
             log_message = f"Deselected row: {row_key.value}"
 
         else:
             # Action: SELECT
             self._selected_items[item_handle] = row_item
-            new_label = Text(f"{self.SELECTION_INDICATOR}", style="bold italic red")
+            new_label = self.SELECTED_LABEL
             log_message = f"Selected row: {row_key.value}"
 
         self.log.info(log_message)
@@ -480,6 +473,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # ** Rename node ######################################################
 
+    @work
     async def action_rename_node(self) -> None:
         """Rename a file by showing a dialog to prompt for the new name.
 
@@ -590,12 +584,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.action_unselect_all_files()
             await self.action_refresh(True)
 
-    async def action_delete_file(self):
-        pass
-
-    async def action_upload_files(self):
-        pass
-
     # A helper to prepare all displayable contents of a row
     def _prepare_row_contents(self, node: MegaItem) -> tuple[Content, ...]:
         """Takes a MegaItem and returns a tuple of Content objects for a table
@@ -648,7 +636,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 label=" ",
             )
             if node.handle in self._selected_items:
-                self.rows[rowkey].label = self.SELECTION_LABEL
+                self.rows[rowkey].label = self.SELECTED_LABEL
                 found_selected_items = True
 
         if found_selected_items:
@@ -668,22 +656,23 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
         """
-        self.log.info(f"FileList: Worker starting fetch for path: {path}")
-        try:
-            # Fetch and sort items
-            fetched_items: MegaItems = await mega_ls(path)
-            # Return the result or empty list
-            return fetched_items or ()
+        self.log.debug(f"Begun fetching nodes for path: {path}")
+        # Fetch and sort items
+        fetched_items: MegaItems = await mega_ls(path)
 
-        except MegaCmdError as e:
-            self.log.error(f"FileList: MegaCmdError loading path '{path}': {e}")
+        if not fetched_items:
+            self.log.error(f"Error loading path '{path}'")
             # Post error message from the worker (thread-safe)
-            self.post_message(self.LoadError(path, e))
+            self.post_message(self.LoadError(path, "Error loading path!"))
             return None  # Indicate failure by returning None
 
-    async def load_directory(self, path: MegaPath) -> None:
+        # Return the result or empty list
+        return fetched_items
+
+    async def load_directory(self, path: MegaPath | None = MEGA_ROOT_PATH) -> None:
         """Initiates asynchronous loading using the worker."""
-        self.log.info(f"FileList.load_directory: Received request for path='{path}'")
+        if not path:
+            path = MEGA_ROOT_PATH
 
         self.log.info(f"Requesting load for directory: {path}")
         self._loading_path = path  # Track the path we are loading
@@ -721,8 +710,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self._update_list_on_success(self._loading_path, fetched_items)
 
         # We have successfully loaded the path
-        # self.post_message(self.LoadSuccess(path))
-        # Path *successfully* changed
         self.post_message(self.PathChanged(path))
 
         # If the count is 0 send a status update
@@ -745,12 +732,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.error("Could not return any row.")
             return None
 
-    def get_column_widths(self):
-        """Get optimal widths for table columns.
-        Returns a tuple of widths.
-        """
-        pass
-
     @property
     def highlighted_item(self) -> MegaItem | None:
         """Return the MegaItem corresponding to the currently highlighted row."""
@@ -760,9 +741,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # We are in an empty directory!
             return None
 
-        assert row_key.value, (
-            "We should definitely have a 'value' attribute for our rowkey."
-        )
+        if not row_key.value:
+            raise RuntimeError(
+                "We should definitely have a 'value' attribute for our rowkey."
+            )
 
         return self._row_data_map.get(row_key.value)
 
@@ -822,7 +804,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         'LoadError.error': An error message.
         """
 
-        def __init__(self, path: MegaPath, error: Exception) -> None:
+        def __init__(self, path: MegaPath, error: str) -> None:
             super().__init__()
             self.path = path
             self.error = error  # Include the error
