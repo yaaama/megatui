@@ -289,3 +289,4 @@ if __name__ == "__main__":
         print(f"!!! Failed: {e}", file=sys.stderr)
     finally:
         print("Bye bye!")
+        sys.exit(0)
