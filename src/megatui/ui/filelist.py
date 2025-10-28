@@ -23,7 +23,7 @@ from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import RowDoesNotExist, RowKey
+from textual.widgets._data_table import Row, RowDoesNotExist, RowKey
 from textual.worker import Worker
 
 from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
@@ -110,6 +110,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
             key_display="u",
             action="unselect_all_files",
             description="unselect all",
+            show=True,
+        ),
+        Binding(
+            key="v",
+            key_display="v",
+            action="select_all_files",
+            description="select all",
             show=True,
         ),
         # Refresh current directory
@@ -382,6 +389,43 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return None
 
         return self._get_megaitem_at_row(row_key)
+
+    def _toggle_selected_item_row_label(self, rowkey: str):
+        """Toggle selection state of row in current directory, and update its label.
+
+        Args:
+        """
+        if not rowkey:
+            raise ValueError(f"Passed in empty rowkey.")
+
+        item: MegaItem = self._row_data_map[rowkey]
+        item_handle = item.handle
+
+        # If item is already selected, deselect
+        if item.handle in self._selected_items:
+            self._selected_items[item_handle] = item
+            self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
+        # If item is not selected, select it
+        else:
+            del self._selected_items[item_handle]
+            self.rows[RowKey(item_handle)].label = self.NOT_SELECTED_LABEL
+
+    def action_select_all_files(self) -> None:
+        """Toggle selection of all files in current directory.
+
+        This works like a classic 'invert-all' action, where selected items are
+        then deselected and non-selected files are then toggled.
+        """
+
+        if not self._row_data_map:
+            # No files in current view
+            return
+
+        for key in self.rows:
+            self._toggle_selected_item_row_label(key.value or "")
+        self._update_count += 1
+        self.refresh()
+        self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
