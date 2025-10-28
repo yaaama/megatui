@@ -23,7 +23,7 @@ from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import Row, RowDoesNotExist, RowKey
+from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
 from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
@@ -288,14 +288,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_navigate_in(self) -> None:
         """Navigate into directory under cursor."""
         selected_item_data = self.highlighted_item
+
         # Selected item is None.
         if not selected_item_data:
-            self.log.info("Nothing to navigate into...")
+            self.log.debug("Nothing to navigate into...")
             return
 
         # Is a regular file
         if selected_item_data.is_file:  # Check if it's a directory
-            # self.log.debug("Cannot enter into a file.")
+            self.log.debug("Cannot enter into a file.")
             return
 
         # Folder to enter
@@ -308,7 +309,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
-        self.log.info(f"Navigating out of directory {self._curr_path}")
+        self.log.debug(f"Navigating out of directory {self._curr_path}")
         curr_path: str = self._curr_path.str
 
         # Avoid going above root "/"
@@ -408,7 +409,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Args:
         """
         if not rowkey:
-            raise ValueError(f"Passed in empty rowkey.")
+            raise ValueError("Passed in empty rowkey.")
 
         item: MegaItem = self._row_data_map[rowkey]
         item_handle = item.handle
@@ -428,7 +429,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         This works like a classic 'invert-all' action, where selected items are
         then deselected and non-selected files are then toggled.
         """
-
         if not self._row_data_map:
             # No files in current view
             return
