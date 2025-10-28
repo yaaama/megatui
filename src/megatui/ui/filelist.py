@@ -336,6 +336,16 @@ class FileList(DataTable[Any], inherit_bindings=False):
         event.stop()
         await self.action_refresh(quiet=True)
 
+    async def _refresh_curr_dir(self) -> None:
+        """Refresh current directory view.
+        Maintains the cursor point.
+        """
+        with self.app.batch_update():
+            curs_index = self.cursor_row
+            await self.load_directory(self._curr_path)
+            curs_index = min(curs_index, self.row_count - 1)
+            self.move_cursor(row=curs_index)
+
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
         if not quiet:
@@ -343,11 +353,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
             )
 
-        with self.app.batch_update():
-            curs_index = self.cursor_row
-            await self.load_directory(self._curr_path)
-            curs_index = min(curs_index, self.row_count - 1)
-            self.move_cursor(row=curs_index)
+        await self._refresh_curr_dir()
 
     # *** Selection #######################################################
     def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem:
