@@ -74,9 +74,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
     NOT_SELECTED_LABEL = Text(text="")
     """Label for rows that are not selected (default)."""
 
-    BORDER_SUBTITLE = ""
-    """Border subtitle."""
-
+    _BORDER_SUBTITLE_STYLES = {
+        "empty": Style(color="red", bold=True),
+        "normal": Style(color="white", reverse=True),
+    }
     COLUMNS: ClassVar[list[str]] = ["icon", "name", "modified", "size"]
 
     DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
@@ -706,6 +707,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.refresh()
             self._update_count += 1
 
+        item_count = len(fetched_items)
+        if item_count:
+            self.styles.border_subtitle_style = self._BORDER_SUBTITLE_STYLES["normal"]
+        else:
+            self.styles.border_subtitle_style = self._BORDER_SUBTITLE_STYLES["empty"]
+
         self.border_subtitle = f"{len(fetched_items)} items"
 
     @work(
@@ -724,12 +731,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
         fetched_items: MegaItems = await mega_ls(path)
 
         if not fetched_items:
-            self.log.error(f"Error loading path '{path}'")
-            # Post error message from the worker (thread-safe)
-            self.post_message(self.LoadError(path, "Error loading path!"))
-            return None  # Indicate failure by returning None
+            self.log.debug(f"No items found in '{path}'")
+            return None
 
-        # Return the result or empty list
+        # Return the result
         return fetched_items
 
     async def load_directory(self, path: MegaPath | None = MEGA_ROOT_PATH) -> None:
@@ -765,7 +770,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         file_count = len(fetched_items)
 
         self.log.debug(
-            f"Worker success for path '{self._loading_path}', items: {file_count}"
+            f"Worker success for path '{self._loading_path}', item count: {file_count}"
         )
         # Update FileList
 
@@ -774,10 +779,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # We have successfully loaded the path
         self.post_message(self.PathChanged(path))
-
-        # If the count is 0 send a status update
-        if file_count == 0:
-            self.post_message(self.EmptyDirectory())
 
     def _get_curr_row_key(self) -> RowKey | None:
         """Return RowKey for the Row that the cursor is currently on."""
