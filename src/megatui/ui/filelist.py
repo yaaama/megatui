@@ -66,8 +66,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
     _SELECTION_STR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
     _SELECTION_STYLE = Style(color="red", bold=True, italic=True)
+    """Style for the node selection indicator."""
     SELECTED_LABEL = Text(text=_SELECTION_STR, style=_SELECTION_STYLE)
+    """Label for rows that have been selected."""
     NOT_SELECTED_LABEL = Text(text="")
+    """Label for rows that are not selected (default)."""
 
     BORDER_SUBTITLE = ""
     """Border subtitle."""
@@ -329,7 +332,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # ** File Actions ######################################################
     @on(RefreshRequest)
     async def on_refresh_request(self, event: RefreshRequest) -> None:
-        """Handles refresh requests."""
+        """Handles refresh requests sent to FileList."""
         event.stop()
         await self.action_refresh(quiet=True)
 
@@ -347,7 +350,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.move_cursor(row=curs_index)
 
     # *** Selection #######################################################
-    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem | None:
+    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem:
         """Return MegaItem for row index (rowkey).
 
         Args:
@@ -356,12 +359,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Returns:
             MegaItem if item exists at RowKey, or None if none.
         """
-        assert rowkey, "Passed in an empty rowkey!"
+        if not rowkey:
+            raise ValueError("Passed in an empty rowkey!")
 
         key: str
         # If its a RowKey type, grab the value (str)
         if isinstance(rowkey, RowKey):
-            assert rowkey.value
+            if not rowkey.value:
+                raise AttributeError("Value for RowKey not found!")
+
             key = rowkey.value
         else:
             key = rowkey
@@ -370,11 +376,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # Get the MegaItem
             row_item: MegaItem = self._row_data_map[key]
             return row_item
-        except KeyError:
+        except KeyError as e:
             self.log.error(
                 f"Could not find data for row key '{key}'. State is inconsistent."
             )
-            return None
+            raise e
 
     def _get_megaitem_at_cursor(self) -> MegaItem | None:
         """Returns MegaItem under the current cursor.
