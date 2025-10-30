@@ -568,18 +568,23 @@ async def mega_du(
     # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
     output = response.stdout.splitlines()
 
-    assert len(output) > 3, "Output of 'du' should be 3 lines or more."
+    if len(output) < 3:
+        raise ValueError(
+            f"Output of 'du' should be 3 lines or more: '{response.stdout}'"
+        )
 
     # We can ignore the header
     _header = DU_REGEXPS["header"].match(output[0])
 
     file_line_match = DU_REGEXPS["location"].match(output[1])
-    assert file_line_match, f"No matches for du file lines: {file_line_match}"
+    if not file_line_match:
+        raise ValueError(f"No matches for du file lines: '{file_line_match}'")
 
     _filename, _size = file_line_match.groups()
 
-    assert _filename
-    assert _size
+    if (not _filename) or (not _size):
+        raise ValueError(f"Did not parse a filename or a size from 'du' output.")
+
     return MegaDiskUsage(location=MegaPath(_filename), size_bytes=int(_size))
 
 
