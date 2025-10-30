@@ -122,9 +122,10 @@ class MegaCmdError(Exception):
         return None
 
     @property
-    def return_code(self) -> int:
+    def return_code(self) -> int | None:
         if not self.response:
             logger.debug("No response object.")
+            return None
         if self.response.return_code:
             return self.response.return_code
 
