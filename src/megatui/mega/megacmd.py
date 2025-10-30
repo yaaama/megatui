@@ -501,17 +501,25 @@ async def mega_ls(
 
         # If we have a regular file
         if _file_type == MegaFileTypes.FILE:
+            # Get item size
             try:
                 item_size = int(_size)
+            except ValueError:
+                logger.warning(
+                    f"Could not convert size '{_size}' to int for item '{_name}'. Defaulting to 0."
+                )
+                item_size = 0
+
+            # Get version
+            try:
                 version = int(_vers)
             except ValueError:
                 logger.warning(
-                    f"Could not convert size '{_size}' or version '{_vers}' to int for item '{_name}'. Defaulting to 0."
+                    f"Could not convert version '{_vers}' to int for item '{_name}'. Defaulting to 0."
                 )
-                item_size = 0
                 version = 0
 
-        # Node must be a directory then and so we have no size or version counter
+        # Else node must be a directory then and so we have no size or version counter
         else:
             item_size = 0
             version = 0
