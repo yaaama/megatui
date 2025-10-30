@@ -13,6 +13,7 @@ from typing import (
     ClassVar,
     Final,
     LiteralString,
+    assert_type,
     override,
 )
 
@@ -28,8 +29,9 @@ from textual.worker import Worker
 
 from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
 from megatui.mega.megacmd import (
-    MegaNode,
     MegaItems,
+    MegaNode,
+    MegaSizeUnits,
     mega_cd,
     mega_get,
     mega_ls,
@@ -650,7 +652,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
             size_str = "-"
         else:
             icon = self.NODE_ICONS["file"]
-            size_str = f"{node.size:.1f} {node.size_unit.unit_str()}"
+
+            if not node.size:
+                raise ValueError("Non directory node has no size information.")
+
+            assert_type(node.size[1], MegaSizeUnits)
+            size_str = f"{node.size[0]:.1f} {node.size[1].unit_str()}"
 
         cell_icon = Content(icon)
         cell_name = Content.from_rich_text(

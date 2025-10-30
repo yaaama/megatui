@@ -167,33 +167,29 @@ class MegaNode:
         "name",
         "path",
         "size",
-        "size_unit",
         "version",
     )
 
     name: str
-    """Name of file/folder item."""
+    """ Name of node."""
     path: MegaPath
-    """ Full path of item. """
+    """ Full path of node. """
     bytes: int
-    """ Size of file in BYTES, will be 0 for dirs."""
-    size: float
-    """ Size of file (human readable) """
-
-    size_unit: MegaSizeUnits
-    """ Unit for human readable size. """
+    """ Size of node in BYTES, will be 0 for directories."""
+    size: tuple[float, MegaSizeUnits] | None
+    """ Human readable size for a file, or None for directory. """
 
     mtime: datetime
     """ Modification date + time of file."""
 
     ftype: MegaFileTypes
-    """ Type of file. """
+    """ Type of node. """
 
     version: int
-    """ File version. """
+    """ Node version. """
 
     handle: str
-    """ Unique handle. """
+    """ Unique handle of node. """
 
     def __init__(
         self,
@@ -216,8 +212,7 @@ class MegaNode:
 
         # Human friendly sizing
         if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
-            self.size = 0.0
-            self.size_unit = MegaSizeUnits.B
+            self.size = None
             return
 
         # Calculate human friendly sizing
@@ -230,23 +225,25 @@ class MegaNode:
         divisor = 1 if (unit_index == 0) else (1 << (10 * unit_index))
 
         # Perform floating point division for the final readable value
-        self.size = float(self.bytes) / divisor
+        _size = float(self.bytes) / divisor
 
         match unit_index:
             case 0:
-                self.size_unit = MegaSizeUnits.B
+                _size_unit = MegaSizeUnits.B
             case 1:
-                self.size_unit = MegaSizeUnits.KB
+                _size_unit = MegaSizeUnits.KB
             case 2:
-                self.size_unit = MegaSizeUnits.MB
+                _size_unit = MegaSizeUnits.MB
             case 3:
-                self.size_unit = MegaSizeUnits.GB
+                _size_unit = MegaSizeUnits.GB
             case _:
                 # Anything larger than 3 should be shown in terabytes
                 logger.warning(
                     f"Calculated unit index {unit_index} for size {self.bytes} is unexpected. Defaulting to TB."
                 )
-                self.size_unit = MegaSizeUnits.TB
+                _size_unit = MegaSizeUnits.TB
+
+        self.size = (_size, _size_unit)
 
     @property
     def is_file(self) -> bool:
