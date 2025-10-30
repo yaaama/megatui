@@ -282,22 +282,6 @@ class MegaItem:
 type MegaItems = tuple[MegaItem, ...]
 
 
-# TODO
-class MegaMediaInfo:
-    path: str
-    width: int | None
-    height: int | None
-    fps: float | None
-    playtime: str
-
-    def __init__(self, path: str, width: int, height: int, fps: float, playtime: str):
-        self.path = path
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.playtime = playtime
-
-
 def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """Constructs a list containing the command to run and arguments.
     This list will transform something like: [ls, -l] into [mega-ls, -l]

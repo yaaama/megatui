@@ -166,6 +166,22 @@ class MegaDiskFree:
     version_size_bytes: int | None
 
 
+# TODO
+class MegaMediaInfo:
+    path: str
+    width: int | None
+    height: int | None
+    fps: float | None
+    playtime: str
+
+    def __init__(self, path: str, width: int, height: int, fps: float, playtime: str):
+        self.path = path
+        self.width = width
+        self.height = height
+        self.fps = fps
+        self.playtime = playtime
+
+
 #
 # megacmd commands
 MEGA_COMMANDS_ALL: set[str] = {
