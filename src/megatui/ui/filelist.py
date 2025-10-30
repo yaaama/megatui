@@ -27,7 +27,7 @@ from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
-from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
+from megatui.mega.data import MEGA_CURR_DIR, MEGA_ROOT_PATH, MegaPath
 from megatui.mega.megacmd import (
     MegaItems,
     MegaNode,
@@ -36,6 +36,7 @@ from megatui.mega.megacmd import (
     mega_get,
     mega_ls,
     mega_mv,
+    mega_pwd,
     mega_rm,
 )
 from megatui.messages import RefreshRequest, StatusUpdate
@@ -737,10 +738,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Return the result
         return fetched_items
 
-    async def load_directory(self, path: MegaPath | None = MEGA_ROOT_PATH) -> None:
-        """Initiates asynchronous loading using the worker."""
-        if not path:
-            path = MEGA_ROOT_PATH
+    async def load_directory(self, path: MegaPath = MEGA_CURR_DIR) -> None:
+        """Loads and updates UI with directory specified.
+        If path is not specified, then it will load the contents of the current directory."""
+
+        if path == MEGA_CURR_DIR:
+            path = await mega_pwd()
 
         self.log.info(f"Requesting load for directory: {path}")
         self._loading_path = path  # Track the path we are loading
