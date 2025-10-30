@@ -658,7 +658,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 raise ValueError("Non directory node has no size information.")
 
             assert_type(node.size[1], MegaSizeUnits)
-            size_str = f"{node.size[0]:.1f} {node.size[1].unit_str()}"
+            size_str = f"{node.size[0]:.2f} {node.size[1].unit_str()}"
 
         cell_icon = Content(icon)
         cell_name = Content.from_rich_text(
