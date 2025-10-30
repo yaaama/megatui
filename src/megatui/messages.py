@@ -7,7 +7,7 @@ from pathlib import Path
 
 from textual.message import Message
 
-from megatui.mega.megacmd import MegaItem, MegaPath
+from megatui.mega.megacmd import MegaNode, MegaPath
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -40,7 +40,7 @@ class RefreshRequest(Message):
 
 
 class RenameNodeRequest(Message):
-    def __init__(self, node: MegaItem, new_name: str):
+    def __init__(self, node: MegaNode, new_name: str):
         super().__init__()
         self.node = node
         self.new_name = new_name

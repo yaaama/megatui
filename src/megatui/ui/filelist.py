@@ -28,7 +28,7 @@ from textual.worker import Worker
 
 from megatui.mega.data import MEGA_ROOT_PATH, MegaPath
 from megatui.mega.megacmd import (
-    MegaItem,
+    MegaNode,
     MegaItems,
     mega_cd,
     mega_get,
@@ -82,11 +82,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # * State #################################################################
 
     _row_data_map: dict[
-        str, MegaItem
+        str, MegaNode
     ]  # Row and associated MegaItem mapping for current directory.
 
     _selected_items: dict[
-        str, MegaItem
+        str, MegaNode
     ]  # Dict to store selected MegaItem(s), indexed by their handles.
 
     _curr_path: MegaPath  # Current path we are in.
@@ -357,7 +357,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await self._refresh_curr_dir()
 
     # *** Selection #######################################################
-    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaItem:
+    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaNode:
         """Return MegaItem for row index (rowkey).
 
         Args:
@@ -381,7 +381,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         try:
             # Get the MegaItem
-            row_item: MegaItem = self._row_data_map[key]
+            row_item: MegaNode = self._row_data_map[key]
             return row_item
         except KeyError as e:
             self.log.error(
@@ -389,7 +389,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             )
             raise e
 
-    def _get_megaitem_at_cursor(self) -> MegaItem | None:
+    def _get_megaitem_at_cursor(self) -> MegaNode | None:
         """Returns MegaItem under the current cursor.
 
         Returns:
@@ -411,7 +411,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if not rowkey:
             raise ValueError("Passed in empty rowkey.")
 
-        item: MegaItem = self._row_data_map[rowkey]
+        item: MegaNode = self._row_data_map[rowkey]
         item_handle = item.handle
 
         # If item is already selected, deselect
@@ -503,7 +503,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return
 
         # Get the MegaItem
-        row_item: MegaItem = self._row_data_map[row_key.value]
+        row_item: MegaNode = self._row_data_map[row_key.value]
         # Get handle
         item_handle = row_item.handle
 
@@ -641,7 +641,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             await self.action_refresh(True)
 
     # A helper to prepare all displayable contents of a row
-    def _prepare_row_contents(self, node: MegaItem) -> tuple[Content, ...]:
+    def _prepare_row_contents(self, node: MegaNode) -> tuple[Content, ...]:
         """Takes a MegaItem and returns a tuple of Content objects for a table
         row.
         """
@@ -789,7 +789,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return None
 
     @property
-    def highlighted_item(self) -> MegaItem | None:
+    def highlighted_item(self) -> MegaNode | None:
         """Return the MegaItem corresponding to the currently highlighted row."""
         row_key = self._get_curr_row_key()
 

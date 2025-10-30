@@ -12,14 +12,14 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
-from megatui.mega.megacmd import MegaItem
+from megatui.mega.megacmd import MegaNode
 from megatui.messages import RenameNodeRequest
 
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
 
 
-class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
+class RenameDialog(ModalScreen[tuple[str, MegaNode]]):
     app: "MegaTUI"
     BINDINGS: list[BindingType] = [
         Binding(key="escape", action="app.pop_screen", show=False, priority=True),
@@ -30,7 +30,7 @@ class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
         self,
         popup_prompt: str,
         emoji_markup_prepended: str,
-        node: MegaItem,
+        node: MegaNode,
         initial_input: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
@@ -71,7 +71,7 @@ class RenameDialog(ModalScreen[tuple[str, MegaItem]]):
             )
 
     @on(Input.Submitted, "#input-box")
-    def action_submit_rename(self) -> tuple[str, MegaItem] | None:
+    def action_submit_rename(self) -> tuple[str, MegaNode] | None:
         if value := self.query_one(Input).value.strip():
             self.app.post_message(RenameNodeRequest(self.node, value))
         self.dismiss()

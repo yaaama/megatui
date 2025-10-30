@@ -157,7 +157,7 @@ class MegaSizeUnits(Enum):
             return "?"
 
 
-class MegaItem:
+class MegaNode:
     # Class Variables #################################################
     __slots__ = (
         "bytes",
@@ -279,7 +279,7 @@ class MegaItem:
 
 # Alias
 # MegaItems = list[MegaItem]
-type MegaItems = tuple[MegaItem, ...]
+type MegaItems = tuple[MegaNode, ...]
 
 
 def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
@@ -445,7 +445,7 @@ async def mega_ls(
     cmd.append(target_path.str)
     response: MegaCmdResponse = await run_megacmd(tuple(cmd))
 
-    items: deque[MegaItem] = deque()
+    items: deque[MegaNode] = deque()
 
     lines = response.stdout.strip().split("\n")
     # Remove first element (it will be the header line)
@@ -525,7 +525,7 @@ async def mega_ls(
             version = 0
 
         items.append(
-            MegaItem(
+            MegaNode(
                 name=_name,
                 path=MegaPath(target_path, _name),
                 size=item_size,

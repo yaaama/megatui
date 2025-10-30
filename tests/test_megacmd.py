@@ -4,7 +4,7 @@ from megatui.mega import megacmd
 
 # --- Tests for MegaItem ---
 def test_megaitem_file_creation_size_calculation():
-    item = megacmd.MegaItem(
+    item = megacmd.MegaNode(
         name="test.txt",
         parent_path="/remote",
         size=2048,
@@ -23,7 +23,7 @@ def test_megaitem_file_creation_size_calculation():
 
 
 def test_megaitem_directory_creation():
-    item = megacmd.MegaItem(
+    item = megacmd.MegaNode(
         name="folder",
         parent_path="/",
         size=0,
