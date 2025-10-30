@@ -71,7 +71,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     """Style for the node selection indicator."""
     SELECTED_LABEL = Text(text=_SELECTION_STR, style=_SELECTION_STYLE)
     """Label for rows that have been selected."""
-    NOT_SELECTED_LABEL = Text(text="")
+    NOT_SELECTED_LABEL = Text(text=" ")
     """Label for rows that are not selected (default)."""
 
     _BORDER_SUBTITLE_STYLES = {
@@ -697,7 +697,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 # Height of each row
                 height=self.FILELIST_ROW_HEIGHT,
                 # Selection label should be empty
-                label=" ",
+                label=self.NOT_SELECTED_LABEL,
             )
             if node.handle in self._selected_items:
                 self.rows[rowkey].label = self.SELECTED_LABEL
