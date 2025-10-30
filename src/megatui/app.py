@@ -285,8 +285,6 @@ async def run_app() -> None:
 if __name__ == "__main__":
     try:
         asyncio.run(run_app())
-    except Exception as e:
-        print(f"!!! Failed: {e}", file=sys.stderr)
     finally:
         print("Bye bye!")
         sys.exit(0)

@@ -113,7 +113,9 @@ class MegaCmdError(Exception):
 
     @property
     def stderr(self) -> str | None:
-        assert self.response, "No response object."
+        if not self.response:
+            logger.debug("No response object.")
+            return None
         if self.response.stderr:
             return self.response.stderr
 
@@ -121,7 +123,8 @@ class MegaCmdError(Exception):
 
     @property
     def return_code(self) -> int:
-        assert self.response, "No response object."
+        if not self.response:
+            logger.debug("No response object.")
         if self.response.return_code:
             return self.response.return_code
 
