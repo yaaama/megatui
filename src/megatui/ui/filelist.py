@@ -75,8 +75,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
     """Label for rows that are not selected (default)."""
 
     _BORDER_SUBTITLE_STYLES = {
-        "empty": Style(color="red", bold=True),
-        "normal": Style(color="white", reverse=True),
+        "empty": Style(color="white", bold=True, reverse=True),
+        "normal": Style(color="white", bold=True, reverse=True),
     }
     COLUMNS: ClassVar[list[str]] = ["icon", "name", "modified", "size"]
 
