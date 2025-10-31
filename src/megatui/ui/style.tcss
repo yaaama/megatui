@@ -83,6 +83,33 @@ Footer {
     /* layer: log_layer; */
 }
 
+TopStatusBar {
+    height: 3;
+    margin: 1 3;
+    background: $background;
+
+    outline: hkey $panel;
+
+    #bar--path {
+        content-align: left middle;
+        margin: 1 0;
+        color: $accent;
+    }
+
+    #bar--path-str {
+        content-align-horizontal: left;
+        margin: 1 2;
+        color: $foreground;
+        opacity: 80%;
+
+    }
+    #bar--msg {
+        content-align: right middle;
+        min-width: 20%;
+        width: auto;
+    }
+}
+
 /*****************************************************************************/
 /*                               Modal Screens                               */
 /*****************************************************************************/

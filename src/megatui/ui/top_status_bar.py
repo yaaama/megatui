@@ -1,35 +1,22 @@
 from typing import ClassVar, LiteralString, override
 
+from rich.markdown import HorizontalRule
 from textual.app import ComposeResult
 from textual.containers import Horizontal
+from textual.layouts.vertical import VerticalLayout
 from textual.reactive import var
 from textual.widgets import Label
 
 
 class TopStatusBar(Horizontal):
-    PATH_LABEL_ID: ClassVar[LiteralString] = "top-status-bar-path"
-    STATUS_MSG_ID: ClassVar[LiteralString] = "top-status-bar-msg"
+    PATH_LABEL_ID: ClassVar[LiteralString] = "bar--path"
+    STATUS_MSG_ID: ClassVar[LiteralString] = "bar--msg"
+    PATH_STR_ID: ClassVar[LiteralString] = "bar--path-str"
 
     path: var[str] = var("")
     status_msg: var[str] = var("")
 
     DEFAULT_CSS = f"""
-    TopStatusBar {{
-        height: 1;
-        background: $panel;
-    }}
-    #{PATH_LABEL_ID} {{
-        content-align: left middle;
-        width: 1fr;
-        margin: 0 1;
-
-    }}
-    #{STATUS_MSG_ID} {{
-        content-align: right middle;
-        min-width: 20%;
-        width: auto;
-        margin: 0 1;
-    }}
     """
 
     @override
@@ -37,13 +24,15 @@ class TopStatusBar(Horizontal):
         """Create the child widgets."""
         # Yield the labels. Their content will be set by the watch methods
         # immediately after this, and then every time the reactive var changes.
-        yield Label(id=self.PATH_LABEL_ID)
+
+        yield Label(content="[b]Path:[/]", id=self.PATH_LABEL_ID, markup=True)
+        yield Label(content="", id=self.PATH_STR_ID, expand=True)
         yield Label(id=self.STATUS_MSG_ID)
 
     def watch_path(self, new_path: str) -> None:
         """Called when self.path is modified."""
-        path_label = self.query_one(f"#{self.PATH_LABEL_ID}", Label)
-        path_label.update(f"[b]Path:[/] [i]'{new_path}'[/]")
+        path_label = self.query_one(f"#{self.PATH_STR_ID}", Label)
+        path_label.update(f"'{new_path}'")
 
     def watch_status_msg(self, new_status_msg: str) -> None:
         """Called when self.status_msg is modified."""
