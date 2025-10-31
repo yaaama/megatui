@@ -111,7 +111,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
 
-        await asyncio.create_task(self.file_list.load_directory())
+        await asyncio.create_task(self.filelist.load_directory())
 
     # """
     # Actions #############################################################
@@ -170,13 +170,13 @@ class MegaTUI(App[None], inherit_bindings=False):
                 )
             )
 
-        await self.file_list.action_refresh()
+        await self.filelist.action_refresh()
 
     @work(name="rename")
     async def on_rename_node_request(self, msg: RenameNodeRequest):
         self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
         await m.mega_node_rename(msg.node.path, msg.new_name)
-        await self.file_list.action_refresh()
+        await self.filelist.action_refresh()
 
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
@@ -191,7 +191,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         await m.mega_put(local_paths=tuple(files), target_path=destination, queue=True)
         # TODO We should request a refresh when the upload is completed, not
         # when it has been initiated.
-        self.file_list.post_message(RefreshRequest())
+        self.filelist.post_message(RefreshRequest())
 
     @on(FileList.ToggledSelection)
     def on_file_list_toggled_selection(
@@ -247,7 +247,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
     # Widget access.
     @property
-    def file_list(self):
+    def filelist(self):
         """Return FileList widget."""
         return self.query_one(FileList)
 
