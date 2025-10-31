@@ -267,17 +267,14 @@ async def run_app() -> None:
     # print("Checking MEGA login status...")
     app.log.info("Checking MEGA login status...")
     async with asyncio.timeout(2.0):
-        logged_in, message = await m.check_mega_login()
+        logged_in = await m.check_mega_login()
 
     if not logged_in:
-        print(f"MEGA Login Check Failed: {message}", file=sys.stderr)
-        print("Please login to 'megacmd' using 'mega-login'", file=sys.stderr)
-        app.log.error(f"MEGA Login Check Failed: {message}")
-        app.log.error("Please login to 'megacmd' using 'mega-login'")
+        app.log.error(f"MEGA Login Check Failed.\nPlease login using 'mega-login'.")
 
         return
 
-    print(f"MEGA Login Check: OK ({message})")
+    app.log.info("MEGA Login Check: OK")
 
     await app.run_async(mouse=False)
 

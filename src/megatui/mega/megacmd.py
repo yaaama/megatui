@@ -322,7 +322,7 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     """
     # Construct the actual executable name (e.g., "mega-ls")
     cmd_to_exec: tuple[str, ...] = _build_megacmd_cmd(command)
-    logger.info(f"Running cmd:\n'{' '.join(cmd_to_exec)}'")
+    logger.info(f"Running cmd: '{' '.join(cmd_to_exec)}'")
     cmd, *cmd_args = cmd_to_exec
 
     try:
@@ -378,7 +378,7 @@ async def mega_start_server():
 
 
 ###########################################################################
-async def check_mega_login() -> tuple[bool, str | None]:
+async def check_mega_login() -> bool:
     """Checks if the user is logged into MEGA using 'mega-whoami'.
 
     Returns:
@@ -388,29 +388,25 @@ async def check_mega_login() -> tuple[bool, str | None]:
                           indicating the status or error.
     """
     logger.info("Checking MEGA login status with 'mega-whoami'.")
+    response: MegaCmdResponse = await _exec_megacmd(command=("whoami",))
 
-    try:
-        response: MegaCmdResponse = await _exec_megacmd(command=("whoami",))
+    if not response:
+        raise ValueError(
+            "Did not receive output from running command. Something is definitely wrong."
+        )
+        return False
 
-        error_msg = response.err_output
-        if error_msg:
-            logger.info(f"Received error output: {error_msg}")
-            return False, "You are not logged in."
+    if response.err_output or response.return_code != 0:
+        return False
 
-        # Extract username
-        if "@" in response.stdout:
-            username = response.stdout.strip()
-            logger.info(f"Successfully logged in as: {username}")
-            return True, username
+    if "@" in response.stdout:
+        username = response.stdout.strip()
+        logger.debug(f"Successfully logged in as: {username}")
+        return True
 
-        else:
-            logger.warning(
-                f"Login status uncertain. Unexpected response: {response.stdout}"
-            )
-            return False, f"Login status uncertain. Response: {response}"
-    except MegaCmdError as e:
-        logger.error(f"MegaCmdError during login check: {e}")
-        return False, f"Login check failed due to command error: {e.message}"
+    logger.warning(f"Login status uncertain. Unexpected response: {response.stdout}")
+    raise ValueError("Could not determine login-status.")
+    return False
 
 
 ###########################################################################
