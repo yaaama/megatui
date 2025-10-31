@@ -53,8 +53,13 @@ class MegaCmdResponse:
     stderr: str | None
     return_code: int | None
 
-    def __init__(self, *, stdout: str, stderr: str | None, return_code: int | None):
-        self.stdout = stdout
+    def __init__(
+        self, *, stdout: str | None, stderr: str | None, return_code: int | None
+    ):
+        if stdout is None:
+            self.stdout = ""
+        else:
+            self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
         # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
@@ -386,7 +391,7 @@ async def check_mega_login() -> bool:
     logger.info("Checking MEGA login status with 'mega-whoami'.")
     response: MegaCmdResponse = await _exec_megacmd(command=("whoami",))
 
-    if not response:
+    if (not response) or (not response.stdout):
         raise ValueError(
             "Did not receive output from running command. Something is definitely wrong."
         )
@@ -437,6 +442,9 @@ async def mega_ls(
 
     cmd.append(target_path.str)
     response: MegaCmdResponse = await _exec_megacmd(tuple(cmd))
+
+    if not response.stdout:
+        raise ValueError("Did not receive any output from 'ls' command.")
 
     items: deque[MegaNode] = deque()
 
