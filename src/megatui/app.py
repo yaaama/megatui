@@ -218,12 +218,6 @@ class MegaTUI(App[None], inherit_bindings=False):
         status_bar.path = str(message.path)
         status_bar.clear_status_msg()
 
-    @on(FileList.EmptyDirectory)
-    def on_file_list_empty_directory(self, message: FileList.EmptyDirectory):
-        """Update TopStatusBar to signal to user the directory is empty."""
-        _ = message  # To stop getting unused arg warning
-        self.top_status_bar.signal_empty_dir()
-
     @on(FileList.LoadError)
     def on_file_list_load_error(self, message: FileList.LoadError):
         """Update TopStatusBar to signal that loading PATH had an error."""
@@ -249,12 +243,12 @@ class MegaTUI(App[None], inherit_bindings=False):
         )
 
     # Widget access.
-    @property
+    @cached_property
     def filelist(self):
         """Return FileList widget."""
         return self.query_one(FileList)
 
-    @property
+    @cached_property
     def top_status_bar(self):
         """Return TopStatusBar of UI."""
         return self.query_one(TopStatusBar)
