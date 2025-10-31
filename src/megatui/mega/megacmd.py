@@ -490,8 +490,8 @@ async def mega_ls(
         try:
             mtime_obj = datetime.fromisoformat(mtime_str)
         except ValueError:
-            logger.fatal(f"Failed to parse time: {mtime_str}")
-            raise MegaLibError(message=f"Failed to parse time: {mtime_str}")
+            logger.warning(f"Failed to parse time: {mtime_str}")
+            mtime_obj = datetime.fromisocalendar(1, 1, 1940)
 
         item_size: int
         version: int
