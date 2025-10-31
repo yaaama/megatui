@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+from functools import cached_property
 from typing import ClassVar, override
 
 from textual import on, work
@@ -100,7 +101,7 @@ class MegaTUI(App[None], inherit_bindings=False):
             # yield Static("Preview", id="preview-pane")
 
             # Selected files count
-            yield Label("", id="label-selected-count")
+            yield Label("", id="label-selected-count", expand=True)
 
             # Why does the footer create so many event messages?
             # yield footer
@@ -204,7 +205,9 @@ class MegaTUI(App[None], inherit_bindings=False):
             self.log.debug("Selection counter cleared.")
             return
 
-        selection_label.update(Content.from_text(f"{message.count} files selected"))
+        selection_label.update(
+            Content.from_text(f"[r][b]{message.count}[/] file(s) selected[/]")
+        )
         self.log.debug(f"Selected {message.count}")
         selection_label.refresh()
 

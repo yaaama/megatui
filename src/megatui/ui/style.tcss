@@ -70,13 +70,10 @@ TopStatusBar {
 }
 
 #label-selected-count {
-    /* padding: 1 0; */
-    margin: 0 2;
-    align: right middle;
-    content-align: right middle;
-    text-align: right;
-    /* width: 100%; */
-    height: 1;
+    margin: 0 4;
+    width: 100%;
+    height: 2;
+    color: $accent;
     /* color: red; */
 }
 
