@@ -312,7 +312,7 @@ def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
 
 
 ###############################################################################
-async def run_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
+async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     """Runs a specific mega-* command (e.g., mega-ls, mega-whoami)
     and returns MegaCmdResponse.
 
@@ -390,7 +390,7 @@ async def check_mega_login() -> tuple[bool, str | None]:
     logger.info("Checking MEGA login status with 'mega-whoami'.")
 
     try:
-        response: MegaCmdResponse = await run_megacmd(command=("whoami",))
+        response: MegaCmdResponse = await _exec_megacmd(command=("whoami",))
 
         error_msg = response.err_output
         if error_msg:
@@ -444,7 +444,7 @@ async def mega_ls(
     logger.info(f"Listing contents of MEGA path: {target_path}")
 
     cmd.append(target_path.str)
-    response: MegaCmdResponse = await run_megacmd(tuple(cmd))
+    response: MegaCmdResponse = await _exec_megacmd(tuple(cmd))
 
     items: deque[MegaNode] = deque()
 
@@ -570,7 +570,7 @@ async def mega_du(
 
     cmd.append(dir_path.str)
 
-    response = await run_megacmd(tuple(cmd))
+    response = await _exec_megacmd(tuple(cmd))
 
     logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
 
@@ -607,7 +607,7 @@ async def mega_cd(target_path: MegaPath | None):
     logger.info(f"Changing directory to {target_path}")
 
     cmd: list[str] = ["cd", target_path.str]
-    await run_megacmd(tuple(cmd))
+    await _exec_megacmd(tuple(cmd))
     logger.info(f"Successfully changed directory to '{target_path}'")
 
 
@@ -616,7 +616,7 @@ async def mega_pwd() -> MegaPath:
     logger.info("Getting current working directory.")
 
     cmd: tuple[str, ...] = ("pwd",)
-    response = await run_megacmd(cmd)
+    response = await _exec_megacmd(cmd)
 
     pwd_path = MegaPath(response.stdout.strip())
     return pwd_path
@@ -648,7 +648,7 @@ async def mega_cp(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Copying file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("cp", file_path.str, target_path.str)
-    await run_megacmd(cmd)
+    await _exec_megacmd(cmd)
 
     logger.info(f"Successfully copied '{file_path}' to '{target_path}'")
 
@@ -659,7 +659,7 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Moving file {file_path} to {target_path}")
 
     cmd: tuple[str, ...] = ("mv", file_path.str, target_path.str)
-    await run_megacmd(cmd)
+    await _exec_megacmd(cmd)
 
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
@@ -712,7 +712,7 @@ async def mega_rm(fpath: MegaPath, flags: tuple[str, ...] | None) -> None:
 
     cmd: list[str] = ["rm", str_path, *flags] if flags else ["rm", str_path]
 
-    await run_megacmd(tuple(cmd))
+    await _exec_megacmd(tuple(cmd))
 
     logger.info(f"Successfully removed '{fpath}'")
 
@@ -767,7 +767,7 @@ async def mega_put(
     # Remote destination
     cmd.append(path_str)
 
-    await run_megacmd(tuple(cmd))
+    await _exec_megacmd(tuple(cmd))
 
     logger.info(f"Successfully initiated upload of '{local_paths}' to '{target_path}'")
 
@@ -813,7 +813,7 @@ async def path_from_handle(handle: str) -> MegaPath | None:
     # Have to use the 'ls' command to get the full path of a handle
     cmd: list[str] = ["ls", handle]
 
-    response = await run_megacmd(tuple(cmd))
+    response = await _exec_megacmd(tuple(cmd))
 
     # Parse result
     try:
@@ -854,7 +854,7 @@ async def mega_get_from_handle(
 
     cmd.append(str(target_path))
 
-    await run_megacmd(tuple(cmd))
+    await _exec_megacmd(tuple(cmd))
 
     logger.info(f"Successfully initiated download of '{handle}' to '{target_path}'")
 
@@ -909,7 +909,7 @@ async def mega_get(
 
     cmd.append(str(target_path))
 
-    await run_megacmd(tuple(cmd))
+    await _exec_megacmd(tuple(cmd))
 
     logger.info(
         f"Successfully initiated download of '{remote_path}' to '{target_path}'"
@@ -978,7 +978,7 @@ async def mega_df(human: bool = True) -> MegaDiskFree | None:
     if human:
         cmd.append("-h")
 
-    response = await run_megacmd(tuple(cmd))
+    response = await _exec_megacmd(tuple(cmd))
 
     return _parse_df(response.stdout)
 
@@ -1007,7 +1007,7 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     # Try running command
     try:
         logger.info(f"Attempting to create remote directory: '{remote_path}'")
-        await run_megacmd(tuple(cmd))
+        await _exec_megacmd(tuple(cmd))
 
         logger.info(f"Successfully created directory: '{remote_path}'")
         return True
