@@ -26,17 +26,17 @@ Used sparingly to draw attention. Typically contrasts with $primary and $seconda
 */
 
 /* Target everything */
-/* * { */
-/* border: round red; */
+/* * {
+ *     border: round red;
+ * } */
+
+/* Screen { */
+/* layers: base status; /\* Define layers *\/ */
 /* } */
 
-Screen {
-    /* layers: base status; /\* Define layers *\/ */
-}
-
 #main {
-    height: 100%;
-    width: 100%;
+    width: auto;
+    height: auto;
 }
 
 TopStatusBar {
@@ -72,7 +72,7 @@ TopStatusBar {
 #label-selected-count {
     margin: 0 4;
     width: 100%;
-    height: 2;
+    height: 1;
     color: $accent;
     /* color: red; */
 }
@@ -101,13 +101,41 @@ TopStatusBar {
         margin: 1 2;
         color: $foreground;
         opacity: 80%;
-
     }
     #bar--msg {
         content-align: right middle;
         min-width: 20%;
         width: auto;
     }
+}
+
+#transfer-sidepanel {
+    width: 1fr;
+    height: 30%;
+    dock: bottom;
+    border: round white;
+    border-title-align: center;
+    background: $background;
+
+    #transfer-table {
+        margin: 1 1;
+    }
+
+    #no-transfers-message {
+        content-align: center middle;
+        margin: 1 0;
+    }
+
+    #transfer-table.-hidden {
+        display: none;
+    }
+    #no-transfers-message.-hidden {
+        display: none;
+    }
+}
+
+#transfer-sidepanel.-hidden {
+    display: none;
 }
 
 /*****************************************************************************/
@@ -294,7 +322,7 @@ HelpScreen {
     /* scrollbar-size: 0 0; */
     overflow: hidden hidden;
     background: $background;
-    margin: 1 1;
+    margin: 0 1;
     text-wrap: wrap;
     text-overflow: ellipsis;
     border: round $panel;

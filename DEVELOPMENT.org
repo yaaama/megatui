@@ -3,16 +3,58 @@
 
 * TODO
 
-
 ** User Interface
 
-*** TODO Better Date Handling
+*** DONE Better Date Handling
+
 - Use ~mega-ls --time-format=ISO6081_WITH_TIME~ for a standardised time format
 - Parse it into ~datetime~ object
+-
+*** TODO View current transfers
+
+Output of ~mega-transfer --help~:
+
+#+begin_src ascii
+Usage: transfers [-c TAG|-a] | [-r TAG|-a]  | [-p TAG|-a] [--only-downloads | --only-uploads] [SHOWOPTIONS]
+List or operate with transfers
+
+If executed without option it will list the first 10 tranfers
+Options:
+ -c (TAG|-a)	Cancel transfer with TAG (or all with -a)
+ -p (TAG|-a)	Pause transfer with TAG (or all with -a)
+ -r (TAG|-a)	Resume transfer with TAG (or all with -a)
+ --only-uploads	Show/Operate only upload transfers
+ --only-downloads	Show/Operate only download transfers
+
+Show options:
+ --summary	Prints summary of on going transfers
+ --show-syncs	Show synchronization transfers
+ --show-completed	Show completed transfers
+ --only-completed	Show only completed download
+ --limit=N	Show only first N transfers
+ --path-display-size=N	Use at least N characters for displaying paths
+ --col-separator=X	Uses the string "X" as column separator. Otherwise, spaces will be added between columns to align them.
+ --output-cols=COLUMN_NAME_1,COLUMN_NAME2,...	Selects which columns to show and their order.
+
+TYPE legend correspondence:
+  ⇓ = 	Download transfer
+  ⇑ = 	Upload transfer
+  ⇵ = 	Sync transfer. The transfer is done in the context of a synchronization
+  ⏫ = 	Backup transfer. The transfer is done in the context of a backup
+#+end_src
+
+Output of
+~mega-transfers --limit=50 --col-separator='|' --path-display-size=80~:
+
+#+begin_src ascii
+TYPE|TAG|SOURCEPATH|DESTINYPATH|PROGRESS|STATE
+⇓|1415|/newfolder/sync.org|/home/aayush/downloads/newfolder/sync.org|0.00% of   28.72 KB|ACTIVE
+⇓|1416|/newfolder/redo/rename1/feral.org|/home/aayush/downloads/newfolder/redo/rename1/feral.org|0.00% of    2.37 KB|ACTIVE
+⇓|1417|/newfolder/coverletters/aerc/binds.conf|/home/aayush/downloads/newfolder/coverletters/aerc/binds.conf|0.00% of    4.19 KB|ACTIVE
+#+end_src
+
 
 ** File Operations
-
-
 
 *** TODO Copying files
 
@@ -72,6 +114,26 @@ preview :: Downloads preview snapshot
 :PROPERTIES:
 :VISIBILITY: content
 :END:
+
+** Bugs with =mega-cmd=
+
+*** Small spelling mistake in the output of ~mega-help --paths~:
+
+#+begin_src ascii
+MEGAcmd will allow you to enter local and remote paths.
+- REMOTE paths are case-sensitive, and use '/' as path separator.
+  The root folder in your cloud will be `/`.
+  There are other possible root folders (Rubbish Bin, Inbox & in-shares).
+     For further info on root folders, see "mount --help"
+- LOCAL paths are system dependant.
+  In Windows, you will be able to use both '\' and '/' as separator.
+
+To refer to paths that include spaces, you will need to either surround the path between quotes "",
+ or scape the space with '\ '.
+----^^^^^
+----Spelling mistake here!
+....
+#+end_src
 
 ** Mega Commands
 

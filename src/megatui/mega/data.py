@@ -280,5 +280,6 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
     "mv",
     "mkdir",
     "df",
+    "transfers",
 }
 """Mega commands that are supported."""

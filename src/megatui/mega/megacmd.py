@@ -1015,3 +1015,135 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     except MegaCmdError as e:
         logger.error(f"MegaCmdError while creating directory '{remote_path}': {e}")
         return False
+
+
+MEGA_TRANSFERS_DELIMITER = "|"
+"""Field delimiter for 'mega-transfers' output."""
+
+MEGA_TRANSFERS_REGEXP = re.compile(
+    r"^(?P<TYPE>.+?)\|"
+    + r"(?P<TAG>\d+)\|"
+    + r"(?P<SOURCEPATH>.+?)\|"
+    + r"(?P<DESTINYPATH>.+?)\|"
+    + r"(?P<PROGRESS>.+?)\|"
+    + r"(?P<STATE>.+)$"
+)
+
+
+class MegaTransferType(Enum):
+    UPLOAD = "⇑"
+    DOWNLOAD = "⇓"
+    SYNC = "⇵"
+    BACKUP = "⏫"
+
+
+class MegaTransferProgress(NamedTuple):
+    percent_done: float
+    size: str
+
+
+class MegaTransferState(Enum):
+    QUEUED = "QUEUED"
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    RETRYING = "RETRYING"
+    COMPLETING = "COMPLETING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
+
+
+class MegaTransferItem:
+    __slots__ = ("type", "tag", "source_path", "destination_path", "progress", "state")
+
+    def __init__(
+        self,
+        type: MegaTransferType,
+        tag: int,
+        source_path: str,
+        destination_path: str,
+        progress: str,
+        state: MegaTransferState,
+    ):
+        self.type = type
+        self.tag = tag
+        self.source_path = source_path
+        self.destination_path = destination_path
+        self.progress = progress
+        self.state = state
+
+    @override
+    def __str__(self):
+        return f"state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}'"
+
+    @override
+    def __repr__(self):
+        return f"MegaTransferItem(state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}')"
+
+
+async def mega_transfers(
+    summary: bool = False,
+    limit: int = 50,
+    only_downloads: bool = False,
+    only_uploads: bool = False,
+    only_completed: bool = False,
+    only_downloads_completed: bool = False,
+):
+    cmd = [
+        "transfers",
+        f"--limit={limit}",
+        f"--col-separator={MEGA_TRANSFERS_DELIMITER}",
+    ]
+
+    if only_downloads and only_uploads:
+        logger.error(
+            "Mutually exclusive args 'only_downloads' and 'only_uploads' are both true! Defaulting to only_downloads=True"
+        )
+    elif only_downloads:
+        cmd.append("--only-downloads")
+    elif only_uploads:
+        cmd.append("--only-uploads")
+
+    if only_completed or only_downloads_completed or summary:
+        raise NotImplementedError("Have not implemented this option yet.")
+
+    response = await _exec_megacmd(tuple(cmd))
+
+    lines = response.stdout.strip().splitlines()
+    if (not lines) or (not lines[0]):
+        logger.info("Empty transfer list.")
+        return None
+
+    del lines[0]
+
+    transfer_output_queue: deque[MegaTransferItem] = deque()
+
+    for line in lines:
+        stripped_line = line.strip()
+        fields = MEGA_TRANSFERS_REGEXP.match(stripped_line)
+        if not fields:
+            logger.info("No fields to parse for line %s", stripped_line)
+            continue
+
+        _type, _tag, _source_path, _destination_path, _progress, _state = (
+            fields.groups()
+        )
+
+        # Parse the type of transfer type
+        type = MegaTransferType(_type)
+
+        try:
+            tag = int(_tag)
+        except ValueError as e:
+            logger.warning(f"Could not read tag '{_tag}': '{e}'")
+            tag = -1
+        state = MegaTransferState(_state)
+
+        transfer_item = MegaTransferItem(
+            type, tag, _source_path, _destination_path, _progress, state
+        )
+        transfer_output_queue.append(transfer_item)
+
+        logger.debug(f"Parsed: {transfer_item!s}")
+
+    return transfer_output_queue

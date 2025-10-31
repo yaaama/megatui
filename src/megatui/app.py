@@ -24,6 +24,7 @@ from megatui.messages import (
 from megatui.ui.filelist import FileList
 from megatui.ui.screens.help import HelpScreen
 from megatui.ui.top_status_bar import TopStatusBar
+from megatui.ui.transfers import TransfersSidePanel
 
 logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
@@ -52,6 +53,7 @@ class MegaTUI(App[None], inherit_bindings=False):
             key="ctrl+c", action="quit", description="quit", show=False, priority=True
         ),
         Binding(key="q", action="quit", description="quit", show=False),
+        Binding(key="f4", action="view_transfer_list"),
         Binding(
             "f2",
             action="toggle_darkmode",
@@ -93,6 +95,9 @@ class MegaTUI(App[None], inherit_bindings=False):
         footer = Footer(show_command_palette=True)
         footer.compact = True
 
+        transfer_panel = TransfersSidePanel()
+        transfer_panel.toggle_class("-hidden")
+
         with Vertical(id="main"):
             yield Header()
             yield top_status_bar
@@ -102,6 +107,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
             # Selected files count
             yield Label("", id="label-selected-count", expand=True)
+            yield transfer_panel
 
             # Why does the footer create so many event messages?
             # yield footer
@@ -112,7 +118,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """
         self.log.info("MegaAppTUI mounted. Starting initial load.")
 
-        await asyncio.create_task(self.filelist.load_directory())
+        await self.filelist.load_directory()
 
     # """
     # Actions #############################################################
@@ -152,6 +158,21 @@ class MegaTUI(App[None], inherit_bindings=False):
         # Push 'info' screen
 
         pass
+
+    @work(exclusive=True, description="Fetching transfer list")
+    async def update_transfers(self) -> None:
+        """A worker method to fetch transfers and update the UI."""
+        transfers = await m.mega_transfers()
+        panel = self.query_one(TransfersSidePanel)
+        panel.transfer_list = transfers
+
+    async def action_view_transfer_list(self):
+        panel = self.query_one(TransfersSidePanel)
+
+        if not panel.has_class("-hidden"):
+            self.update_transfers()
+
+        panel.toggle_class("-hidden")
 
     #
     # # Message Handlers ###########################################################
