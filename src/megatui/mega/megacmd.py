@@ -325,50 +325,46 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     logger.info(f"Running cmd: '{' '.join(cmd_to_exec)}'")
     cmd, *cmd_args = cmd_to_exec
 
-    try:
-        process = await asyncio.create_subprocess_exec(
-            cmd,
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.DEVNULL,
-        )
+    stdout_queue: deque[bytes] = deque()
+    stderr_queue: deque[bytes] = deque()
 
-        stdout, stderr = await process.communicate()
+    process = await asyncio.create_subprocess_exec(
+        cmd,
+        *cmd_args,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        stdin=asyncio.subprocess.DEVNULL,
+    )
 
-        stdout_str = stdout.decode("utf-8", errors="replace").strip()
-        stderr_str = stderr.decode("utf-8", errors="replace").strip()
+    if process.stdout is not None:
+        async for line in process.stdout:
+            stdout_queue.append(line.rstrip())
 
-        cmd_response = MegaCmdResponse(
-            stdout=stdout_str,
-            stderr=None,  # Initialize stderr as None
-            return_code=process.returncode,
-        )
+    if process.stderr is not None:
+        async for line in process.stderr:
+            stderr_queue.append(line.rstrip())
 
-        if stderr_str:
-            cmd_response.stderr = stderr_str
-            logger.error(f"'{cmd[0]}' produced stderr: : {cmd_response.err_output}")
-            raise MegaCmdError(
-                message=f"Error running '{cmd[0]}'", response=cmd_response
-            )
+    stdout_str = "\n".join(line.decode() for line in stdout_queue)
+    stderr_str = "\n".join(line.decode() for line in stderr_queue)
+    return_code = await process.wait()
 
-        # Handle cases where mega-* commands might print errors to stdout
-        if process.returncode != 0:
-            # Error printed by megacmd
-            command_error_output = stderr_str if stderr_str else stdout_str
-            # Formatted error
-            formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{process.returncode}', StdErr='{command_error_output}'"
-            logger.error(formatted_err_msg)
-            raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
+    cmd_response = MegaCmdResponse(
+        stdout=stdout_str,
+        stderr=stderr_str,  # Initialize stderr as None
+        return_code=return_code,
+    )
 
-        logger.debug(f"OK : '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
-        return cmd_response
+    # Handle cases where mega-* commands might print errors to stdout
+    if process.returncode != 0:
+        # Error printed by megacmd
+        command_error_output = stderr_str if stderr_str else stdout_str
+        # Formatted error
+        formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{process.returncode}', StdErr='{command_error_output}'"
+        logger.error(formatted_err_msg)
+        raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
 
-    except FileNotFoundError:
-        logger.error(
-            f"mega-cmd executable '{cmd_to_exec[0]}' not found. Is it in PATH?"
-        )
-        raise MegaLibError(message=f"Command '{cmd_to_exec[0]}' not found.", fatal=True)
+    logger.debug(f"OK : '{' '.join(cmd_to_exec)}' 'SUCCESS'.")
+    return cmd_response
 
 
 ###########################################################################
