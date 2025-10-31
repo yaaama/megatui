@@ -215,7 +215,7 @@ class MegaNode:
         self.path = path
 
         # Human friendly sizing
-        if (size == 0) or (self.ftype == MegaFileTypes.DIRECTORY):
+        if (self.ftype == MegaFileTypes.DIRECTORY) or (size == 0):
             self.size = None
             return
 
