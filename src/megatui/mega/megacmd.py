@@ -344,22 +344,22 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
         async for line in process.stderr:
             stderr_queue.append(line.rstrip())
 
-    stdout_str = "\n".join(line.decode() for line in stdout_queue)
-    stderr_str = "\n".join(line.decode() for line in stderr_queue)
-    return_code = await process.wait()
-
     cmd_response = MegaCmdResponse(
-        stdout=stdout_str,
-        stderr=stderr_str,  # Initialize stderr as None
-        return_code=return_code,
+        stdout="\n".join(line.decode() for line in stdout_queue),
+        stderr="\n".join(
+            line.decode() for line in stderr_queue
+        ),  # Initialize stderr as None
+        return_code=await process.wait(),
     )
 
     # Handle cases where mega-* commands might print errors to stdout
     if process.returncode != 0:
         # Error printed by megacmd
-        command_error_output = stderr_str if stderr_str else stdout_str
+        command_error_output = (
+            cmd_response.stderr if cmd_response.stderr else cmd_response.stdout
+        )
         # Formatted error
-        formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{process.returncode}', StdErr='{command_error_output}'"
+        formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdErr='{command_error_output}'"
         logger.error(formatted_err_msg)
         raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
 
