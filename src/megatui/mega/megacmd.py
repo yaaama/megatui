@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import override
+from typing import NamedTuple, override
 
 from megatui.mega.data import (
     DF_REGEXPS,
@@ -448,7 +448,7 @@ async def mega_ls(
 
     items: deque[MegaNode] = deque()
 
-    lines = response.stdout.strip().split("\n")
+    lines = response.stdout.strip().splitlines()
     # Remove first element (it will be the header line)
     del lines[0]
 
@@ -592,7 +592,7 @@ async def mega_du(
     _filename, _size = file_line_match.groups()
 
     if (not _filename) or (not _size):
-        raise ValueError(f"Did not parse a filename or a size from 'du' output.")
+        raise ValueError("Did not parse a filename or a size from 'du' output.")
 
     return MegaDiskUsage(location=MegaPath(_filename), size_bytes=int(_size))
 
@@ -925,7 +925,7 @@ def _parse_df(df_output: str) -> MegaDiskFree | None:
     logger.debug(f"'df' output:\n`{df_output}`")
 
     # Split by lines
-    lines = df_output.strip().split("\n")
+    lines = df_output.strip().splitlines()
 
     locations_list: list[MegaDiskFree.LocationInfo] = []
     summary_data: MegaDiskFree.UsageSummary | None = None
@@ -1054,7 +1054,7 @@ class MegaTransferState(Enum):
 
 
 class MegaTransferItem:
-    __slots__ = ("type", "tag", "source_path", "destination_path", "progress", "state")
+    __slots__ = ("destination_path", "progress", "source_path", "state", "tag", "type")
 
     def __init__(
         self,
