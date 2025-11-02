@@ -19,10 +19,14 @@ from megatui.mega.data import (
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
     MEGA_ROOT_PATH,
+    MEGA_TRANSFERS_REGEXP,
     MegaCmdErrorCode,
     MegaDiskFree,
     MegaDiskUsage,
     MegaPath,
+    MegaTransferItem,
+    MegaTransferState,
+    MegaTransferType,
 )
 
 MEGA_LOGTOFILE = False
@@ -1017,70 +1021,6 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
         return False
 
 
-MEGA_TRANSFERS_DELIMITER = "|"
-"""Field delimiter for 'mega-transfers' output."""
-
-MEGA_TRANSFERS_REGEXP = re.compile(
-    r"^(?P<TYPE>.+?)\|"
-    + r"(?P<TAG>\d+)\|"
-    + r"(?P<SOURCEPATH>.+?)\|"
-    + r"(?P<DESTINYPATH>.+?)\|"
-    + r"(?P<PROGRESS>.+?)\|"
-    + r"(?P<STATE>.+)$"
-)
-
-
-class MegaTransferType(Enum):
-    UPLOAD = "⇑"
-    DOWNLOAD = "⇓"
-    SYNC = "⇵"
-    BACKUP = "⏫"
-
-
-class MegaTransferProgress(NamedTuple):
-    percent_done: float
-    size: str
-
-
-class MegaTransferState(Enum):
-    QUEUED = "QUEUED"
-    ACTIVE = "ACTIVE"
-    PAUSED = "PAUSED"
-    RETRYING = "RETRYING"
-    COMPLETING = "COMPLETING"
-    COMPLETED = "COMPLETED"
-    CANCELLED = "CANCELLED"
-    FAILED = "FAILED"
-
-
-class MegaTransferItem:
-    __slots__ = ("destination_path", "progress", "source_path", "state", "tag", "type")
-
-    def __init__(
-        self,
-        type: MegaTransferType,
-        tag: int,
-        source_path: str,
-        destination_path: str,
-        progress: str,
-        state: MegaTransferState,
-    ):
-        self.type = type
-        self.tag = tag
-        self.source_path = source_path
-        self.destination_path = destination_path
-        self.progress = progress
-        self.state = state
-
-    @override
-    def __str__(self):
-        return f"state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}'"
-
-    @override
-    def __repr__(self):
-        return f"MegaTransferItem(state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}')"
-
-
 async def mega_transfers(
     summary: bool = False,
     limit: int = 50,
@@ -1092,8 +1032,8 @@ async def mega_transfers(
     cmd = [
         "transfers",
         f"--limit={limit}",
-        f"--col-separator={MEGA_TRANSFERS_DELIMITER}",
     ]
+    cmd.extend(MEGA_DEFAULT_CMD_ARGS["transfers"])
 
     if only_downloads and only_uploads:
         logger.error(

@@ -4,14 +4,18 @@ import pathlib
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Final, LiteralString
+from typing import Final, LiteralString, NamedTuple, override
 
 # TODO ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
 """Default date formatting for `ls` output."""
 
+MEGA_TRANSFERS_DELIMITER = "|"
+"""Field delimiter for 'mega-transfers' output."""
+
 MEGA_DEFAULT_CMD_ARGS = {
-    "ls": ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"]
+    "ls": ["-l", "--show-handles", f"--time-format={MEGA_LS_DATEFMT_DEFAULT}"],
+    "transfers": [f"--col-separator={MEGA_TRANSFERS_DELIMITER}"],
 }
 """Default arguments for `mega` commands."""
 
@@ -186,6 +190,76 @@ class MegaMediaInfo:
         self.height = height
         self.fps = fps
         self.playtime = playtime
+
+
+MEGA_TRANSFERS_REGEXP = re.compile(
+    r"^(?P<TYPE>.+?)\|"
+    + r"(?P<TAG>\d+)\|"
+    + r"(?P<SOURCEPATH>.+?)\|"
+    + r"(?P<DESTINYPATH>.+?)\|"
+    + r"(?P<PROGRESS>.+?)\|"
+    + r"(?P<STATE>.+)$"
+)
+"""Regular expression to parse the output of `mega-transfers`."""
+
+
+class MegaTransferType(Enum):
+    UPLOAD = "⇑"
+    DOWNLOAD = "⇓"
+    SYNC = "⇵"
+    BACKUP = "⏫"
+
+
+# TODO
+# Implement usage of this
+class MegaTransferProgress(NamedTuple):
+    """Percentage done of the transfer, and the size of the transfer."""
+
+    percent_done: float
+    size: str
+
+
+class MegaTransferState(Enum):
+    """States for a transfer.
+    These states are directly taken from the megacmd source-code.
+    """
+
+    QUEUED = "QUEUED"
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    RETRYING = "RETRYING"
+    COMPLETING = "COMPLETING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
+
+
+class MegaTransferItem:
+    __slots__ = ("destination_path", "progress", "source_path", "state", "tag", "type")
+
+    def __init__(
+        self,
+        type: MegaTransferType,
+        tag: int,
+        source_path: str,
+        destination_path: str,
+        progress: str,
+        state: MegaTransferState,
+    ):
+        self.type = type
+        self.tag = tag
+        self.source_path = source_path
+        self.destination_path = destination_path
+        self.progress = progress
+        self.state = state
+
+    @override
+    def __str__(self):
+        return f"state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}'"
+
+    @override
+    def __repr__(self):
+        return f"MegaTransferItem(state='{self.type}', name='{self.type.name}' source_path='{self.source_path}', destination_path='{self.destination_path}', progress='{self.progress}', state='{self.state.name}')"
 
 
 #
