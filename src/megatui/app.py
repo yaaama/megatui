@@ -79,13 +79,16 @@ class MegaTUI(App[None], inherit_bindings=False):
         ),
     ]
 
+    def __init__(self):
+        super().__init__()
+        self.theme = "gruvbox"
+        self.capture_mouse(None)
+
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
         """Compose the basic UI for the application."""
         # Disable mouse events
-        self.capture_mouse(None)
-        self.theme = "gruvbox"
 
         # Our file list
         file_list = FileList()
@@ -205,7 +208,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """Handle upload requests."""
         self.log.info("Uploading file(s)")
 
-        files = [path for path in msg.files]
+        files = list(msg.files)
         destination = msg.destination if msg.destination else MegaPath()
         filenames = ", ".join(str(files))
         self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
@@ -288,7 +291,7 @@ async def run_app() -> None:
         logged_in = await m.check_mega_login()
 
     if not logged_in:
-        app.log.error(f"MEGA Login Check Failed.\nPlease login using 'mega-login'.")
+        app.log.error("MEGA Login Check Failed.\nPlease login using 'mega-login'.")
 
         return
 
