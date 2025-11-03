@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import NamedTuple, override
+from typing import override
 
 from megatui.mega.data import (
     DF_REGEXPS,
@@ -18,11 +18,14 @@ from megatui.mega.data import (
     LS_REGEXP,
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
+    MEGA_MEDIAINFO_FIELDS_REGEXP,
+    MEGA_MEDIAINFO_HEADERS_REGEXP,
     MEGA_ROOT_PATH,
     MEGA_TRANSFERS_REGEXP,
     MegaCmdErrorCode,
     MegaDiskFree,
     MegaDiskUsage,
+    MegaMediaInfo,
     MegaPath,
     MegaTransferItem,
     MegaTransferState,
@@ -1087,3 +1090,83 @@ async def mega_transfers(
         logger.debug(f"Parsed: {transfer_item!s}")
 
     return transfer_output_queue
+
+
+async def mega_mediainfo(
+    nodes: MegaNode | Iterable[MegaNode],
+) -> deque[MegaMediaInfo] | None:
+    cmd: deque[str] = deque()
+    cmd.append("mediainfo")
+
+    if isinstance(nodes, Iterable):
+        if not nodes:
+            raise ValueError("Did not receive any nodes!")
+
+        cmd.extend([node.path.str for node in nodes])
+
+    else:
+        cmd.append(nodes.path.str)
+
+    response = await _exec_megacmd(command=tuple(cmd))
+    output = response.stdout.strip().splitlines()
+
+    # Ensure there's a header and at least one data line
+    if len(output) < 2:
+        raise ValueError("Received incomplete output from mega-mediainfo.")
+
+    header_line = output.pop(0)
+    header_keys = header_line.split()
+
+    if not header_keys or header_keys[0] != "FILE":
+        raise ValueError(f"Could not parse `mediainfo` header output: {header_line}")
+
+    header_match = MEGA_MEDIAINFO_HEADERS_REGEXP.match(string=header_line)
+    if not header_match:
+        raise ValueError("Could not parse `mediainfo` header output:%s", header_line)
+
+    num_columns = len(header_keys)
+    parsed: deque[MegaMediaInfo] = deque()
+
+    for line in output:
+        line = line.strip()
+
+        if not line:
+            continue
+
+        fields = line.rsplit(maxsplit=num_columns - 1)
+
+        if len(fields) != num_columns:
+            logger.warning("Could not parse line: `%s`", line)
+            continue
+
+        data = dict(zip(header_keys, fields))
+        file = data.get("FILE", "NA")
+
+        try:
+            width = int(data.get("WIDTH", 0))
+        except (ValueError, TypeError):
+            width = None
+
+        try:
+            height = int(data.get("HEIGHT", 0))
+        except (ValueError, TypeError):
+            height = None
+
+        try:
+            fps = int(data.get("FPS", 0))
+        except (ValueError, TypeError):
+            fps = None
+
+        playtime = None if data.get("PLAYTIME") == "---" else data.get("PLAYTIME")
+
+        logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")
+        parsed.append(
+            MegaMediaInfo(
+                path=file, width=width, height=height, fps=fps, playtime=playtime
+            )
+        )
+
+    if not parsed:
+        raise ValueError("Did not manage to parse any mediainfo lines from the output.")
+
+    return parsed

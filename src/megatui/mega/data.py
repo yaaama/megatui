@@ -176,20 +176,46 @@ class MegaDiskFree:
     version_size_bytes: int | None
 
 
-# TODO
 class MegaMediaInfo:
     path: str
     width: int | None
     height: int | None
     fps: float | None
-    playtime: str
+    playtime: str | None
 
-    def __init__(self, path: str, width: int, height: int, fps: float, playtime: str):
+    def __init__(
+        self,
+        path: str,
+        width: int | None,
+        height: int | None,
+        fps: int | None,
+        playtime: str | None,
+    ):
         self.path = path
         self.width = width
         self.height = height
         self.fps = fps
         self.playtime = playtime
+
+    @override
+    def __repr__(self) -> str:
+        return (
+            f"MegaMediaInfo("
+            + f"path={self.path!r}, "
+            + f"width={self.width}, "
+            + f"height={self.height}, "
+            + f"fps={self.fps}, "
+            + f"playtime={self.playtime!r}"
+            + f")"
+        )
+
+    @override
+    def __str__(self) -> str:
+        if self.width and self.height:
+            resolution = f"({self.width}x{self.height})"
+        else:
+            resolution = "(Unknown resolution)"
+        return f"Path: '{self.path}', Resolution:{resolution}, FPS: {self.fps}, Playtime: {self.playtime}"
 
 
 MEGA_TRANSFERS_REGEXP = re.compile(
@@ -355,5 +381,6 @@ MEGA_COMMANDS_SUPPORTED: set[str] = {
     "mkdir",
     "df",
     "transfers",
+    "mediainfo",
 }
 """Mega commands that are supported."""
