@@ -35,12 +35,14 @@ from megatui.mega.megacmd import (
     mega_cd,
     mega_get,
     mega_ls,
+    mega_mediainfo,
     mega_mv,
     mega_pwd,
     mega_rm,
 )
 from megatui.messages import RefreshRequest, StatusUpdate
 from megatui.ui.file_tree import UploadFilesModal
+from megatui.ui.preview import PreviewMediaInfoModal
 from megatui.ui.screens.confirmation import ConfirmationScreen
 from megatui.ui.screens.mkdir import MkdirDialog
 from megatui.ui.screens.rename import RenameDialog
@@ -152,6 +154,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         ),
         # Open local filesystem
         Binding(key="o", key_display="o", action="upload_file", description="upload"),
+        Binding("i", action="view_mediainfo"),
         # Delete files
         Binding(key="D", key_display="D", action="delete_files", description="delete"),
         # Download files
@@ -228,6 +231,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 self.add_column(label=column_name, key=column_name, width=None)
 
     # * Actions #########################################################
+
+    async def action_view_mediainfo(self):
+        highlighted = self._get_megaitem_at_cursor()
+
+        if not highlighted:
+            return
+
+        mediainfo = await mega_mediainfo(nodes=highlighted)
+
+        if not mediainfo:
+            return
+
+        for info in mediainfo:
+            self.log.debug(f"Media info: {info.__str__()}")
+
+        self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo[0]))
 
     async def delete_files(self, files: MegaItems):
         self.log.info("Deleting files")

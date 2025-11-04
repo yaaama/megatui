@@ -1,5 +1,6 @@
 """Collection of constants and other useful things I could not think of a proper place for."""
 
+from functools import cached_property
 import pathlib
 import re
 from dataclasses import dataclass
@@ -197,6 +198,19 @@ class MegaMediaInfo:
         self.fps = fps
         self.playtime = playtime
 
+    @cached_property
+    def fname(self) -> str:
+        split = self.path.rsplit("/", 1)
+        return ".../" + split[1]
+
+    @property
+    def resolution(self) -> str:
+        if self.width and self.height:
+            resolution = f"({self.width}x{self.height})"
+        else:
+            resolution = "(Unknown resolution)"
+        return resolution
+
     @override
     def __repr__(self) -> str:
         return (
@@ -211,11 +225,7 @@ class MegaMediaInfo:
 
     @override
     def __str__(self) -> str:
-        if self.width and self.height:
-            resolution = f"({self.width}x{self.height})"
-        else:
-            resolution = "(Unknown resolution)"
-        return f"Path: '{self.path}', Resolution:{resolution}, FPS: {self.fps}, Playtime: {self.playtime}"
+        return f"Path: '{self.path}', Resolution:{self.resolution}, FPS: {self.fps}, Playtime: {self.playtime}"
 
 
 MEGA_TRANSFERS_REGEXP = re.compile(

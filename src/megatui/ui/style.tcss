@@ -142,32 +142,56 @@ TopStatusBar {
 /*                               Modal Screens                               */
 /*****************************************************************************/
 
+PreviewMediaInfoModal {
+    align: center bottom;
+
+    Vertical {
+        padding: 1 2;
+        width: auto;
+        min-width: 33%;
+        height: auto;
+        border: ascii $foreground;
+        border-title-align: right;
+        border-title-style: bold;
+
+        #title {
+            width: auto;
+        }
+
+        #info {
+            width: auto;
+            height: auto;
+        }
+    }
+}
+
 RenameDialog {
     align: center middle;
     /* background: transparent; */
 
     Vertical {
+        align-horizontal: center;
         /* background: $panel; */
-        border: round $secondary;
+        border: ascii $secondary;
         height: auto;
-        width: 50%;
-    }
+        width: 40%;
 
-    Vertical > * {
-        width: auto;
-        height: auto;
-    }
+        * {
+            width: auto;
+            height: auto;
+        }
 
-    #title-label {
-        margin-left: 2;
-        color: $accent;
-    }
+        #title-label {
+            margin-left: 2;
+            color: $accent;
+        }
 
-    #input-box {
-        margin: 1;
-        width: 1fr;
-        color: $foreground;
-        height: 2;
+        #input-box {
+            margin: 1 0;
+            width: 93%;
+            color: $foreground;
+            height: 1;
+        }
     }
 }
 

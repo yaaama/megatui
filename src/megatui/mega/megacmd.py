@@ -18,8 +18,6 @@ from megatui.mega.data import (
     LS_REGEXP,
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
-    MEGA_MEDIAINFO_FIELDS_REGEXP,
-    MEGA_MEDIAINFO_HEADERS_REGEXP,
     MEGA_ROOT_PATH,
     MEGA_TRANSFERS_REGEXP,
     MegaCmdErrorCode,
@@ -1094,7 +1092,7 @@ async def mega_transfers(
 
 async def mega_mediainfo(
     nodes: MegaNode | Iterable[MegaNode],
-) -> deque[MegaMediaInfo] | None:
+) -> Iterable[MegaMediaInfo] | MegaMediaInfo | None:
     cmd: deque[str] = deque()
     cmd.append("mediainfo")
 
@@ -1120,10 +1118,6 @@ async def mega_mediainfo(
     if not header_keys or header_keys[0] != "FILE":
         raise ValueError(f"Could not parse `mediainfo` header output: {header_line}")
 
-    header_match = MEGA_MEDIAINFO_HEADERS_REGEXP.match(string=header_line)
-    if not header_match:
-        raise ValueError("Could not parse `mediainfo` header output:%s", header_line)
-
     num_columns = len(header_keys)
     parsed: deque[MegaMediaInfo] = deque()
 
@@ -1139,8 +1133,8 @@ async def mega_mediainfo(
             logger.warning("Could not parse line: `%s`", line)
             continue
 
-        data = dict(zip(header_keys, fields))
-        file = data.get("FILE", "NA")
+        data = dict(zip(header_keys, fields, strict=False))
+        file = data.get("FILE", "Not Available")
 
         try:
             width = int(data.get("WIDTH", 0))
@@ -1157,9 +1151,9 @@ async def mega_mediainfo(
         except (ValueError, TypeError):
             fps = None
 
-        playtime = None if data.get("PLAYTIME") == "---" else data.get("PLAYTIME")
+        playtime = None if (data.get("PLAYTIME") == "---") else data.get("PLAYTIME")
 
-        logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")
+        # logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")
         parsed.append(
             MegaMediaInfo(
                 path=file, width=width, height=height, fps=fps, playtime=playtime
