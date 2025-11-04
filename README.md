@@ -33,7 +33,7 @@ The UI and bindings are inspired by [ranger](https://github.com/ranger/ranger) a
 
 ## 🪷 Features
 
-As of writing this (_2025-09-26_), work is still ongoing and active.
+As of writing this (_2025-11-04_), work is still ongoing and active.
 
 ### Implemented
 
@@ -45,20 +45,11 @@ As of writing this (_2025-09-26_), work is still ongoing and active.
   - Upload files
   - Move files around
   - Rename files
+  - View information regarding media (frames per second, playtime, resolution).
+  - View ongoing transfers.
 - **Marking (Selecting) Files For Bulk Operations:** Marking files will allow certain operations to operate on all of them.
   - For example, if you mark 3 files, the move command will move all 3 marked files.
 - **Login Check:** Verifies your MEGAcmd login status on startup.
-
-## ✏️ (Planned / TODO)
-
-- [ ] Search functionality.
-- [ ] Multi-pane views.
-- [ ] Caching to improve performance.
-- [ ] File Previews (basic info, potentially text content).
-- [ ] Display detailed directory/account usage (total storage usage, account details, etc).
-- [ ] Configuration options.
-- [ ] Background transfer monitoring.
-- [ ] Logging in (with 2FA support), and logging out.
 
 ## ⚙️ Installation (Development Only)
 

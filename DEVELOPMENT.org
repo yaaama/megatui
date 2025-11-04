@@ -3,14 +3,13 @@
 
 * TODO
 
-** User Interface
+** Search functionality
 
-*** DONE Better Date Handling
+*** TODO Search files in current directory
 
-- Use ~mega-ls --time-format=ISO6081_WITH_TIME~ for a standardised time format
-- Parse it into ~datetime~ object
--
-*** TODO View current transfers
+** Ongoing Transfers
+
+*** DONE View ongoing transfers in a table
 
 Output of ~mega-transfer --help~:
 
@@ -53,33 +52,62 @@ TYPE|TAG|SOURCEPATH|DESTINYPATH|PROGRESS|STATE
 ⇓|1417|/newfolder/coverletters/aerc/binds.conf|/home/aayush/downloads/newfolder/coverletters/aerc/binds.conf|0.00% of    4.19 KB|ACTIVE
 #+end_src
 
+*** TODO Select transfers and perform actions on them
 
-** File Operations
+- Be able to select transfers and then cancel them, pause them, etc.
 
-*** TODO Copying files
+** File Previews
 
-**** Functional Outline
+Relevant commands include:
+#+begin_quote
+cat :: Prints content of a file, DO NOT USE THIS ON A MEDIA FILE
+thumbnail :: Will download thumbnail but it looks rubbish, prefer `preview` instead
+mediainfo :: Prints out information about media
+preview :: Downloads preview snapshot
+#+end_quote
+
+*** DONE Preview =mediainfo= of a file
+
+*** TODO View contents of text files using =mega-cat=
+
+*** TODO Previewing a directory gives a summary of its contents
+
+The summary will include:
+
+- Number of files stored in there.
+- Size of directory.
+
+*** TODO Media previewing
+
+ Download the preview using =mega-preview= and then then open it using gallery software on the machine
+
+*** TODO Display how many files are in a folder
+
+** TODO Cutting files
+
+- Instead of the user selecting files and then navigating to a directory to move
+them, we should enter 'cut' mode after pressing some keybinding.
+
+** TODO Copying files
+
+*** Functional Outline
 
 - User selects file(s)
 - Presses some keybinding, e.g. 'y'
 - Enters 'copy' mode
 - User navigates into different directory and then can press 'p' to paste file there.
 
+** TODO Account information summary screen
 
-*** TODO Cutting files
+- Display detailed directory/account usage (total storage usage, account details, etc).
 
-- Instead of the user selecting files and then navigating to a directory to move
-them, we should enter 'cut' mode after pressing some keybinding.
+** TODO Handle console resizing events
 
-
-** Handle Console Resizing
-
-*** Adjust the width of the 'Name' column as the console resizes
+We need to adjust the width of the 'Name' column as the console resizes
 
 We can use: ~@on("<widget selector">, events.Resize)~
 
-*** Snippet of implementation
-
+Reference implementation:
 
 #+begin_src python
     def on_resize(self, event: events.Resize) -> None:
@@ -100,15 +128,11 @@ We can use: ~@on("<widget selector">, events.Resize)~
             )
 #+end_src
 
-** File Previews
+** TODO Caching
 
-Relevant commands include:
-#+begin_quote
-cat :: Prints content of a file, DO NOT USE THIS ON A MEDIA FILE
-thumbnail :: Will download thumbnail but it looks rubbish, prefer `preview` instead
-mediainfo :: Prints out information about media
-preview :: Downloads preview snapshot
-#+end_quote
+** TODO User configuration file
+
+
 
 * Note
 :PROPERTIES:
