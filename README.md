@@ -45,8 +45,8 @@ As of writing this (_2025-11-04_), work is still ongoing and active.
   - Upload files
   - Move files around
   - Rename files
-  - View information regarding media (frames per second, playtime, resolution).
-  - View ongoing transfers.
+  - View media information (frames per second, playtime, resolution).
+- **View ongoing transfers**
 - **Marking (Selecting) Files For Bulk Operations:** Marking files will allow certain operations to operate on all of them.
   - For example, if you mark 3 files, the move command will move all 3 marked files.
 - **Login Check:** Verifies your MEGAcmd login status on startup.
