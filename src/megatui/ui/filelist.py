@@ -759,8 +759,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def load_directory(self, path: MegaPath = MEGA_CURR_DIR) -> None:
         """Loads and updates UI with directory specified.
-        If path is not specified, then it will load the contents of the current directory."""
-
+        If path is not specified, then it will load the contents of the current directory.
+        """
         if path == MEGA_CURR_DIR:
             path = await mega_pwd()
 
