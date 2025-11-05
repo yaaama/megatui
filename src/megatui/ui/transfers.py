@@ -1,27 +1,34 @@
 from collections import deque
-import string
-from textwrap import wrap
-import textwrap
-from typing import Any, override
+from typing import Any, Final, override
 
-from textual import on
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import Reactive, reactive
-from textual.widget import Widget
-from textual.widgets import DataTable, Log, RichLog, Static
+from textual.widgets import DataTable, Static
 
-from megatui.mega.megacmd import MegaTransferItem, MegaTransferType
+from megatui.mega.data import MegaTransferItem, MegaTransferType
+
+
+class TransferTable(DataTable[Any], inherit_bindings=False):
+    def __init__(self, id: str | None, classes: str | None):
+        super().__init__(id=id, classes=classes)
+
+    @override
+    def on_mount(self):
+        # Add the columns with their headers.
+        self.add_columns("Source", "Destination", "Progress", "State")
 
 
 class TransfersSidePanel(Vertical):
-    DEFAULT_CSS = """
+    MAX_FILEPATH_LEN: Final[int] = 20
+    """Maximum length of a file path.
+    Anything above this length will be truncated.
     """
 
     transfer_list: Reactive[deque[MegaTransferItem] | None] = reactive(None)
 
-    def __init__(self, **kwargs) -> None:  # pyright: ignore[reportUnknownParameterType, reportMissingParameterType]
-        super().__init__(id="transfer-sidepanel")  # pyright: ignore[reportUnknownArgumentType]
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
 
     @override
     def compose(self) -> ComposeResult:
@@ -31,20 +38,16 @@ class TransfersSidePanel(Vertical):
         )
 
         # Starts off hidden
-        yield DataTable(id="transfer-table", classes="-hidden")
-
-    def on_mount(self) -> None:
-        table: DataTable[Any] = self.query_one(DataTable)  # pyright: ignore[reportUndefinedVariable]
-        # Add the columns with their headers.
-        table.add_columns("Source", "Destination", "Progress", "State")
+        table = TransferTable(id="transfer-table", classes="-hidden")
+        yield table
 
     def watch_transfer_list(
         self,
-        old_list: deque[MegaTransferItem] | None,
+        old_list: deque[MegaTransferItem] | None,  # pyright: ignore[reportUnusedParameter]
         new_list: deque[MegaTransferItem] | None,
     ) -> None:
         # Find the Static widget we created in compose()
-        table = self.query_one(DataTable)
+        table: TransferTable = self.query_one("#transfer-table", TransferTable)
         message = self.query_one("#no-transfers-message")
 
         table.clear()
@@ -54,44 +57,41 @@ class TransfersSidePanel(Vertical):
             # Show the message and hide the table
             message.remove_class("-hidden")
             table.add_class("-hidden")
+            return
 
-        else:
-            self.border_title = f"Transfers [{len(new_list)}]"
-            # Hide the message and show the table
-            message.add_class("-hidden")
-            table.remove_class("-hidden")
+        self.border_title = f"Transfers [{len(new_list)}]"
+        # Hide the message and show the table
+        message.add_class("-hidden")
+        table.remove_class("-hidden")
 
-            # Add each transfer as a new row to the table
-            for item in new_list:
-                # Use Rich markup for styling within cells
+        # Add each transfer as a new row to the table
+        for item in new_list:
+            # Use Rich markup for styling within cells
 
-                if item.type == MegaTransferType.DOWNLOAD:
-                    icon = "[blue]▼[/]"
+            if item.type == MegaTransferType.DOWNLOAD:
+                icon = "[blue]▼[/]"
 
-                elif item.type == MegaTransferType.UPLOAD:
-                    icon = "[green]▲[/]"
-                else:
-                    icon = "[yellow]...[/]"
+            elif item.type == MegaTransferType.UPLOAD:
+                icon = "[green]▲[/]"
+            else:
+                icon = "[yellow]...[/]"
 
-                state_color = "green" if item.state == "ACTIVE" else "grey"
+            state_color = "green" if item.state.name == "ACTIVE" else "grey"
 
-                state = f"[{state_color}]{item.state.name}[/]"
+            state = f"[{state_color}]{item.state.name}[/]"
 
-                if len(item.source_path) >= 20:
-                    chars_to_keep = 20 - 1
-                    source_p = "…" + item.source_path[-chars_to_keep:]
-                else:
-                    source_p = item.source_path
+            if len(item.source_path) >= self.MAX_FILEPATH_LEN:
+                chars_to_keep = self.MAX_FILEPATH_LEN - 1
+                source_p = "…" + item.source_path[-chars_to_keep:]
+            else:
+                source_p = item.source_path
 
-                if len(item.destination_path) >= 20:
-                    chars_to_keep = 20 - 1
-                    dest_p = "…" + item.destination_path[-chars_to_keep:]
-                else:
-                    dest_p = item.destination_path
+            if len(item.destination_path) >= self.MAX_FILEPATH_LEN:
+                chars_to_keep = self.MAX_FILEPATH_LEN - 1
+                dest_p = "…" + item.destination_path[-chars_to_keep:]
+            else:
+                dest_p = item.destination_path
 
-                table.add_row(
-                    dest_p, source_p, item.progress.strip(), state, height=1, label=icon
-                )
-
-    def _generate_rich_table(self):
-        pass
+            table.add_row(
+                dest_p, source_p, item.progress.strip(), state, height=1, label=icon
+            )

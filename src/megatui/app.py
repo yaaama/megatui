@@ -98,7 +98,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         footer = Footer(show_command_palette=True)
         footer.compact = True
 
-        transfer_panel = TransfersSidePanel()
+        transfer_panel = TransfersSidePanel(id="transfer-sidepanel")
         transfer_panel.toggle_class("-hidden")
 
         with Vertical(id="main"):
