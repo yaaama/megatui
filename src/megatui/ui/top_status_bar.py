@@ -1,9 +1,7 @@
 from typing import ClassVar, LiteralString, override
 
-from rich.markdown import HorizontalRule
 from textual.app import ComposeResult
 from textual.containers import Horizontal
-from textual.layouts.vertical import VerticalLayout
 from textual.reactive import var
 from textual.widgets import Label
 
@@ -16,7 +14,7 @@ class TopStatusBar(Horizontal):
     path: var[str] = var("")
     status_msg: var[str] = var("")
 
-    DEFAULT_CSS = f"""
+    DEFAULT_CSS = """
     """
 
     @override

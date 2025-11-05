@@ -1,10 +1,10 @@
 """Collection of constants and other useful things I could not think of a proper place for."""
 
-from functools import cached_property
 import pathlib
 import re
 from dataclasses import dataclass
 from enum import Enum
+from functools import cached_property
 from typing import Final, LiteralString, NamedTuple, override
 
 # TODO ISO6081 is a typo, it should be 8601
@@ -214,13 +214,13 @@ class MegaMediaInfo:
     @override
     def __repr__(self) -> str:
         return (
-            f"MegaMediaInfo("
+            "MegaMediaInfo("
             + f"path={self.path!r}, "
             + f"width={self.width}, "
             + f"height={self.height}, "
             + f"fps={self.fps}, "
             + f"playtime={self.playtime!r}"
-            + f")"
+            + ")"
         )
 
     @override

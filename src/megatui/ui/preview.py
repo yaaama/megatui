@@ -1,8 +1,7 @@
-from rich.text import Text
 from textual.binding import Binding
-from textual.containers import Center, CenterMiddle, Vertical, VerticalGroup
-from textual.screen import ModalScreen, Screen
-from textual.widgets import Rule, Static
+from textual.containers import Vertical
+from textual.screen import ModalScreen
+from textual.widgets import Static
 
 from megatui.mega.data import MegaMediaInfo
 
