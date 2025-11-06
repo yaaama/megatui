@@ -20,6 +20,52 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         # Add the columns with their headers.
         self.add_columns("Source", "Destination", "Progress", "State")
 
+    def action_mark_transfer(self):
+        """Mark an item in the list.
+        Marked items can then be operated on.
+        """
+        pass
+
+    def action_cancel_transfer(self):
+        """Cancel a transfer."""
+        pass
+
+    def action_pause_transfer(self):
+        """Pause a transfer"""
+        pass
+
+    def action_resume_transfer(self):
+        """Resume a transfer from a paused state."""
+        pass
+
+    def action_toggle_pause_transfer(self):
+        """Toggle the pause status of a transfer"""
+        pass
+
+    def action_clear_finished_transfers(self):
+        """Clear all transfers that have finished from the table."""
+        pass
+
+    def action_show_uploads(self):
+        """Only show uploads in the table."""
+        pass
+
+    def action_show_downloads(self):
+        """Only show downloads in the table."""
+        pass
+
+    def action_sort_by_size(self):
+        """Sort transfers by their size."""
+        pass
+
+    def action_sort_by_tag(self):
+        """Sort transfers by their tag."""
+        pass
+
+    def action_sort_by_completion(self):
+        """Sort transfers by completion."""
+        pass
+
 
 class TransfersSidePanel(Vertical):
     """Toggleable panel containing transfer information in a `TransferTable`."""
