@@ -82,6 +82,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
                 return paths
             case FilterMethod.HIDDEN:
                 return [path for path in paths if not path.name.startswith(".")]
+
         return paths
 
     async def _reload_and_recenter(self):
