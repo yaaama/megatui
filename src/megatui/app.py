@@ -50,18 +50,14 @@ class MegaTUI(App[None], inherit_bindings=False):
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding(
-            key="ctrl+c", action="quit", description="quit", show=False, priority=True
-        ),
-        Binding(key="q", action="quit", description="quit", show=False),
-        Binding(key="f4", action="view_transfer_list"),
-        Binding(
-            "f2",
-            action="toggle_darkmode",
-            description="darkmode",
-            key_display="f2",
+            key="ctrl+c",
+            action="quit",
+            description="quit",
             show=False,
             priority=True,
+            system=True,
         ),
+        Binding(key="q", action="quit", description="quit", show=False),
         Binding(
             key="f1",
             key_display="f1",
@@ -77,18 +73,27 @@ class MegaTUI(App[None], inherit_bindings=False):
             description="help",
             system=True,
         ),
+        Binding(
+            key="f2",
+            action="toggle_darkmode",
+            description="toggle darkmode",
+            key_display="f2",
+            show=False,
+            priority=True,
+        ),
+        Binding(key="f4", action="view_transfer_list", description="display transfers"),
     ]
 
     def __init__(self):
         super().__init__()
-        self.theme = "gruvbox"
-        self.capture_mouse(None)
 
     # --- UI Composition ---
     @override
     def compose(self) -> ComposeResult:
         """Compose the basic UI for the application."""
         # Disable mouse events
+        self.theme = "gruvbox"
+        self.capture_mouse(None)
 
         # Our file list
         file_list = FileList()
