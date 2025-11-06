@@ -10,8 +10,8 @@ from megatui.mega.data import MegaTransferItem, MegaTransferType
 
 
 class TransferTable(DataTable[Any], inherit_bindings=False):
-    def __init__(self, id: str | None, classes: str | None):
-        super().__init__(id=id, classes=classes)
+    def __init__(self, widget_id: str | None, classes: str | None):
+        super().__init__(id=widget_id, classes=classes)
 
     @override
     def on_mount(self):
@@ -27,8 +27,8 @@ class TransfersSidePanel(Vertical):
 
     transfer_list: Reactive[deque[MegaTransferItem] | None] = reactive(None)
 
-    def __init__(self, id: str) -> None:
-        super().__init__(id=id)
+    def __init__(self, widget_id: str) -> None:
+        super().__init__(id=widget_id)
 
     @override
     def compose(self) -> ComposeResult:
@@ -38,7 +38,7 @@ class TransfersSidePanel(Vertical):
         )
 
         # Starts off hidden
-        table = TransferTable(id="transfer-table", classes="-hidden")
+        table = TransferTable(widget_id="transfer-table", classes="-hidden")
         yield table
 
     def watch_transfer_list(
@@ -64,19 +64,19 @@ class TransfersSidePanel(Vertical):
         message.add_class("-hidden")
         table.remove_class("-hidden")
 
+        base_icon = "[yellow]...[/]"
         # Add each transfer as a new row to the table
         for item in new_list:
             # Use Rich markup for styling within cells
+            match item.type:
+                case MegaTransferType.DOWNLOAD:
+                    icon = "[blue]▼[/]"
+                case MegaTransferType.UPLOAD:
+                    icon = "[green]▲[/]"
+                case _:
+                    icon = base_icon
 
-            if item.type == MegaTransferType.DOWNLOAD:
-                icon = "[blue]▼[/]"
-
-            elif item.type == MegaTransferType.UPLOAD:
-                icon = "[green]▲[/]"
-            else:
-                icon = "[yellow]...[/]"
-
-            state_color = "green" if item.state.name == "ACTIVE" else "grey"
+            state_color = "green" if (item.state.name == "ACTIVE") else "grey"
 
             state = f"[{state_color}]{item.state.name}[/]"
 
