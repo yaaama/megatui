@@ -22,6 +22,7 @@ from rich.text import Text
 from textual import on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
+from textual.coordinate import Coordinate
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
@@ -229,6 +230,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 self.log.debug(f"Column: '{column_name}', fmt: '{fmt}'")
             else:
                 self.add_column(label=column_name, key=column_name, width=None)
+
+    @override
+    def watch_cursor_coordinate(
+        self, old_coordinate: Coordinate, new_coordinate: Coordinate
+    ) -> None:
+        """Overriden from base class to only handle 'row' cursor type for table."""
+        if old_coordinate != new_coordinate:
+            # Refresh the old and the new row, and post the appropriate
+            # message to tell users of the newly highlighted row.
+            self.refresh_row(old_coordinate.row)
+            self._highlight_row(new_coordinate.row)
+
+        if self._require_update_dimensions:
+            self.call_after_refresh(self._scroll_cursor_into_view)
+        else:
+            self._scroll_cursor_into_view()
 
     # * Actions #########################################################
 
