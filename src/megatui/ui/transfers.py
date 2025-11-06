@@ -10,6 +10,8 @@ from megatui.mega.data import MegaTransferItem, MegaTransferType
 
 
 class TransferTable(DataTable[Any], inherit_bindings=False):
+    """Table to store and display ongoing transfers."""
+
     def __init__(self, widget_id: str | None, classes: str | None):
         super().__init__(id=widget_id, classes=classes)
 
@@ -20,6 +22,8 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
 
 class TransfersSidePanel(Vertical):
+    """Toggleable panel containing transfer information in a `TransferTable`."""
+
     MAX_FILEPATH_LEN: Final[int] = 20
     """Maximum length of a file path.
     Anything above this length will be truncated.

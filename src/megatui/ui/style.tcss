@@ -158,9 +158,16 @@ PreviewMediaInfoModal {
             width: auto;
         }
 
-        #info {
+        #fps {
             width: auto;
-            height: auto;
+        }
+
+        #resolution {
+            width: auto;
+        }
+
+        #playtime {
+            width: auto;
         }
     }
 }
