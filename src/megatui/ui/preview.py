@@ -24,8 +24,11 @@ class PreviewMediaInfoModal(ModalScreen[None]):
         Binding(key="q", action="app.pop_screen", show=False, priority=True),
     ]
 
-    def __init__(self, media_info: MegaMediaInfo):
-        self.media_info = media_info
+    def __init__(self, media_info: MegaMediaInfo | tuple[MegaMediaInfo]):
+        if isinstance(media_info, tuple):
+            self.media_info = media_info[0]
+        else:
+            self.media_info = media_info
         super().__init__()
 
     def on_mount(self):

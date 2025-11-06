@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import override
+from typing import overload, override
 
 from megatui.mega.data import (
     DF_REGEXPS,
@@ -1090,10 +1090,62 @@ async def mega_transfers(
     return transfer_output_queue
 
 
+def _parse_mediainfo_line(line: str, header_keys: list[str]) -> MegaMediaInfo | None:
+    """Helper function to parse a single line of mediainfo output."""
+    line = line.strip()
+    if not line:
+        return None
+
+    num_columns = len(header_keys)
+    fields = line.rsplit(maxsplit=num_columns - 1)
+
+    if len(fields) != num_columns:
+        logger.warning("Could not parse line: `%s`", line)
+        return None
+
+    data = dict(zip(header_keys, fields, strict=False))
+    file = data.get("FILE", "Not Available")
+
+    try:
+        width = int(data.get("WIDTH", 0))
+    except (ValueError, TypeError):
+        width = None
+
+    try:
+        height = int(data.get("HEIGHT", 0))
+    except (ValueError, TypeError):
+        height = None
+
+    try:
+        fps = int(data.get("FPS", 0))
+    except (ValueError, TypeError):
+        fps = None
+
+    playtime = None if (data.get("PLAYTIME") == "---") else data.get("PLAYTIME")
+
+    # logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")
+
+    return MegaMediaInfo(
+        path=file, width=width, height=height, fps=fps, playtime=playtime
+    )
+
+
+@overload
+async def mega_mediainfo(
+    nodes: MegaNode,
+) -> MegaMediaInfo | None: ...
+
+
+@overload
+async def mega_mediainfo(
+    nodes: Iterable[MegaNode],
+) -> tuple[MegaMediaInfo, ...] | None: ...
+
+
 async def mega_mediainfo(
     nodes: MegaNode | Iterable[MegaNode],
-) -> Iterable[MegaMediaInfo] | MegaMediaInfo | None:
-    cmd: deque[str] = deque()
+) -> MegaMediaInfo | tuple[MegaMediaInfo, ...] | None:
+    cmd: list[str] = []
     cmd.append("mediainfo")
 
     if isinstance(nodes, Iterable):
@@ -1110,7 +1162,7 @@ async def mega_mediainfo(
 
     # Ensure there's a header and at least one data line
     if len(output) < 2:
-        raise ValueError("Received incomplete output from mega-mediainfo.")
+        return None
 
     header_line = output.pop(0)
     header_keys = header_line.split()
@@ -1118,49 +1170,14 @@ async def mega_mediainfo(
     if not header_keys or header_keys[0] != "FILE":
         raise ValueError(f"Could not parse `mediainfo` header output: {header_line}")
 
-    num_columns = len(header_keys)
-    parsed: deque[MegaMediaInfo] = deque()
+    parsed = (
+        info
+        for line in output
+        if (info := _parse_mediainfo_line(line, header_keys)) is not None
+    )
 
-    for line in output:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        fields = line.rsplit(maxsplit=num_columns - 1)
-
-        if len(fields) != num_columns:
-            logger.warning("Could not parse line: `%s`", line)
-            continue
-
-        data = dict(zip(header_keys, fields, strict=False))
-        file = data.get("FILE", "Not Available")
-
-        try:
-            width = int(data.get("WIDTH", 0))
-        except (ValueError, TypeError):
-            width = None
-
-        try:
-            height = int(data.get("HEIGHT", 0))
-        except (ValueError, TypeError):
-            height = None
-
-        try:
-            fps = int(data.get("FPS", 0))
-        except (ValueError, TypeError):
-            fps = None
-
-        playtime = None if (data.get("PLAYTIME") == "---") else data.get("PLAYTIME")
-
-        # logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")
-        parsed.append(
-            MegaMediaInfo(
-                path=file, width=width, height=height, fps=fps, playtime=playtime
-            )
-        )
-
-    if not parsed:
+    final_parsed = tuple(parsed)
+    if not final_parsed:
         raise ValueError("Did not manage to parse any mediainfo lines from the output.")
 
-    return parsed
+    return final_parsed

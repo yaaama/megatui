@@ -5,6 +5,7 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 import asyncio
 from collections import deque
+from collections.abc import Iterable
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -260,10 +261,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if not mediainfo:
             return
 
-        for info in mediainfo:
-            self.log.debug(f"Media info: {info.__str__()}")
-
-        self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo[0]))
+        self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
 
     async def delete_files(self, files: MegaItems):
         self.log.info("Deleting files")
