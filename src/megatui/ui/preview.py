@@ -29,7 +29,7 @@ class PreviewMediaInfoModal(ModalScreen[None]):
         super().__init__()
 
     def on_mount(self):
-        self.query_one("#media_info_panel").border_title = "Media Info"
+        self.query_one("#media-info-panel").border_title = "Media Info"
 
     def on_key(self, key: Key):
         name = key.name
@@ -42,7 +42,7 @@ class PreviewMediaInfoModal(ModalScreen[None]):
 
     @override
     def compose(self):
-        with Vertical(id="media_info_panel"):
+        with Vertical(id="media-info-panel"):
             yield Static(
                 content=f"[b]Media Title:[/b][i] '{self.media_info.fname}'[/]",
                 id="title",

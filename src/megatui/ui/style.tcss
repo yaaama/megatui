@@ -145,7 +145,7 @@ TopStatusBar {
 PreviewMediaInfoModal {
     align: center bottom;
 
-    Vertical {
+    #media-info-panel {
         padding: 1 2;
         width: auto;
         min-width: 33%;
