@@ -2,15 +2,13 @@
 
 import asyncio
 import logging
-import math
 import pathlib
 import re
 from collections import deque
 from collections.abc import Iterable
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
-from typing import overload, override
+from typing import overload
 
 from megatui.mega.data import (
     DF_REGEXPS,
@@ -20,11 +18,17 @@ from megatui.mega.data import (
     MEGA_DEFAULT_CMD_ARGS,
     MEGA_ROOT_PATH,
     MEGA_TRANSFERS_REGEXP,
+    MegaCmdError,
     MegaCmdErrorCode,
+    MegaCmdResponse,
     MegaDiskFree,
     MegaDiskUsage,
+    MegaFileTypes,
+    MegaLibError,
     MegaMediaInfo,
+    MegaNode,
     MegaPath,
+    MegaSizeUnits,
     MegaTransferItem,
     MegaTransferState,
     MegaTransferType,
@@ -48,244 +52,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 logger.info("'megacmd' LOADED.")
-
-
-# Response from running mega commands.
-class MegaCmdResponse:
-    __slots__ = ("return_code", "stderr", "stdout")
-
-    stdout: str
-    stderr: str | None
-    return_code: int | None
-
-    def __init__(
-        self, *, stdout: str | None, stderr: str | None, return_code: int | None
-    ):
-        if stdout is None:
-            self.stdout = ""
-        else:
-            self.stdout = stdout
-        self.stderr = stderr
-        self.return_code = return_code
-        # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
-
-    @property
-    def failed(self) -> bool:
-        """Return True if cmd returned non-zero or has stderr output."""
-        return bool(self.return_code or self.stderr)
-
-    @override
-    def __repr__(self) -> str:
-        return (
-            f"MegaCmdResponse(return_code={self.return_code},\n"
-            + f"stdout={self.stdout},\n"
-            + f"stderr={self.stderr}\n)"
-        )
-
-    @property
-    def err_output(self) -> str | None:
-        """Return stderr from command if failed, else None."""
-        if self.failed:
-            return self.stderr
-
-        return None
-
-
-class MegaLibError(Exception):
-    """Custom exception for incorrect library usage."""
-
-    def __init__(self, *, message: str, fatal: bool = False):
-        super().__init__(message)
-        self.fatal: bool = fatal
-        logger.error(f"MegaLibError: {message} (Fatal: {fatal})")
-
-
-class MegaCmdError(Exception):
-    """Custom exception for mega-* command errors."""
-
-    message: str
-    response: MegaCmdResponse | None
-
-    def __init__(self, message: str, response: MegaCmdResponse | None = None):
-        super().__init__(message)
-        self.message = message
-
-        # If a response object is given, use its data.
-        # This makes it the source of truth.
-
-        if response:
-            self.response = response
-
-        # Centralized logging
-        logger.error(
-            f"MegaCmdError: {self.message} (Return Code: {self.return_code}, Stderr: {self.stderr})"
-        )
-
-    @property
-    def stderr(self) -> str | None:
-        if not self.response:
-            logger.debug("No response object.")
-            return None
-        if self.response.stderr:
-            return self.response.stderr
-
-        return None
-
-    @property
-    def return_code(self) -> int | None:
-        if not self.response:
-            logger.debug("No response object.")
-            return None
-        if self.response.return_code:
-            return self.response.return_code
-
-        return 0
-
-
-class MegaFileTypes(Enum):
-    """File types."""
-
-    DIRECTORY = 0
-    FILE = 1
-
-
-class MegaSizeUnits(Enum):
-    """File size units."""
-
-    B = 0
-    KB = 1
-    MB = 2
-    GB = 3
-    TB = 4
-
-    # Helper to get the string representation used in the size calculation
-    def unit_str(self) -> str:
-        """Returns the unit best suited for the size of the file."""
-        # Match the order in the Enum
-        _unit_strings = ["B", "KB", "MB", "GB", "TB"]
-        try:
-            return _unit_strings[self.value]
-        # Raise an error for unknown units
-        except IndexError:
-            logger.warning(f"Unknown MegaSizeUnits value: {self.value}")
-            return "?"
-
-
-class MegaNode:
-    # Class Variables #################################################
-    __slots__ = (
-        "bytes",
-        "ftype",
-        "handle",
-        "mtime",
-        "name",
-        "path",
-        "size",
-        "version",
-    )
-
-    name: str
-    """ Name of node."""
-    path: MegaPath
-    """ Full path of node. """
-    bytes: int
-    """ Size of node in BYTES, will be 0 for directories."""
-    size: tuple[float, MegaSizeUnits] | None
-    """ Human readable size for a file, or None for directory. """
-
-    mtime: datetime
-    """ Modification date + time of file."""
-
-    ftype: MegaFileTypes
-    """ Type of node. """
-
-    version: int
-    """ Node version. """
-
-    handle: str
-    """ Unique handle of node. """
-
-    def __init__(
-        self,
-        name: str,
-        path: MegaPath,
-        size: int,
-        mtime: datetime,
-        ftype: MegaFileTypes,
-        version: int,
-        handle: str,
-    ):
-        self.name = name
-        self.bytes = size
-        self.mtime = mtime
-        self.ftype = ftype
-        self.version = version
-        self.handle = handle
-
-        self.path = path
-
-        # Human friendly sizing
-        if (self.ftype == MegaFileTypes.DIRECTORY) or (size == 0):
-            self.size = None
-            return
-
-        # Calculate human friendly sizing
-        unit_index: int = min(int(math.log(self.bytes, 1024)), len(MegaSizeUnits) - 1)
-
-        divisor: int
-        # calculate 1024^unit_index using shifts
-        # 1 << 10 is 1024 (2^10)
-        # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
-        divisor = 1 if (unit_index == 0) else (1 << (10 * unit_index))
-
-        # Perform floating point division for the final readable value
-        _size = float(self.bytes) / divisor
-
-        match unit_index:
-            case 0:
-                _size_unit = MegaSizeUnits.B
-            case 1:
-                _size_unit = MegaSizeUnits.KB
-            case 2:
-                _size_unit = MegaSizeUnits.MB
-            case 3:
-                _size_unit = MegaSizeUnits.GB
-            case _:
-                # Anything larger than 3 should be shown in terabytes
-                logger.warning(
-                    f"Calculated unit index {unit_index} for size {self.bytes} is unexpected. Defaulting to TB."
-                )
-                _size_unit = MegaSizeUnits.TB
-
-        self.size = (_size, _size_unit)
-
-    @property
-    def is_file(self) -> bool:
-        return self.ftype == MegaFileTypes.FILE
-
-    @property
-    def is_dir(self) -> bool:
-        return self.ftype == MegaFileTypes.DIRECTORY
-
-    @staticmethod
-    def get_size_in(bytes_used: int, unit: MegaSizeUnits) -> float:
-        """Returns size of file in specified unit.
-        Args: 'bytes_used' Size of file in bytes.
-              'unit' Unit of size to convert bytes to.
-        """
-        match unit:
-            case MegaSizeUnits.B:
-                return bytes_used
-            # Bit shifting
-            case MegaSizeUnits.KB:
-                return bytes_used >> 10
-            case MegaSizeUnits.MB:
-                return bytes_used >> 20
-            case MegaSizeUnits.GB:
-                return bytes_used >> 30
-            case MegaSizeUnits.TB:
-                return bytes_used >> 40
-        return bytes_used
 
 
 # Alias
