@@ -154,6 +154,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
             description="make new directory",
             show=True,
         ),
+        Binding("g", key_display="g", action="go_top", description="go top"),
+        Binding("G", key_display="G", action="go_bottom", description="go bottom"),
         # Open local filesystem
         Binding(key="o", key_display="o", action="upload_file", description="upload"),
         Binding("i", action="view_mediainfo"),
@@ -249,6 +251,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self._scroll_cursor_into_view()
 
     # * Actions #########################################################
+
+    def action_go_top(self):
+        self.action_scroll_top()
+
+    def action_go_bottom(self):
+        self.action_scroll_bottom()
 
     async def action_view_mediainfo(self):
         highlighted = self._get_megaitem_at_cursor()
