@@ -20,7 +20,7 @@ from typing import (
 
 from rich.style import Style
 from rich.text import Text
-from textual import on, work
+from textual import getters, on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.coordinate import Coordinate
@@ -29,11 +29,15 @@ from textual.widgets import DataTable
 from textual.widgets._data_table import RowDoesNotExist, RowKey
 from textual.worker import Worker
 
-from megatui.mega.data import MEGA_CURR_DIR, MEGA_ROOT_PATH, MegaPath
+from megatui.mega.data import (
+    MEGA_CURR_DIR,
+    MEGA_ROOT_PATH,
+    MegaNode,
+    MegaPath,
+    MegaSizeUnits,
+)
 from megatui.mega.megacmd import (
     MegaItems,
-    MegaNode,
-    MegaSizeUnits,
     mega_cd,
     mega_get,
     mega_ls,
@@ -59,7 +63,8 @@ DL_PATH = Annotated[Path, "Default download path."]
 class FileList(DataTable[Any], inherit_bindings=False):
     """A DataTable widget to display files and their information."""
 
-    app: "MegaTUI"
+    if TYPE_CHECKING:
+        app = getters.app(MegaTUI)
 
     # * UI Elements ###########################################################
     FILELIST_ROW_HEIGHT: Final = 1
@@ -458,6 +463,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
             raise ValueError("Passed in empty rowkey.")
 
         item: MegaNode = self._row_data_map[rowkey]
+
+        if not item:
+            raise ValueError(f"No node associated with rowkey {rowkey}")
+
         item_handle = item.handle
 
         # If item is already selected, deselect
@@ -468,6 +477,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         else:
             self._selected_items[item_handle] = item
             self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
+
+        self._update_count += 1
+        self.refresh_row(self.get_row_index(rowkey))
 
     def _update_row_label(self, rowkey: RowKey, selection_state: bool):
         if selection_state:
