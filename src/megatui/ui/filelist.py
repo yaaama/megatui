@@ -469,6 +469,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self._selected_items[item_handle] = item
             self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
 
+    def _update_row_label(self, rowkey: RowKey, selection_state: bool):
+        if selection_state:
+            self.rows[rowkey].label = self.SELECTED_LABEL
+        else:
+            self.rows[rowkey].label = self.NOT_SELECTED_LABEL
+
+        self._update_count += 1
+        self.refresh_row(self.get_row_index(rowkey))
+
+    def _update_all_row_labels(self) -> None:
+        """Updates all visible row labels to match the _selected_items state."""
+        for key in self.rows:
+            row_key = key.value or ""
+            is_selected = row_key in self._selected_items
+            self._update_row_label(key, is_selected)
+
     def action_select_all_files(self) -> None:
         """Toggle selection of all files in current directory.
 
@@ -479,11 +495,24 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # No files in current view
             return
 
-        for key in self.rows:
-            self._toggle_selected_item_row_label(key.value or "")
-        self._update_count += 1
-        self.refresh()
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
+        # All selected items
+        all_selected_keys = set(self._selected_items.keys())
+        # All items in current view (directory)
+        all_in_view_keys = set(self._row_data_map.keys())
+
+        # The symmetric difference gives us:
+        # (selected_keys - in_view_keys) combined with (in_view_keys - selected_keys)
+        final_keys = all_selected_keys.symmetric_difference(all_in_view_keys)
+
+        # 2. Build the new dictionary from the final set of keys.
+        self._selected_items = {  # pyright: ignore[reportAttributeAccessIssue]
+            key: self._selected_items.get(key) or self._row_data_map.get(key)
+            for key in final_keys
+        }
+
+        with self.app.batch_update():
+            self._update_all_row_labels()
+            self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
