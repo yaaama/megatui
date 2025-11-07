@@ -454,12 +454,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # If item is already selected, deselect
         if item.handle in self._selected_items:
-            self._selected_items[item_handle] = item
-            self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
-        # If item is not selected, select it
-        else:
             del self._selected_items[item_handle]
             self.rows[RowKey(item_handle)].label = self.NOT_SELECTED_LABEL
+        # If item is not selected, select it
+        else:
+            self._selected_items[item_handle] = item
+            self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
 
     def action_select_all_files(self) -> None:
         """Toggle selection of all files in current directory.
