@@ -454,33 +454,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         return self._get_megaitem_at_row(row_key)
 
-    def _toggle_selected_item_row_label(self, rowkey: str):
-        """Toggle selection state of row in current directory, and update its label.
-
-        Args:
-        """
-        if not rowkey:
-            raise ValueError("Passed in empty rowkey.")
-
-        item: MegaNode = self._row_data_map[rowkey]
-
-        if not item:
-            raise ValueError(f"No node associated with rowkey {rowkey}")
-
-        item_handle = item.handle
-
-        # If item is already selected, deselect
-        if item.handle in self._selected_items:
-            del self._selected_items[item_handle]
-            self.rows[RowKey(item_handle)].label = self.NOT_SELECTED_LABEL
-        # If item is not selected, select it
-        else:
-            self._selected_items[item_handle] = item
-            self.rows[RowKey(item_handle)].label = self.SELECTED_LABEL
-
-        self._update_count += 1
-        self.refresh_row(self.get_row_index(rowkey))
-
     def _update_row_label(self, rowkey: RowKey, selection_state: bool):
         if selection_state:
             self.rows[rowkey].label = self.SELECTED_LABEL
@@ -491,7 +464,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.refresh_row(self.get_row_index(rowkey))
 
     def _update_all_row_labels(self) -> None:
-        """Updates all visible row labels to match the _selected_items state."""
+        """Updates all visible row labels in current view to their selection state."""
         for key in self.rows:
             row_key = key.value or ""
             is_selected = row_key in self._selected_items
@@ -522,42 +495,44 @@ class FileList(DataTable[Any], inherit_bindings=False):
             for key in final_keys
         }
 
+        # Batch update so it doesn't cause visual artifacts
         with self.app.batch_update():
             self._update_all_row_labels()
             self.post_message(self.ToggledSelection(len(self._selected_items)))
 
-    def action_toggle_file_selection(self) -> None:
-        """Toggles selection state of row under cursor."""
-        megaitem = self._get_megaitem_at_cursor()
-
-        # Exit if there is no megaitem
-        if not megaitem:
-            self.log.info("No item to toggle selection.")
+    def _toggle_node_selection(self, rowkey: str) -> None:
+        """Toggling logic for selection.
+        Args
+            rowkey: The key for the row we want to select."""
+        # Return when rowkey is invalid
+        if not rowkey:
             return
 
-        # There IS a row associated with a Megaitem
-        item_handle = megaitem.handle
+        is_selected = rowkey in set(self._selected_items.keys())
 
-        # Debugging purposes
+        # If it is selected
+        if is_selected:
+            del self._selected_items[rowkey]
+            self.rows[RowKey(rowkey)].label = self.NOT_SELECTED_LABEL
+
+        # If it is not selected (more likely)
+        else:
+            self._selected_items[rowkey] = self._row_data_map[rowkey]
+            self.rows[RowKey(rowkey)].label = self.SELECTED_LABEL
+
+        # Update UI
+        self._update_count += 1
+        self.refresh_row(self.get_row_index(rowkey))
+
+    def action_toggle_file_selection(self) -> None:
+        """Toggles selection state of row under cursor."""
+        # Get current row key
         row_key = self._get_curr_row_key()
         if not row_key:
-            raise RuntimeError("Row key does not exist for this row!")
+            return
 
-        # Unselect already selected items
-        if item_handle in self._selected_items:
-            del self._selected_items[item_handle]
-            new_label = self.NOT_SELECTED_LABEL
-            self.log.debug(f"Deselected row: {row_key.value}")
+        self._toggle_node_selection(row_key.value or "")
 
-        else:
-            # Action: SELECT
-            self._selected_items[item_handle] = megaitem
-            new_label = self.SELECTED_LABEL
-            self.log.debug(f"Selected row: {row_key.value}")
-
-        self.rows[row_key].label = new_label
-        self.refresh_row(self.cursor_row)
-        self._update_count += 1
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
@@ -566,55 +541,19 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.log.debug("No items selected for us to unselect.")
             return
 
-        for key in self._selected_items:
-            # Check if selected item is within the curr list of rows
-            if key in self.rows:
-                # Remove selection labels from currently displayed row labels
-                self.rows[RowKey(key)].label = self.NOT_SELECTED_LABEL
+        # All selected items
+        all_selected_keys = set(self._selected_items.keys())
+        # All items in current view (directory)
+        all_in_view_keys = set(self._row_data_map.keys())
+
+        # All rows in the current view to update labels for
+        all_rows_to_update = all_in_view_keys.intersection(all_selected_keys)
 
         self._selected_items.clear()
 
-        self.refresh()
-        self._update_count += 1
-
-        self.app.post_message(self.ToggledSelection(0))
-
-    def action_select_item(self) -> None:
-        """Toggles the selection state of the currently hovered-over item (row).
-        Selected rows are MEANT to be visually highlighted.
-        """
-        row_key = self._get_curr_row_key()
-
-        if not row_key or not row_key.value:
-            self.log.info("No current row key to select/deselect.")
-            return
-
-        # Get the MegaItem
-        row_item: MegaNode = self._row_data_map[row_key.value]
-        # Get handle
-        item_handle = row_item.handle
-
-        # Unselect already selected items
-        if item_handle in self._selected_items:
-            del self._selected_items[item_handle]
-            new_label = self.NOT_SELECTED_LABEL
-            log_message = f"Deselected row: {row_key.value}"
-
-        else:
-            # Action: SELECT
-            self._selected_items[item_handle] = row_item
-            new_label = self.SELECTED_LABEL
-            log_message = f"Selected row: {row_key.value}"
-
-        self.log.info(log_message)
-        self.rows[row_key].label = new_label
-
-        self.refresh()
-        # Need this hack to refresh the UI
-        self._update_count += 1
-        self.app.post_message(self.ToggledSelection(len(self._selected_items)))
-
-    # ** Rename node ######################################################
+        with self.app.batch_update():
+            self._update_all_row_labels()
+            self.app.post_message(self.ToggledSelection(0))
 
     @work
     async def action_rename_node(self) -> None:
