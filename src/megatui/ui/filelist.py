@@ -441,20 +441,36 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return self._get_megaitem_at_row(row_key)
 
     def _update_row_label(self, rowkey: RowKey, selection_state: bool):
-        if selection_state:
-            self.rows[rowkey].label = self.SELECTED_LABEL
-        else:
-            self.rows[rowkey].label = self.NOT_SELECTED_LABEL
+        curr_selected_state = self.rows[rowkey].label == self.SELECTED_LABEL
+
+        # Label is already correct
+        if curr_selected_state == selection_state:
+            return
+
+        match selection_state:
+            case True:
+                self.rows[rowkey].label = self.SELECTED_LABEL
+            case False:
+                self.rows[rowkey].label = self.NOT_SELECTED_LABEL
 
         self._update_count += 1
         self.refresh_row(self.get_row_index(rowkey))
 
     def _update_all_row_labels(self) -> None:
         """Updates all visible row labels in current view to their selection state."""
-        for key in self.rows:
-            row_key = key.value or ""
-            is_selected = row_key in self._selected_items
-            self._update_row_label(key, is_selected)
+
+        all_selected_keys = set(self._selected_items.keys())
+        # All items in current view (directory)
+        all_in_view_keys = set(self._row_data_map.keys())
+
+        all_in_view_selected = all_selected_keys.intersection(all_in_view_keys)
+        all_in_view_not_selected = all_in_view_keys.difference(all_in_view_selected)
+
+        for key in all_in_view_selected:
+            self._update_row_label(RowKey(key), True)
+
+        for key in all_in_view_not_selected:
+            self._update_row_label(RowKey(key), False)
 
     def action_select_all_files(self) -> None:
         """Toggle selection of all files in current directory.
@@ -526,14 +542,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if len(self._selected_items) == 0:
             self.log.debug("No items selected for us to unselect.")
             return
-
-        # All selected items
-        all_selected_keys = set(self._selected_items.keys())
-        # All items in current view (directory)
-        all_in_view_keys = set(self._row_data_map.keys())
-
-        # All rows in the current view to update labels for
-        all_rows_to_update = all_in_view_keys.intersection(all_selected_keys)
 
         self._selected_items.clear()
 
@@ -705,15 +713,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 key=node.handle,
                 # Height of each row
                 height=self.FILELIST_ROW_HEIGHT,
-                # Selection label should be empty
-                label=self.NOT_SELECTED_LABEL,
+                # Selection label assigned based on membership
+                label=self.SELECTED_LABEL
+                if (node.handle in self._selected_items)
+                else self.NOT_SELECTED_LABEL,
             )
-            if node.handle in self._selected_items:
-                self.rows[rowkey].label = self.SELECTED_LABEL
-                found_selected_items = True
+            found_selected_items = True
 
         if found_selected_items:
-            self.refresh()
+            self._update_all_row_labels()
             self._update_count += 1
 
         item_count = len(fetched_items)
