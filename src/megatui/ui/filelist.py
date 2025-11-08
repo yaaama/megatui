@@ -298,6 +298,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self.log.info("Deleting files")
         # Selected files
         selected = self.selected_or_highlighted_items
+        if not selected:
+            self.log.info("Cannot delete empty item.")
+            return
 
         filenames = [str(item.path) for item in selected]
         filenames_str = ", ".join(filenames)
@@ -838,7 +841,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return self._row_data_map.get(row_key.value)
 
     @property
-    def selected_or_highlighted_items(self) -> MegaItems:
+    def selected_or_highlighted_items(self) -> MegaItems | None:
         """Returns items that are selected.
         Default to returning highlighted item if is nothing selected.
         """
@@ -848,10 +851,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # When nothing is highlighted
         if not self.highlighted_item:
-            self.log.error(
-                "Could not default to highlighted item, returning empty list."
+            self.log.info(
+                "Could not default to highlighted item, table has no rows probably."
             )
-            return ()
+            return None
 
         return (self.highlighted_item,)
 
