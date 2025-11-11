@@ -5,6 +5,7 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 import asyncio
 from collections import deque
+from enum import Enum
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -24,11 +25,7 @@ from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import (
-    ColumnKey,
-    RowDoesNotExist,
-    RowKey,
-)
+from textual.widgets._data_table import ColumnKey, RowDoesNotExist, RowKey
 from textual.worker import Worker
 
 from megatui.mega.data import (
@@ -62,6 +59,40 @@ if TYPE_CHECKING:
 DL_PATH = Annotated[Path, "Default download path."]
 
 
+from dataclasses import dataclass
+
+
+@dataclass
+class ColumnFormat:
+    """A data class to hold the formatting for a column."""
+
+    label: str
+    """Column label displayed in the UI."""
+
+    width: int
+    """Width of column. """
+
+
+class ColumnFormatting(Enum):
+    """An enumeration for the column formatting using a `dataclass`."""
+
+    SEL = ColumnFormat(label="", width=2)
+    ICON = ColumnFormat(label="", width=4)
+    NAME = ColumnFormat(label="Name", width=40)
+    MODIFIED = ColumnFormat(label="Modified", width=10)
+    SIZE = ColumnFormat(label="Size", width=8)
+
+    @property
+    def label(self) -> str:
+        """Returns the label for the column."""
+        return self.value.label
+
+    @property
+    def width(self) -> int:
+        """Returns the width of the column."""
+        return self.value.width
+
+
 class FileList(DataTable[Any], inherit_bindings=False):
     """A DataTable widget to display files and their information."""
 
@@ -76,6 +107,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     NODE_ICONS: ClassVar[dict[str, str]] = {"directory": "📁", "file": "📄"}
     """Icons for different kind of nodes."""
+
+    COLUMN_INDEX_MAP = {member: i for i, member in enumerate(ColumnFormatting)}
+    """Maps ColumnFormatting member to their index."""
 
     _SELECTION_STR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
@@ -184,14 +218,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
-    column_formatting = {
-        "sel": {"label": "", "width": 4},
-        "icon": {"label": "", "width": 4},
-        "name": {"label": "Name", "width": 20},
-        "modified": {"label": "Modified", "width": 20},
-        "size": {"label": "Size", "width": 8},
-    }
-
     # * Initialisation #########################################################
 
     def __init__(self):
@@ -220,26 +246,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
     def on_mount(self) -> None:
         # Initialise the columns displayed Column and their respective formatting
         self.log.info("Adding columns to FileList")
-
-        # Individual columns
-        columns = self.column_formatting.keys()
-
         # Add columns with specified widths
-        for col in columns:
-            fmt = self.column_formatting.get(col)
-
-            # If there is a configuration for our column name
-            if fmt:
-                self.add_column(
-                    # column header label
-                    label=str(fmt["label"]),
-                    # Width of column header
-                    width=(int(fmt["width"]) if fmt["width"] else None),
-                    key=col,
-                )
-
-            else:
-                self.add_column(label=col, key=col, width=None)
+        for column in ColumnFormatting:
+            self.add_column(
+                label=column.label,
+                width=column.width,
+                key=column.name,
+            )
 
     # * Actions #########################################################
 
@@ -444,14 +457,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return self._get_megaitem_at_row(row_key)
 
     def _update_row_selection_indicator(self, rowkey: RowKey, selection_state: bool):
+        """Helper function to update selection indicator cell for a row."""
+
+        # Selection column key in our table
+        select_column_key = ColumnKey(ColumnFormatting.SEL.name)
+
+        # Match selection state
         match selection_state:
             case True:
                 self.update_cell(
-                    rowkey, ColumnKey("sel"), Content.from_text(self.SELECTED_LABEL)
+                    rowkey, select_column_key, Content.from_text(self.SELECTED_LABEL)
                 )
             case False:
                 self.update_cell(
-                    rowkey, ColumnKey("sel"), Content.from_text(self.NOT_SELECTED_LABEL)
+                    rowkey,
+                    select_column_key,
+                    Content.from_text(self.NOT_SELECTED_LABEL),
                 )
 
     def _update_all_row_labels(self) -> None:
@@ -538,7 +559,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     def action_unselect_all_files(self) -> None:
         """Unselect all selected items GLOBALLY."""
-
         # If empty set, then return
         if not self._selected_items:
             return
@@ -682,19 +702,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
         else:
             _sel_content = Content.from_text(self.NOT_SELECTED_LABEL)
 
-        cell_selection = _sel_content.pad_right(
-            int(self.column_formatting["sel"]["width"])
-        ).simplify()
+        cell_selection = _sel_content.pad_right(ColumnFormatting.SEL.width).simplify()
 
-        cell_icon = (
-            Content(icon)
-            .pad_right(int(self.column_formatting["icon"]["width"]))
-            .simplify()
-        )
+        cell_icon = Content(icon).pad_right(ColumnFormatting.ICON.width).simplify()
         cell_name = (
             Content.from_rich_text(Text(text=node.name, no_wrap=True, end=""))
             .truncate(
-                max_width=(int(self.column_formatting["name"]["width"])),
+                max_width=(ColumnFormatting.NAME.width),
                 ellipsis=True,
                 pad=True,
             )
@@ -703,13 +717,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # NOTE: We can display time in different formats from here for the UI
         cell_mtime = (
             Content.styled(text=str(node.mtime), style="italic")
-            .pad_right(int(self.column_formatting["modified"]["width"]))
+            .pad_right(ColumnFormatting.MODIFIED.width)
             .simplify()
         )
         cell_size = (
-            Content(text=size_str)
-            .pad_right((int(self.column_formatting["size"]["width"])))
-            .simplify()
+            Content(text=size_str).pad_right(ColumnFormatting.SIZE.width).simplify()
         )
 
         final = (cell_selection, cell_icon, cell_name, cell_mtime, cell_size)
