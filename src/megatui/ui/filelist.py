@@ -5,7 +5,6 @@ Contains actions and is the main way to interact with the application.
 # UI Components Related to Files
 import asyncio
 from collections import deque
-from collections.abc import Iterable
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -25,7 +24,11 @@ from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import RowDoesNotExist, RowKey
+from textual.widgets._data_table import (
+    ColumnKey,
+    RowDoesNotExist,
+    RowKey,
+)
 from textual.worker import Worker
 
 from megatui.mega.data import (
@@ -440,25 +443,20 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         return self._get_megaitem_at_row(row_key)
 
-    def _update_row_label(self, rowkey: RowKey, selection_state: bool):
-        curr_selected_state = self.rows[rowkey].label == self.SELECTED_LABEL
-
-        # Label is already correct
-        if curr_selected_state == selection_state:
-            return
-
+    def _update_row_selection_indicator(self, rowkey: RowKey, selection_state: bool):
         match selection_state:
             case True:
-                self.rows[rowkey].label = self.SELECTED_LABEL
+                self.update_cell(
+                    rowkey, ColumnKey("sel"), Content.from_text(self.SELECTED_LABEL)
+                )
             case False:
-                self.rows[rowkey].label = self.NOT_SELECTED_LABEL
-
-        self._update_count += 1
-        self.refresh_row(self.get_row_index(rowkey))
+                self.update_cell(
+                    rowkey, ColumnKey("sel"), Content.from_text(self.NOT_SELECTED_LABEL)
+                )
 
     def _update_all_row_labels(self) -> None:
         """Updates all visible row labels in current view to their selection state."""
-
+        # All selected items globally
         all_selected_keys = set(self._selected_items.keys())
         # All items in current view (directory)
         all_in_view_keys = set(self._row_data_map.keys())
@@ -467,10 +465,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
         all_in_view_not_selected = all_in_view_keys.difference(all_in_view_selected)
 
         for key in all_in_view_selected:
-            self._update_row_label(RowKey(key), True)
+            self._update_row_selection_indicator(RowKey(key), True)
 
         for key in all_in_view_not_selected:
-            self._update_row_label(RowKey(key), False)
+            self._update_row_selection_indicator(RowKey(key), False)
+
+        self.refresh_column(0)
 
     def action_select_all_files(self) -> None:
         """Toggle selection of all files in current directory.
@@ -504,8 +504,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     def _toggle_node_selection(self, rowkey: str) -> None:
         """Toggling logic for selection.
-        Args
-            rowkey: The key for the row we want to select."""
+
+        Args:
+            rowkey: The key for the row we want to select.
+        """
         # Return when rowkey is invalid
         if not rowkey:
             return
@@ -515,32 +517,30 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # If it is selected
         if is_selected:
             del self._selected_items[rowkey]
-            self.rows[RowKey(rowkey)].label = self.NOT_SELECTED_LABEL
+            self._update_row_selection_indicator(RowKey(rowkey), False)
 
         # If it is not selected (more likely)
         else:
             self._selected_items[rowkey] = self._row_data_map[rowkey]
-            self.rows[RowKey(rowkey)].label = self.SELECTED_LABEL
-
-        # Update UI
-        self._update_count += 1
-        self.refresh_row(self.get_row_index(rowkey))
+            self._update_row_selection_indicator(RowKey(rowkey), True)
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
         # Get current row key
         row_key = self._get_curr_row_key()
-        if not row_key:
+        if not row_key or not row_key.value:
+            self.log.warning("Received an empty rowkey.")
             return
 
-        self._toggle_node_selection(row_key.value or "")
+        self._toggle_node_selection(row_key.value)
 
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
-        """Unselect all selected items (if there are any)."""
-        if len(self._selected_items) == 0:
-            self.log.debug("No items selected for us to unselect.")
+        """Unselect all selected items GLOBALLY."""
+
+        # If empty set, then return
+        if not self._selected_items:
             return
 
         self._selected_items.clear()
@@ -677,15 +677,43 @@ class FileList(DataTable[Any], inherit_bindings=False):
             assert_type(node.size[1], MegaSizeUnits)
             size_str = f"{node.size[0]:.2f} {node.size[1].unit_str()}"
 
-        cell_icon = Content(icon)
-        cell_name = Content.from_rich_text(
-            Text(text=node.name, overflow="ellipsis", no_wrap=True)
+        if node.handle in self._selected_items:
+            _sel_content = Content.from_text(self.SELECTED_LABEL)
+        else:
+            _sel_content = Content.from_text(self.NOT_SELECTED_LABEL)
+
+        cell_selection = _sel_content.pad_right(
+            int(self.column_formatting["sel"]["width"])
+        ).simplify()
+
+        cell_icon = (
+            Content(icon)
+            .pad_right(int(self.column_formatting["icon"]["width"]))
+            .simplify()
+        )
+        cell_name = (
+            Content.from_rich_text(Text(text=node.name, no_wrap=True, end=""))
+            .truncate(
+                max_width=(int(self.column_formatting["name"]["width"])),
+                ellipsis=True,
+                pad=True,
+            )
+            .simplify()
         )
         # NOTE: We can display time in different formats from here for the UI
-        cell_mtime = Content.styled(text=str(node.mtime), style="italic")
-        cell_size = Content(text=size_str)
+        cell_mtime = (
+            Content.styled(text=str(node.mtime), style="italic")
+            .pad_right(int(self.column_formatting["modified"]["width"]))
+            .simplify()
+        )
+        cell_size = (
+            Content(text=size_str)
+            .pad_right((int(self.column_formatting["size"]["width"])))
+            .simplify()
+        )
 
-        return (cell_icon, cell_name, cell_mtime, cell_size)
+        final = (cell_selection, cell_icon, cell_name, cell_mtime, cell_size)
+        return final
 
     def _update_list_on_success(self, path: MegaPath, fetched_items: MegaItems) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
@@ -697,32 +725,20 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Use a dictionary comprehension
         self._row_data_map = {item.handle: item for item in fetched_items}
 
-        found_selected_items = False
-
-        row_generator = (
+        row_contents_generator = (
             (node, self._prepare_row_contents(node)) for node in fetched_items
         )
 
         # Go through each item and create new row for them
-        for node, row_cells in row_generator:
+        for node, row_cells in row_contents_generator:
             # Pass data as individual arguments for each column
-
-            rowkey = self.add_row(
+            self.add_row(
                 *row_cells,
                 # Unique key to reference the node
                 key=node.handle,
                 # Height of each row
                 height=self.FILELIST_ROW_HEIGHT,
-                # Selection label assigned based on membership
-                label=self.SELECTED_LABEL
-                if (node.handle in self._selected_items)
-                else self.NOT_SELECTED_LABEL,
             )
-            found_selected_items = True
-
-        if found_selected_items:
-            self._update_all_row_labels()
-            self._update_count += 1
 
         item_count = len(fetched_items)
         if item_count:
