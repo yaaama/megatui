@@ -24,6 +24,7 @@ from rich.text import Text
 from textual import getters, on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
+from textual.events import Key
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets._data_table import ColumnKey, RowDoesNotExist
@@ -63,7 +64,6 @@ class ColumnFormat:
 
     label: str
     """Column label displayed in the UI."""
-
     width: int
     """Width of column. """
 
@@ -95,7 +95,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         app = getters.app(MegaTUI)
 
     # * UI Elements ###########################################################
-    FILELIST_ROW_HEIGHT: Final = 1
+    _FILELIST_ROW_HEIGHT: Final = 1
     """The height for rows in the table."""
 
     DEFAULT_CSS = """ """
@@ -150,68 +150,99 @@ class FileList(DataTable[Any], inherit_bindings=False):
             key="space",
             key_display="␠",
             action="toggle_file_selection",
-            description="select a file",
-            show=True,
+            description="Select A Node",
         ),
         # Unselect all files
         Binding(
-            key="u",
-            key_display="u",
+            key="U",
             action="unselect_all_files",
-            description="unselect all",
-            show=True,
+            description="Unselect ALL Nodes (Global)",
         ),
         Binding(
             key="v",
-            key_display="v",
             action="select_all_files",
-            description="select all",
-            show=True,
+            description="Select All Nodes in Directory",
         ),
         # Refresh current directory
         Binding(
             key="r",
-            key_display="r",
             action="refresh",
-            description="refresh dir",
-            show=True,
+            description="Refresh Current Directory",
         ),
         # Rename a node/file
         Binding(
             key="R",
-            key_display="R",
             action="rename_node",
-            description="rename a node",
-            show=True,
+            description="Rename Node",
         ),
         # Make directory
         Binding(
             key="plus",
-            key_display="+",
             action="mkdir",
-            description="make new directory",
-            show=True,
+            description="Create A New Directory",
         ),
-        Binding("g", key_display="g", action="go_top", description="go top"),
-        Binding("G", key_display="G", action="go_bottom", description="go bottom"),
         # Open local filesystem
-        Binding(key="o", key_display="o", action="upload_file", description="upload"),
-        Binding("i", action="view_mediainfo"),
+        Binding(
+            key="o",
+            action="upload_file",
+            description="Upload A File",
+        ),
+        Binding(
+            key="i",
+            action="view_mediainfo",
+            description="View Media Info for Node",
+        ),
         # Delete files
-        Binding(key="D", key_display="D", action="delete_files", description="delete"),
+        Binding(
+            key="D",
+            action="delete_files",
+            description="Delete Node",
+        ),
         # Download files
-        Binding(key="f3", key_display="f3", action="download", description="download"),
+        Binding(
+            key="S",
+            action="download",
+            description="Download Node",
+        ),
         # Move files
-        Binding("M", key_display="M", action="move_files", description="move"),
+        Binding(
+            key="M",
+            action="move_files",
+            description="Move Node to Current Directory",
+        ),
     ]
     """ Binds that deal with files. """
 
     _NAVIGATION_BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("j", "cursor_down", "Cursor Down", key_display="j", show=False),
-        Binding("k", "cursor_up", "Cursor Up", key_display="k", show=False),
-        Binding("l,enter", "navigate_in", "Enter Dir", key_display="l", show=False),
         Binding(
-            "h,backspace", "navigate_out", "Parent Dir", key_display="h", show=False
+            key="j",
+            action="cursor_down",
+            description="Move Cursor Down",
+        ),
+        Binding(
+            key="k",
+            action="cursor_up",
+            description="Move Cursor Up",
+        ),
+        Binding(
+            key="l,enter",
+            action="navigate_in",
+            description="Enter Directory",
+        ),
+        Binding(
+            key="h,backspace",
+            action="navigate_out",
+            description="Go Up to Parent Directory",
+        ),
+        Binding(
+            key="g",
+            action="go_top",
+            description="Jump to First Node",
+        ),
+        Binding(
+            key="G",
+            action="go_bottom",
+            description="Jump to Last Node",
         ),
     ]
     """ Binds related to navigation. """
@@ -352,7 +383,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_in(self) -> None:
         """Navigate into directory under cursor."""
-
         selected_item_data = self.node_under_cursor
 
         # Selected item is None
@@ -374,7 +404,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
-
         self.log.debug(f"Navigating out of directory {self._curr_path}")
         curr_path: str = self._curr_path.str
 
@@ -475,7 +504,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     def _update_all_row_labels(self) -> None:
         """Updates all visible row labels in current view to their selection state."""
-
         # All selected items globally
         all_selected_keys = set(self._selected_items.keys())
         # All items in current view (directory)
@@ -736,7 +764,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 # Unique key to reference the node
                 key=node.handle,
                 # Height of each row
-                height=self.FILELIST_ROW_HEIGHT,
+                height=self._FILELIST_ROW_HEIGHT,
             )
 
         item_count = len(fetched_items)
@@ -745,7 +773,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         else:
             self.styles.border_subtitle_style = self._BORDER_SUBTITLE_STYLES["empty"]
 
-        self.border_subtitle = f"{len(fetched_items)} items"
+        self.border_subtitle = f"{item_count} items"
 
     @work(
         exclusive=True,
