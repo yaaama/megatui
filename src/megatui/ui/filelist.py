@@ -456,7 +456,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         return self._get_megaitem_at_row(row_key)
 
-    def _update_row_selection_indicator(self, rowkey: RowKey, selection_state: bool):
+    def _update_row_selection_indicator(self, rowkey: str, selection_state: bool):
         """Helper function to update selection indicator cell for a row."""
 
         # Selection column key in our table
@@ -486,10 +486,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
         all_in_view_not_selected = all_in_view_keys.difference(all_in_view_selected)
 
         for key in all_in_view_selected:
-            self._update_row_selection_indicator(RowKey(key), True)
+            self._update_row_selection_indicator(key, True)
 
         for key in all_in_view_not_selected:
-            self._update_row_selection_indicator(RowKey(key), False)
+            self._update_row_selection_indicator(key, False)
 
         self.refresh_column(0)
 
@@ -499,6 +499,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         This works like a classic 'invert-all' action, where selected items are
         then deselected and non-selected files are then toggled.
         """
+
         if not self._row_data_map:
             # No files in current view
             return
@@ -538,12 +539,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # If it is selected
         if is_selected:
             del self._selected_items[rowkey]
-            self._update_row_selection_indicator(RowKey(rowkey), False)
+            self._update_row_selection_indicator(rowkey, False)
 
         # If it is not selected (more likely)
         else:
             self._selected_items[rowkey] = self._row_data_map[rowkey]
-            self._update_row_selection_indicator(RowKey(rowkey), True)
+            self._update_row_selection_indicator(rowkey, True)
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
