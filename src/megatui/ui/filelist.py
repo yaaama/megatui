@@ -87,9 +87,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         "empty": Style(color="white", bold=True, reverse=True),
         "normal": Style(color="white", bold=True, reverse=True),
     }
-    COLUMNS: ClassVar[list[str]] = ["icon", "name", "modified", "size"]
-
-    DEFAULT_COLUMN_WIDTHS: tuple[int, ...] = (2, 50, 12, 8)
 
     # * State #################################################################
 
@@ -184,6 +181,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
+    column_formatting = {
+        "sel": {"label": "", "width": 4},
+        "icon": {"label": "", "width": 4},
+        "name": {"label": "Name", "width": 20},
+        "modified": {"label": "Modified", "width": 20},
+        "size": {"label": "Size", "width": 8},
+    }
+
     # * Initialisation #########################################################
 
     def __init__(self):
@@ -211,18 +216,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
     @override
     def on_mount(self) -> None:
         # Initialise the columns displayed Column and their respective formatting
-        column_formatting = {
-            "icon": {"label": " ", "width": 4},
-            "name": {"label": "Name", "width": 50},
-            "modified": {"label": "Modified", "width": 20},
-            "size": {"label": "Size", "width": 8},
-        }
-
         self.log.info("Adding columns to FileList")
 
-        # Add columns during initialisation with specified widths
-        for column_name in self.COLUMNS:
-            fmt = column_formatting.get(column_name)
+        # Individual columns
+        columns = self.column_formatting.keys()
+
+        # Add columns with specified widths
+        for col in columns:
+            fmt = self.column_formatting.get(col)
 
             # If there is a configuration for our column name
             if fmt:
@@ -231,12 +232,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
                     label=str(fmt["label"]),
                     # Width of column header
                     width=(int(fmt["width"]) if fmt["width"] else None),
-                    key=column_name,
+                    key=col,
                 )
 
-                self.log.debug(f"Column: '{column_name}', fmt: '{fmt}'")
             else:
-                self.add_column(label=column_name, key=column_name, width=None)
+                self.add_column(label=col, key=col, width=None)
 
     # * Actions #########################################################
 
