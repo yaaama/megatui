@@ -24,7 +24,6 @@ from rich.text import Text
 from textual import getters, on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
-from textual.events import Key
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets._data_table import ColumnKey, RowDoesNotExist
@@ -291,6 +290,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 key=column.name,
             )
 
+        self.log.debug(
+            "Successfully added columns: '%s'",
+            ", ".join(ColumnFormatting._member_names_),
+        )
+
     # * Actions #########################################################
 
     def action_go_top(self):
@@ -311,6 +315,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
         mediainfo = await mega_mediainfo(nodes=highlighted)
 
         if not mediainfo:
+            self.log.error(
+                "Received invalid mediainfo for node '%s'", str(highlighted.path)
+            )
             return
 
         self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
@@ -329,6 +336,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=None)))
 
         await asyncio.gather(*tasks)
+        self.log.debug(
+            "Deletion success for files: '%s'",
+            ", ".join(item.path.str for item in files),
+        )
 
     @work(
         exclusive=True,
@@ -404,16 +415,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
-        self.log.debug(f"Navigating out of directory {self._curr_path}")
         curr_path: str = self._curr_path.str
 
         # Avoid going above root "/"
         if curr_path == "/":
-            # self.post_message(
-            #     StatusUpdate("Cannot navigate out any further, you're already at '/'")
-            # )
             return
 
+        self.log.debug(f"Navigating out of directory {self._curr_path}")
         parent_path = self._curr_path.parent
         curs_index = (
             self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
@@ -537,10 +545,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # If it is not selected (more likely)
         else:
+            # Add node to selected items dictionary
             self._selected_items[row_key] = self._row_data_map[row_key]
 
+        # Add selection indicator to row
         self._update_row_selection_indicator(row_key, not is_selected)
 
+        # Send message that selection has been toggled
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
@@ -588,8 +599,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         TODO: Make this open a file editor when multiple files are selected.
         """
-        self.log.info("Renaming file.")
-
         selected_item = self.node_under_cursor
 
         if not selected_item:
@@ -598,7 +607,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         node_path = str(selected_item.path)
 
-        assert node_path != "/", "Cannot rename the root directory."
+        if node_path == "/":
+            self.log.error("Cannot rename root directory!")
+            return
 
         await self.app.push_screen(
             RenameDialog(
@@ -768,20 +779,19 @@ class FileList(DataTable[Any], inherit_bindings=False):
             )
 
         item_count = len(fetched_items)
+        # Adjust border subtitle styling based on number of items
         if item_count:
             self.styles.border_subtitle_style = self._BORDER_SUBTITLE_STYLES["normal"]
+            self.border_subtitle = f"{item_count} items"
         else:
             self.styles.border_subtitle_style = self._BORDER_SUBTITLE_STYLES["empty"]
-
-        self.border_subtitle = f"{item_count} items"
+            self.border_subtitle = "Empty Directory."
 
     @work(
         exclusive=True,
-        group="megacmd",
         name="fetch_files",
-        description="mega-ls - Fetching dir listings",
     )
-    async def fetch_files(self, path: MegaPath) -> MegaItems | None:
+    async def _fetch_files(self, path: MegaPath) -> MegaItems | None:
         """Asynchronously fetches items from MEGA for the given path.
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
@@ -801,14 +811,16 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """Loads and updates UI with directory specified.
         If path is not specified, then it will load the contents of the current directory.
         """
+        # If we are requesting to load current directory
         if path == MEGA_CURR_DIR:
+            # Get the full path of the current directory
             path = await mega_pwd()
 
         self.log.info(f"Requesting load for directory: {path}")
         self._loading_path = path  # Track the path we are loading
 
         # Start the worker. Results handled by on_worker_state_changed.
-        worker_obj: Worker[MegaItems | None] = self.fetch_files(path)
+        worker_obj: Worker[MegaItems | None] = self._fetch_files(path)
 
         fetched_items = await worker_obj.wait()
 
@@ -835,7 +847,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
             f"Worker success for path '{self._loading_path}', item count: {file_count}"
         )
         # Update FileList
-
         with self.app.batch_update():
             self._update_list_on_success(self._loading_path, fetched_items)
 
