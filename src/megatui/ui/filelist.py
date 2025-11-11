@@ -4,12 +4,13 @@ Contains actions and is the main way to interact with the application.
 
 # UI Components Related to Files
 import asyncio
+import os
 from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     ClassVar,
     Final,
@@ -25,7 +26,7 @@ from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
 from textual.widgets import DataTable
-from textual.widgets._data_table import ColumnKey, RowDoesNotExist, RowKey
+from textual.widgets._data_table import ColumnKey, RowDoesNotExist
 from textual.worker import Worker
 
 from megatui.mega.data import (
@@ -54,12 +55,6 @@ from megatui.ui.screens.rename import RenameDialog
 
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
-
-
-DL_PATH = Annotated[Path, "Default download path."]
-
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -111,13 +106,18 @@ class FileList(DataTable[Any], inherit_bindings=False):
     COLUMN_INDEX_MAP = {member: i for i, member in enumerate(ColumnFormatting)}
     """Maps ColumnFormatting member to their index."""
 
+    # Selection column key in our table
+    SELECT_COLUMN_KEY = ColumnKey(ColumnFormatting.SEL.name)
+
     _SELECTION_STR: ClassVar[LiteralString] = "*"
     """Character to indicate a file has been selected."""
     _SELECTION_STYLE = Style(color="red", bold=True, italic=True)
     """Style for the node selection indicator."""
-    SELECTED_LABEL = Text(text=_SELECTION_STR, style=_SELECTION_STYLE)
+    SELECTED_LABEL = Content.from_text(
+        Text(text=_SELECTION_STR, style=_SELECTION_STYLE)
+    )
     """Label for rows that have been selected."""
-    NOT_SELECTED_LABEL = Text(text=" ")
+    NOT_SELECTED_LABEL = Content.from_text(Text(text=" "))
     """Label for rows that are not selected (default)."""
 
     _BORDER_SUBTITLE_STYLES = {
@@ -218,6 +218,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 
+    _xdg_download_dir = os.getenv("XDG_DOWNLOAD_DIR")
+    if _xdg_download_dir:
+        download_path = Path(_xdg_download_dir, "mega_downloads")
+    else:
+        download_path = "downloadsmega_downloads"
+
     # * Initialisation #########################################################
 
     def __init__(self):
@@ -257,12 +263,15 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # * Actions #########################################################
 
     def action_go_top(self):
+        """Move cursor to the top most row."""
         self.action_scroll_top()
 
     def action_go_bottom(self):
+        """Move cursor to the bottom most row."""
         self.action_scroll_bottom()
 
     async def action_view_mediainfo(self):
+        """View media information for node under cursor."""
         highlighted = self._get_megaitem_at_cursor()
 
         if not highlighted:
@@ -275,7 +284,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
 
-    async def delete_files(self, files: MegaItems):
+    async def _delete_files(self, files: MegaItems):
+        """Helper function to call megacmd and delete files specified by arg `files`."""
         self.log.info("Deleting files")
 
         tasks: list[asyncio.Task[None]] = []
@@ -294,6 +304,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         description="Delete files. Displays a popup screen for confirmation.",
     )
     async def action_delete_files(self) -> None:
+        """Delete files in the cloud, with confirmation prompt."""
         self.log.info("Deleting files")
         # Selected files
         selected = self.selected_or_highlighted_items
@@ -303,32 +314,33 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         filenames = [str(item.path) for item in selected]
         filenames_str = ", ".join(filenames)
-
-        deletion_conf_scr = ConfirmationScreen(
-            title="Confirm Deletion",
-            prompt=f"Delete {len(selected)} files?",
-            extra_info=filenames_str,
-        )
+        file_count = len(selected)
 
         conf_result = await self.app.push_screen(
-            deletion_conf_scr, wait_for_dismiss=True
+            ConfirmationScreen(
+                title="Confirm Deletion",
+                prompt=f"Delete '{file_count}' file(s)?",
+                extra_info=filenames_str,
+            ),
+            wait_for_dismiss=True,
         )
 
         # If we get False
         if not conf_result:
+            self.log.debug("Deletion cancelled: Confirmation prompt returned false.")
             return
 
-        await self.delete_files(selected)
+        self.log.debug("Confirmed deletion.")
+        await self._delete_files(selected)
 
         with self.app.batch_update():
             self.action_unselect_all_files()
-            deleted_count = len(selected)
-            cursor_index = self.cursor_row - deleted_count
+            cursor_index = self.cursor_row - file_count
             await self.action_refresh(quiet=True)
             self.move_cursor(row=cursor_index)
 
         self.app.notify(
-            message=f"Deleted [bold][red]{len(filenames)}[/red][/bold] file(s).",
+            message=f"Deleted [bold][red]{file_count}[/red][/bold] file(s).",
             title="Deletion",
         )
 
@@ -340,16 +352,16 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_in(self) -> None:
         """Navigate into directory under cursor."""
-        selected_item_data = self.highlighted_item
 
-        # Selected item is None.
+        selected_item_data = self.node_under_cursor
+
+        # Selected item is None
         if not selected_item_data:
-            self.log.debug("Nothing to navigate into...")
             return
 
-        # Is a regular file
-        if selected_item_data.is_file:  # Check if it's a directory
-            self.log.debug("Cannot enter into a file.")
+        # Check if it's a regular file
+        if selected_item_data.is_file:
+            self.log.debug("Cannot enter into a FILE.")
             return
 
         # Folder to enter
@@ -362,6 +374,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     async def action_navigate_out(self) -> None:
         """Navigate to parent directory."""
+
         self.log.debug(f"Navigating out of directory {self._curr_path}")
         curr_path: str = self._curr_path.str
 
@@ -372,12 +385,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # )
             return
 
-        parent_path: MegaPath = self._curr_path.parent
+        parent_path = self._curr_path.parent
         curs_index = (
             self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
         )
 
-        # Useful to stop the flickering
         with self.app.batch_update():
             await self.load_directory(parent_path)
             await mega_cd(target_path=parent_path)
@@ -410,37 +422,34 @@ class FileList(DataTable[Any], inherit_bindings=False):
         await self._refresh_curr_dir()
 
     # *** Selection #######################################################
-    def _get_megaitem_at_row(self, rowkey: RowKey | str) -> MegaNode:
-        """Return MegaItem for row index (rowkey).
 
-        Args:
-            rowkey: The rowkey (index) to return MegaItem for.
-
-        Returns:
-            MegaItem if item exists at RowKey, or None if none.
-        """
-        if not rowkey:
-            raise ValueError("Passed in an empty rowkey!")
-
-        key: str
-        # If its a RowKey type, grab the value (str)
-        if isinstance(rowkey, RowKey):
-            if not rowkey.value:
-                raise AttributeError("Value for RowKey not found!")
-
-            key = rowkey.value
-        else:
-            key = rowkey
-
+    def _get_megaitem_at_row(self, row_key: str) -> MegaNode:
+        """Return the MegaNode for a given row key string."""
         try:
-            # Get the MegaItem
-            row_item: MegaNode = self._row_data_map[key]
-            return row_item
+            return self._row_data_map[row_key]
         except KeyError as e:
             self.log.error(
-                f"Could not find data for row key '{key}'. State is inconsistent."
+                f"Could not find data for row key '{row_key}'. State is inconsistent."
             )
             raise e
+
+    def _get_curr_row_key(self) -> str | None:
+        """Return RowKey for the Row that the cursor is currently on."""
+        # No rows in the current view
+        if not self.rows:
+            return None
+
+        try:
+            # DataTable's coordinate system is (row, column)
+            # self.cursor_coordinate.row gives the visual row index
+            # We need the key of that row
+            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+
+            return row_key.value
+
+        except RowDoesNotExist:
+            self.log.error("Could not return any row.")
+            return None
 
     def _get_megaitem_at_cursor(self) -> MegaNode | None:
         """Returns MegaItem under the current cursor.
@@ -451,32 +460,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
         row_key = self._get_curr_row_key()
 
         # Exit if there is a nonexistent rowkey or rowkey.value
-        if not row_key or not row_key.value:
+        if not row_key:
             return None
 
         return self._get_megaitem_at_row(row_key)
 
-    def _update_row_selection_indicator(self, rowkey: str, selection_state: bool):
+    def _update_row_selection_indicator(self, row_key: str, selection_state: bool):
         """Helper function to update selection indicator cell for a row."""
-
-        # Selection column key in our table
-        select_column_key = ColumnKey(ColumnFormatting.SEL.name)
-
-        # Match selection state
-        match selection_state:
-            case True:
-                self.update_cell(
-                    rowkey, select_column_key, Content.from_text(self.SELECTED_LABEL)
-                )
-            case False:
-                self.update_cell(
-                    rowkey,
-                    select_column_key,
-                    Content.from_text(self.NOT_SELECTED_LABEL),
-                )
+        self.update_cell(
+            row_key,
+            self.SELECT_COLUMN_KEY,
+            self.SELECTED_LABEL if selection_state else self.NOT_SELECTED_LABEL,
+        )
 
     def _update_all_row_labels(self) -> None:
         """Updates all visible row labels in current view to their selection state."""
+
         # All selected items globally
         all_selected_keys = set(self._selected_items.keys())
         # All items in current view (directory)
@@ -491,70 +490,28 @@ class FileList(DataTable[Any], inherit_bindings=False):
         for key in all_in_view_not_selected:
             self._update_row_selection_indicator(key, False)
 
-        self.refresh_column(0)
-
-    def action_select_all_files(self) -> None:
-        """Toggle selection of all files in current directory.
-
-        This works like a classic 'invert-all' action, where selected items are
-        then deselected and non-selected files are then toggled.
-        """
-
-        if not self._row_data_map:
-            # No files in current view
-            return
-
-        # All selected items
-        all_selected_keys = set(self._selected_items.keys())
-        # All items in current view (directory)
-        all_in_view_keys = set(self._row_data_map.keys())
-
-        # The symmetric difference gives us:
-        # (selected_keys - in_view_keys) combined with (in_view_keys - selected_keys)
-        final_keys = all_selected_keys.symmetric_difference(all_in_view_keys)
-
-        # 2. Build the new dictionary from the final set of keys.
-        self._selected_items = {  # pyright: ignore[reportAttributeAccessIssue]
-            key: self._selected_items.get(key) or self._row_data_map.get(key)
-            for key in final_keys
-        }
-
-        # Batch update so it doesn't cause visual artifacts
-        with self.app.batch_update():
-            self._update_all_row_labels()
-            self.post_message(self.ToggledSelection(len(self._selected_items)))
-
-    def _toggle_node_selection(self, rowkey: str) -> None:
-        """Toggling logic for selection.
-
-        Args:
-            rowkey: The key for the row we want to select.
-        """
-        # Return when rowkey is invalid
-        if not rowkey:
-            return
-
-        is_selected = rowkey in set(self._selected_items.keys())
-
-        # If it is selected
-        if is_selected:
-            del self._selected_items[rowkey]
-            self._update_row_selection_indicator(rowkey, False)
-
-        # If it is not selected (more likely)
-        else:
-            self._selected_items[rowkey] = self._row_data_map[rowkey]
-            self._update_row_selection_indicator(rowkey, True)
+        # Refresh the selection column to ensure all changes are visible
+        self.refresh_column(self.COLUMN_INDEX_MAP[ColumnFormatting.SEL])
 
     def action_toggle_file_selection(self) -> None:
         """Toggles selection state of row under cursor."""
         # Get current row key
         row_key = self._get_curr_row_key()
-        if not row_key or not row_key.value:
-            self.log.warning("Received an empty rowkey.")
+
+        if not row_key:
+            self.log.debug("Cannot toggle selection, cursor is not on a row.")
             return
 
-        self._toggle_node_selection(row_key.value)
+        is_selected = row_key in self._selected_items
+
+        if is_selected:
+            del self._selected_items[row_key]
+
+        # If it is not selected (more likely)
+        else:
+            self._selected_items[row_key] = self._row_data_map[row_key]
+
+        self._update_row_selection_indicator(row_key, not is_selected)
 
         self.post_message(self.ToggledSelection(len(self._selected_items)))
 
@@ -570,6 +527,33 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self._update_all_row_labels()
             self.app.post_message(self.ToggledSelection(0))
 
+    def action_select_all_files(self) -> None:
+        """Toggle selection of all files in current directory.
+
+        This works like a classic 'invert-all' action, where selected items are
+        then deselected and non-selected files are then toggled.
+        """
+        if not self._row_data_map:
+            # No files in current view
+            return
+
+        # The symmetric difference gives us:
+        # (selected_keys - in_view_keys) combined with (in_view_keys - selected_keys)
+        final_keys = set(self._selected_items.keys()).symmetric_difference(
+            set(self._row_data_map.keys())
+        )
+
+        # 2. Build the new dictionary from the final set of keys.
+        self._selected_items = {  # pyright: ignore[reportAttributeAccessIssue]
+            key: self._selected_items.get(key) or self._row_data_map[key]
+            for key in final_keys
+        }
+
+        # Batch update so it doesn't cause visual artifacts
+        with self.app.batch_update():
+            self._update_all_row_labels()
+            self.post_message(self.ToggledSelection(len(self._selected_items)))
+
     @work
     async def action_rename_node(self) -> None:
         """Rename a file by showing a dialog to prompt for the new name.
@@ -578,7 +562,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         self.log.info("Renaming file.")
 
-        selected_item = self.highlighted_item
+        selected_item = self.node_under_cursor
 
         if not selected_item:
             self.log.error("No highlighted file to rename.")
@@ -625,7 +609,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.post_message(
                 StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
             )
-            await mega_get(target_path=str(DL_PATH), remote_path=str(file.path))
+            await mega_get(
+                target_path=str(self.download_path), remote_path=str(file.path)
+            )
             rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
             title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
             self.notify(
@@ -639,7 +625,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         TODO: Display download status
         TODO: Ask for confirmation with large files
         """
-        dl_items = self.selected_items
+        dl_items = self.selected_or_highlighted_items or ()
 
         await self._download_files(dl_items)
 
@@ -699,9 +685,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
             size_str = f"{node.size[0]:.2f} {node.size[1].unit_str()}"
 
         if node.handle in self._selected_items:
-            _sel_content = Content.from_text(self.SELECTED_LABEL)
+            _sel_content = self.SELECTED_LABEL
         else:
-            _sel_content = Content.from_text(self.NOT_SELECTED_LABEL)
+            _sel_content = self.NOT_SELECTED_LABEL
 
         cell_selection = _sel_content.pad_right(ColumnFormatting.SEL.width).simplify()
 
@@ -828,37 +814,16 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # We have successfully loaded the path
         self.post_message(self.PathChanged(path))
 
-    def _get_curr_row_key(self) -> RowKey | None:
-        """Return RowKey for the Row that the cursor is currently on."""
-        if self.cursor_row < 0 or not self.rows:  # No selection or empty table
-            return None
-        try:
-            # DataTable's coordinate system is (row, column)
-            # self.cursor_coordinate.row gives the visual row index
-            # We need the key of that row
-            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
-
-            return row_key if row_key else None
-
-        except RowDoesNotExist:
-            self.log.error("Could not return any row.")
-            return None
-
     @property
-    def highlighted_item(self) -> MegaNode | None:
-        """Return the MegaItem corresponding to the currently highlighted row."""
+    def node_under_cursor(self) -> MegaNode | None:
+        """Try return the node under the cursor."""
         row_key = self._get_curr_row_key()
 
         if not row_key:
             # We are in an empty directory!
             return None
 
-        if not row_key.value:
-            raise RuntimeError(
-                "We should definitely have a 'value' attribute for our rowkey."
-            )
-
-        return self._row_data_map.get(row_key.value)
+        return self._row_data_map[row_key]
 
     @property
     def selected_or_highlighted_items(self) -> MegaItems | None:
@@ -870,17 +835,17 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return self.selected_items
 
         # When nothing is highlighted
-        if not self.highlighted_item:
+        if not self.node_under_cursor:
             self.log.info(
                 "Could not default to highlighted item, table has no rows probably."
             )
             return None
 
-        return (self.highlighted_item,)
+        return (self.node_under_cursor,)
 
     @property
     def selected_items(self) -> MegaItems:
-        """Return MegaItem(s) that are currently selected."""
+        """Return MegaNode(s) that are currently selected."""
         # Get selected items
         return tuple(self._selected_items.values())
 
