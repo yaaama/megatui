@@ -12,8 +12,7 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
-from megatui.mega.megacmd import MegaNode
-from megatui.messages import RenameNodeRequest
+from megatui.mega.data import MegaNode
 
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
