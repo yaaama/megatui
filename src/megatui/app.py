@@ -15,8 +15,10 @@ from textual.widgets import Footer, Header, Label
 from megatui.mega import megacmd as m
 from megatui.mega.data import MegaPath
 from megatui.messages import (
+    DeleteNodesRequest,
     MakeRemoteDirectory,
     RefreshRequest,
+    RefreshType,
     RenameNodeRequest,
     StatusUpdate,
     UploadRequest,
@@ -269,6 +271,41 @@ class MegaTUI(App[None], inherit_bindings=False):
         status_bar.set_timer(
             delay=message.timeout if message.timeout > 0 else 10,
             callback=clear_status_msg,
+        )
+
+    @on(DeleteNodesRequest)
+    async def _delete_files(self, event: DeleteNodesRequest):
+        """Helper function to call megacmd and delete files specified by arg `files`."""
+        self.log.info("Deleting files")
+
+        cursor_pos = self.filelist.cursor_row
+
+        nodes = event.nodes
+        node_count = len(nodes)
+        tasks: list[asyncio.Task[None]] = []
+        for item in nodes:
+            if item.is_dir:
+                tasks.append(
+                    asyncio.create_task(m.mega_rm(fpath=item.path, flags=("-r", "-f")))
+                )
+            else:
+                tasks.append(
+                    asyncio.create_task(m.mega_rm(fpath=item.path, flags=None))
+                )
+
+        await asyncio.gather(*tasks)
+        self.log.debug(
+            "Deletion success for nodes: '%s'",
+            ", ".join(item.path.str for item in nodes),
+        )
+
+        self.filelist.post_message(
+            RefreshRequest(RefreshType.AFTER_DELETION, cursor_pos)
+        )
+
+        self.notify(
+            message=f"[bold][red]{node_count}[/red][/bold] nodes(s) deleted!",
+            title="Deletion",
         )
 
     # Widget access.

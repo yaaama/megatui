@@ -16,6 +16,7 @@ from typing import (
     Final,
     LiteralString,
     assert_type,
+    cast,
     override,
 )
 
@@ -44,9 +45,13 @@ from megatui.mega.megacmd import (
     mega_mediainfo,
     mega_mv,
     mega_pwd,
-    mega_rm,
 )
-from megatui.messages import RefreshRequest, StatusUpdate
+from megatui.messages import (
+    DeleteNodesRequest,
+    RefreshRequest,
+    RefreshType,
+    StatusUpdate,
+)
 from megatui.ui.file_tree import UploadFilesModal
 from megatui.ui.preview import PreviewMediaInfoModal
 from megatui.ui.screens.confirmation import ConfirmationScreen
@@ -322,25 +327,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
 
-    async def _delete_files(self, files: MegaItems):
-        """Helper function to call megacmd and delete files specified by arg `files`."""
-        self.log.info("Deleting files")
-
-        tasks: list[asyncio.Task[None]] = []
-        for item in files:
-            if item.is_dir:
-                tasks.append(
-                    asyncio.create_task(mega_rm(fpath=item.path, flags=("-r", "-f")))
-                )
-            else:
-                tasks.append(asyncio.create_task(mega_rm(fpath=item.path, flags=None)))
-
-        await asyncio.gather(*tasks)
-        self.log.debug(
-            "Deletion success for files: '%s'",
-            ", ".join(item.path.str for item in files),
-        )
-
     @work(
         exclusive=True,
         description="Delete files. Displays a popup screen for confirmation.",
@@ -373,18 +359,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return
 
         self.log.debug("Confirmed deletion.")
-        await self._delete_files(selected)
-
-        with self.app.batch_update():
-            self.action_unselect_all_files()
-            cursor_index = self.cursor_row - file_count
-            await self.action_refresh(quiet=True)
-            self.move_cursor(row=cursor_index)
-
-        self.app.notify(
-            message=f"Deleted [bold][red]{file_count}[/red][/bold] file(s).",
-            title="Deletion",
-        )
+        self.app.post_message(DeleteNodesRequest(selected))
 
     async def action_upload_file(self) -> None:
         """Toggle upload file screen."""
@@ -433,21 +408,43 @@ class FileList(DataTable[Any], inherit_bindings=False):
             self.move_cursor(row=curs_index)
 
     # ** File Actions ######################################################
+
+    async def _perform_refresh(self) -> None:
+        """
+        The core logic to reload the directory from the cloud and update the table.
+        """
+        await self.load_directory(self._curr_path)
+
     @on(RefreshRequest)
     async def on_refresh_request(self, event: RefreshRequest) -> None:
         """Handles refresh requests sent to FileList."""
         event.stop()
-        await self.action_refresh(quiet=True)
 
-    async def _refresh_curr_dir(self) -> None:
-        """Refresh current directory view.
-        Maintains the cursor point.
-        """
         with self.app.batch_update():
-            curs_index = self.cursor_row
-            await self.load_directory(self._curr_path)
-            curs_index = min(curs_index, self.row_count - 1)
-            self.move_cursor(row=curs_index)
+            await self._perform_refresh()
+
+            prev_row = event.cursor_row_before_refresh
+
+            match event.type:
+                case RefreshType.AFTER_DELETION:
+                    self.action_unselect_all_files()
+                    # If its a deletion command then we know prev_row is int
+                    prev_row = cast(int, prev_row)
+                    new_row_count = self.row_count
+                    # Position cursor at the same spot, or the last item
+                    target_cursor_index = min(prev_row, new_row_count - 1)
+
+                    # If target index is within bounds then move it there
+                    if target_cursor_index >= 0:
+                        self.move_cursor(row=target_cursor_index, animate=False)
+
+                case RefreshType.DEFAULT | RefreshType.AFTER_CREATION:
+                    if prev_row is not None:
+                        target_cursor_index = min(prev_row, self.row_count - 1)
+
+                        # If target index is within bounds then move it there
+                        if target_cursor_index >= 0:
+                            self.move_cursor(row=target_cursor_index, animate=False)
 
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
@@ -456,7 +453,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 StatusUpdate(f"Refreshing '{self._curr_path}'...", timeout=2)
             )
 
-        await self._refresh_curr_dir()
+        self.post_message(
+            RefreshRequest(
+                type=RefreshType.DEFAULT, cursor_row_before_refresh=self.cursor_row
+            )
+        )
 
     # *** Selection #######################################################
 
@@ -888,7 +889,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Get selected items
         return tuple(self._selected_items.values())
 
-    # * Messages ################################################################
     class ToggledSelection(Message):
         """Message sent after item is selected by user."""
 

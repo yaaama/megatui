@@ -3,11 +3,13 @@ Messages that are used throughout the application.
 """
 
 from collections.abc import Iterable
+from enum import Enum, auto
 from pathlib import Path
 
 from textual.message import Message
 
-from megatui.mega.megacmd import MegaNode, MegaPath
+from megatui.mega.data import MegaNode, MegaPath
+from megatui.mega.megacmd import MegaItems
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -34,9 +36,25 @@ class UploadRequest(Message):
         self.destination: MegaPath | None = destination
 
 
+class RefreshType(Enum):
+    """Defines the context for a refresh request."""
+
+    DEFAULT = auto()  # A standard, user-initiated refresh (e.g., pressing 'r')
+    AFTER_DELETION = auto()  # Refresh after one or more items were deleted
+    AFTER_CREATION = auto()  # Refresh after a new item (file/dir) was created
+
+
 class RefreshRequest(Message):
-    def __init__(self):
+    """Requests that the file list be refreshed."""
+
+    def __init__(
+        self,
+        type: RefreshType = RefreshType.DEFAULT,
+        cursor_row_before_refresh: int | None = None,
+    ) -> None:
         super().__init__()
+        self.type = type
+        self.cursor_row_before_refresh = cursor_row_before_refresh
 
 
 class RenameNodeRequest(Message):
@@ -50,6 +68,12 @@ class MakeRemoteDirectory(Message):
     def __init__(self, dir_path: MegaPath):
         super().__init__()
         self.dir_path = dir_path
+
+
+class DeleteNodesRequest(Message):
+    def __init__(self, nodes: MegaItems):
+        super().__init__()
+        self.nodes = nodes
 
 
 class Notification(Message):
