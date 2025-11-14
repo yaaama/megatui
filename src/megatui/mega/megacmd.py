@@ -8,7 +8,7 @@ from collections import deque
 from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import overload
+from typing import cast, overload
 
 from megatui.mega.data import (
     DF_REGEXPS,
@@ -341,6 +341,8 @@ async def mega_du(
     logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
 
     # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
+    if not response.stdout:
+        return None
     output = response.stdout.splitlines()
 
     if len(output) < 3:
@@ -384,7 +386,8 @@ async def mega_pwd() -> MegaPath:
     cmd: tuple[str, ...] = ("pwd",)
     response = await _exec_megacmd(cmd)
 
-    pwd_path = MegaPath(response.stdout.strip())
+    path_str = cast(str, response.stdout)
+    pwd_path = MegaPath(path_str.strip())
     return pwd_path
 
 
@@ -528,8 +531,6 @@ async def mega_put(
         # Convert the single Path to a string before appending.
         cmd.append(str(local_paths))
     else:
-        # If it's not a single Path, it must be our intended Iterable[Path].
-        # Convert to a list to safely get its length and prevent issues with one-time
         paths_to_upload = [str(p) for p in local_paths]
         # Extend the command list with the new list of strings.
         cmd.extend(paths_to_upload)
@@ -584,8 +585,13 @@ def _verify_handle_structure(handle: str) -> bool:
 
     return passed
 
-async def path_from_handle(handle: str) -> MegaPath | None:
-    assert _verify_handle_structure(handle), "Handle does not conform to structure."
+
+async def mega_handle_to_path(handle: str) -> MegaPath | None:
+    """Returns a MegaPath for location of node with handle=`handle`.
+    If it cannot find it, it will return None.
+    """
+    if not _verify_handle_structure(handle):
+        raise ValueError("Handle does not conform to structure.")
 
     # cd to root
     await mega_cd(MEGA_ROOT_PATH)
@@ -597,12 +603,13 @@ async def path_from_handle(handle: str) -> MegaPath | None:
 
     # Parse result
     try:
-        split = response.stdout.partition("\n")
+        response_str = cast(str, response.stdout)
+        split = response_str.partition("\n")
         # Parse Path (first partition)
         path = MegaPath(split[0])
     except pathlib.UnsupportedOperation as e:
         logger.error(f"Failed to parse path: {e}")
-        raise RuntimeError(f"Could not parse path from handle `{handle}` :: {e}")
+        raise ValueError(f"Could not parse path from handle `{handle}` :: {e}")
 
     return path
 
@@ -758,7 +765,9 @@ async def mega_df(human: bool = True) -> MegaDiskFree | None:
 
     response = await _exec_megacmd(tuple(cmd))
 
-    return _parse_df(response.stdout)
+    response_str = cast(str, response.stdout)
+
+    return _parse_df(response_str)
 
 
 async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
@@ -829,7 +838,8 @@ async def mega_transfers(
 
     response = await _exec_megacmd(tuple(cmd))
 
-    lines = response.stdout.strip().splitlines()
+    response_str = cast(str, response.stdout)
+    lines = response_str.strip().splitlines()
     if (not lines) or (not lines[0]):
         logger.info("Empty transfer list.")
         return None
@@ -938,7 +948,8 @@ async def mega_mediainfo(
         cmd.append(nodes.path.str)
 
     response = await _exec_megacmd(command=tuple(cmd))
-    output = response.stdout.strip().splitlines()
+    response_str = cast(str, response.stdout)
+    output = response_str.strip().splitlines()
 
     # Ensure there's a header and at least one data line
     if len(output) < 2:

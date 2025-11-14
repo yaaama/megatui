@@ -120,17 +120,14 @@ DU_REGEXPS: Final[dict[str, re.Pattern[str]]] = {
 class MegaCmdResponse:
     __slots__ = ("return_code", "stderr", "stdout")
 
-    stdout: str
+    stdout: str | None
     stderr: str | None
     return_code: int | None
 
     def __init__(
         self, *, stdout: str | None, stderr: str | None, return_code: int | None
     ):
-        if stdout is None:
-            self.stdout = ""
-        else:
-            self.stdout = stdout
+        self.stdout = stdout
         self.stderr = stderr
         self.return_code = return_code
         # logger.debug(f"MegaCmdResponse created. Return code: {return_code}")
@@ -147,6 +144,10 @@ class MegaCmdResponse:
             + f"stdout={self.stdout},\n"
             + f"stderr={self.stderr}\n)"
         )
+
+    @override
+    def __str__(self) -> str:
+        return f"code='{self.return_code}',\nstdout='{self.stdout}'\nstderr='{self.stderr}'"
 
     @property
     def err_output(self) -> str | None:
@@ -359,7 +360,7 @@ class MegaNodeAlreadyExists(MegaError): ...
 class MegaNodeNotFound(MegaError): ...
 
 
-class MegaCmdError(MegaError):
+class MegaCmdError(Exception):
     """Custom exception for mega-* command errors."""
 
     message: str
