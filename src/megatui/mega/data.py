@@ -168,7 +168,7 @@ class MegaCmdError(MegaError):
     @property
     def stderr(self) -> str | None:
         if not self.response:
-            logger.debug("No response object.")
+            logger.debug("Failed to retrieve stderr: No response object.")
             return None
         if self.response.stderr:
             return self.response.stderr

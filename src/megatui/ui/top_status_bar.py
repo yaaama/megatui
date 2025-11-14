@@ -1,6 +1,6 @@
 from typing import ClassVar, LiteralString, override
 
-import textual.getters as getters
+from textual import getters
 from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.reactive import var

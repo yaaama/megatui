@@ -81,7 +81,7 @@ def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
 
     # (megacmd_name, followed by all elements in remaining_args)
     final: tuple[str, ...] = (megacmd_name, *remaining_args)
-    logger.debug(f"Built mega-cmd: {' '.join(final)}")
+    # logger.debug(f"Built mega-cmd: {' '.join(final)}")
 
     return final
 
@@ -134,7 +134,7 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
             cmd_response.stderr if cmd_response.stderr else cmd_response.stdout
         )
         # Formatted error
-        formatted_err_msg = f"Non zero return code when executing '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdErr='{command_error_output}'"
+        formatted_err_msg = f"Failed '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdErr='{command_error_output}'"
         logger.error(formatted_err_msg)
         raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
 
@@ -685,9 +685,7 @@ async def mega_get(
 
     await _exec_megacmd(tuple(cmd))
 
-    logger.info(
-        f"Successfully initiated download of '{remote_path}' to '{target_path}'"
-    )
+    logger.info(f"Initiated download of '{remote_path}' ---> '{target_path}'")
 
 
 def _parse_df(df_output: str) -> MegaDiskFree | None:
@@ -896,6 +894,7 @@ def _parse_mediainfo_line(line: str, header_keys: list[str]) -> MegaMediaInfo | 
     except (ValueError, TypeError):
         fps = None
 
+    # Since playtime will be a non standard time string, we just parse it as a string
     playtime = None if (data.get("PLAYTIME") == "---") else data.get("PLAYTIME")
 
     # logger.debug(f"Parsed mediainfo: {file}, {width}, {height}, {fps}, {playtime}")

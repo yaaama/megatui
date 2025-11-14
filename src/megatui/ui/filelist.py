@@ -412,9 +412,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     # ** File Actions ######################################################
 
     async def _perform_refresh(self) -> None:
-        """
-        The core logic to reload the directory from the cloud and update the table.
-        """
+        """The core logic to reload the directory from the cloud and update the table."""
         await self.load_directory(self._curr_path)
 
     @on(RefreshRequest)
