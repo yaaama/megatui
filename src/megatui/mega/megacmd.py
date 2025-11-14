@@ -4,6 +4,7 @@ import asyncio
 import logging
 import pathlib
 import re
+import textwrap
 from collections import deque
 from collections.abc import Iterable
 from datetime import datetime
@@ -32,6 +33,7 @@ from megatui.mega.data import (
     MegaTransferItem,
     MegaTransferState,
     MegaTransferType,
+    MegaUnknownError,
 )
 
 MEGA_LOGTOFILE = False
@@ -124,13 +126,22 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
     )
 
     # Handle cases where mega-* commands might print errors to stdout
-    if process.returncode != 0:
+    if process.returncode:
+        known_codes = MegaCmdErrorCode.get_all_codes()
+
+        if process.returncode not in known_codes:
+            raise MegaUnknownError(
+                response=cmd_response,
+                note=f"Unknown error code: {cmd_response.__str__()}'",
+            )
+
         # Error printed by megacmd
         command_error_output = (
             cmd_response.stderr if cmd_response.stderr else cmd_response.stdout
         )
         # Formatted error
-        formatted_err_msg = f"Failed '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdErr='{command_error_output}'"
+        formatted_err_msg = f"Failed '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdOut:'{process.stdout}', StdErr='{command_error_output}'"
+        textwrap.fill(formatted_err_msg)
         logger.error(formatted_err_msg)
         raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
 
