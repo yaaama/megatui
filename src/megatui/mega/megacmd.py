@@ -555,26 +555,34 @@ def _verify_handle_structure(handle: str) -> bool:
     """
     logger.info(f"Verifying handle: '{handle}'")
 
+    passed = True
+    failed: list[str] = []
     match handle:
         case "":
-            logger.error("Empty string cannot be a valid handle.")
-            return False
+            logger.debug("Empty string cannot be a valid handle.")
+            failed.append("Length > 0 Characters")
+            passed = False
         case str() if len(handle) < 8:
-            logger.error("Handle should be longer than 8 characters.")
-            return False
+            logger.debug("Handle should be longer than 8 characters.")
+            failed.append("Length < 8 Characters")
+            passed = False
         case str() if not handle.startswith("H:"):
-            logger.error("Handles should start with 'H:'")
-            return False
+            logger.debug("Handles should start with 'H:'")
+            failed.append("Handle starts with 'H:'")
+            passed = False
         case _:
             pass
 
     content = handle[2:]
     if not content.isalnum():
-        logger.error("Handle content is not alpha-numerical.")
-        return False
+        logger.debug("Handle content is not alpha-numerical.")
+        failed.append("Handle contents must be alpha-numerical.")
+        passed = False
 
-    return True
+    if not passed:
+        logger.info("Handle checks failed: %s", " && ".join(failed))
 
+    return passed
 
 async def path_from_handle(handle: str) -> MegaPath | None:
     assert _verify_handle_structure(handle), "Handle does not conform to structure."
