@@ -24,7 +24,6 @@ from megatui.mega.data import (
     MegaDiskFree,
     MegaDiskUsage,
     MegaFileTypes,
-    MegaLibError,
     MegaMediaInfo,
     MegaNode,
     MegaPath,
@@ -66,12 +65,12 @@ def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     """
     if not command:
         logger.critical("Command tuple cannot be empty.")
-        raise MegaLibError(message="Command tuple cannot be empty.", fatal=True)
+        raise ValueError("Command tuple cannot be empty.")
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
         logger.critical(f"Unsupported command '{command[0]}' requested.")
-        raise MegaLibError(
-            message=f"The library does not support command '{command[0]}'.", fatal=True
+        raise NotImplementedError(
+            f"The library does not support command: '{command[0]}'"
         )
 
     # if 'command' is ('ls', '-l', '--tree'), then 'megacmd' name will be 'mega-ls'
@@ -509,9 +508,7 @@ async def mega_put(
     """
     if not local_paths:
         logger.error("Error! Local file is not specified for upload.")
-        raise MegaLibError(
-            message="Local file is not specified for upload.", fatal=True
-        )
+        raise ValueError("Local file is not specified for upload.")
 
     if not target_path:
         target_path = await mega_pwd()
@@ -654,7 +651,7 @@ async def mega_get(
 
     if not remote_path:
         logger.error("Error! Remote path not specified for download.")
-        raise MegaLibError(message="Remote path not specified!", fatal=False)
+        raise ValueError("Remote path not specified!")
 
     # Optional args
     if queue:

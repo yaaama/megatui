@@ -135,16 +135,16 @@ class MegaCmdResponse:
         return None
 
 
-class MegaLibError(Exception):
-    """Custom exception for incorrect library usage."""
-
-    def __init__(self, *, message: str, fatal: bool = False):
-        super().__init__(message)
-        self.fatal: bool = fatal
-        logger.error(f"MegaLibError: {message} (Fatal: {fatal})")
+class MegaError(Exception): ...
 
 
-class MegaCmdError(Exception):
+class MegaNodeAlreadyExists(MegaError): ...
+
+
+class MegaNodeNotFound(MegaError): ...
+
+
+class MegaCmdError(MegaError):
     """Custom exception for mega-* command errors."""
 
     message: str
