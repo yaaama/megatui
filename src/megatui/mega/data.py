@@ -12,6 +12,28 @@ from typing import Final, LiteralString, NamedTuple, override
 
 logger = logging.getLogger(__name__)
 
+
+class MegaPath(pathlib.PurePosixPath):
+    """A path object that always behaves like a POSIX path for MEGA operations.
+    Inherits from pathlib.PurePosixPath to ensure forward slashes
+    are always used as path separators.
+    """
+
+    @property
+    def str(self) -> str:
+        return self.__str__()
+
+
+# Constants
+MEGA_ROOT_PATH: Final[MegaPath] = MegaPath("/")
+"""The root path for a MEGA cloud drive."""
+
+MEGA_CURR_DIR: Final[MegaPath] = MegaPath(".")
+"""Current path in its symbolic form ('.')."""
+
+MEGA_PARENT_DIR: Final[MegaPath] = MegaPath("..")
+"""Parent directory in its symbolic form ('..')."""
+
 # TODO ISO6081 is a typo, it should be 8601
 MEGA_LS_DATEFMT_DEFAULT: LiteralString = "ISO6081_WITH_TIME"
 """Default date formatting for `ls` output."""
@@ -135,57 +157,6 @@ class MegaCmdResponse:
         return None
 
 
-class MegaError(Exception): ...
-
-
-class MegaNodeAlreadyExists(MegaError): ...
-
-
-class MegaNodeNotFound(MegaError): ...
-
-
-class MegaCmdError(MegaError):
-    """Custom exception for mega-* command errors."""
-
-    message: str
-    response: MegaCmdResponse | None
-
-    def __init__(self, message: str, response: MegaCmdResponse | None = None):
-        super().__init__(message)
-        self.message = message
-
-        # If a response object is given, use its data.
-        # This makes it the source of truth.
-
-        if response:
-            self.response = response
-
-        # Centralized logging
-        logger.error(
-            f"MegaCmdError: {self.message} (Return Code: {self.return_code}, Stderr: {self.stderr})"
-        )
-
-    @property
-    def stderr(self) -> str | None:
-        if not self.response:
-            logger.debug("Failed to retrieve stderr: No response object.")
-            return None
-        if self.response.stderr:
-            return self.response.stderr
-
-        return None
-
-    @property
-    def return_code(self) -> int | None:
-        if not self.response:
-            logger.debug("No response object.")
-            return None
-        if self.response.return_code:
-            return self.response.return_code
-
-        return 0
-
-
 class MegaFileTypes(Enum):
     """File types."""
 
@@ -213,17 +184,6 @@ class MegaSizeUnits(Enum):
         except IndexError:
             logger.warning(f"Unknown MegaSizeUnits value: {self.value}")
             return "?"
-
-
-class MegaPath(pathlib.PurePosixPath):
-    """A path object that always behaves like a POSIX path for MEGA operations.
-    Inherits from pathlib.PurePosixPath to ensure forward slashes
-    are always used as path separators.
-    """
-
-    @property
-    def str(self) -> str:
-        return self.__str__()
 
 
 class MegaNode:
@@ -385,14 +345,55 @@ class MegaCmdErrorCode(Enum):
         return self.value[1]
 
 
-MEGA_ROOT_PATH: Final[MegaPath] = MegaPath("/")
-"""The root path for a MEGA cloud drive."""
+class MegaError(Exception): ...
 
-MEGA_CURR_DIR: Final[MegaPath] = MegaPath(".")
-"""Current path in its symbolic form ('.')."""
 
-MEGA_PARENT_DIR: Final[MegaPath] = MegaPath("..")
-"""Parent directory in its symbolic form ('..')."""
+class MegaNodeAlreadyExists(MegaError): ...
+
+
+class MegaNodeNotFound(MegaError): ...
+
+
+class MegaCmdError(MegaError):
+    """Custom exception for mega-* command errors."""
+
+    message: str
+    response: MegaCmdResponse | None
+
+    def __init__(self, message: str, response: MegaCmdResponse | None = None):
+        super().__init__(message)
+        self.message = message
+
+        # If a response object is given, use its data.
+        # This makes it the source of truth.
+
+        if response:
+            self.response = response
+
+        # Centralized logging
+        logger.error(
+            f"MegaCmdError: {self.message} (Return Code: {self.return_code}, Stderr: {self.stderr})"
+        )
+
+    @property
+    def stderr(self) -> str | None:
+        if not self.response:
+            logger.debug("Failed to retrieve stderr: No response object.")
+            return None
+        if self.response.stderr:
+            return self.response.stderr
+
+        return None
+
+    @property
+    def return_code(self) -> int | None:
+        if not self.response:
+            logger.debug("No response object.")
+            return None
+        if self.response.return_code:
+            return self.response.return_code
+
+        return 0
 
 
 @dataclass(frozen=True)
