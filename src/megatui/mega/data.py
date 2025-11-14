@@ -1,11 +1,11 @@
 """Collection of constants and other useful things I could not think of a proper place for."""
 
-from datetime import datetime
 import logging
 import math
 import pathlib
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import Final, LiteralString, NamedTuple, override
@@ -349,14 +349,39 @@ class MegaCmdErrorCode(Enum):
     EXISTS = (-64, "Resource already exists")
     REQRESTART = (-71, "Restart required")
 
+    @classmethod
+    def get_all_codes(cls) -> set[int]:
+        """Return a set of all error codes defined in the Enum."""
+        # Use a set comprehension for a concise and efficient implementation
+        return {member.code for member in cls}
+
+    @classmethod
+    def is_an_error(cls, err_code: int) -> bool:
+        if err_code == cls.OK.code:
+            return False
+        return any(member.code == err_code for member in cls)
+
+    @classmethod
+    def code_to_string(cls, err_code: int) -> str:
+        if err_code == 0:
+            return cls.OK.description
+
+        for member in cls:
+            if member.code == err_code:
+                return member.description
+
+        raise ValueError(
+            f"Error code '{err_code}' is not in the set of values returned by a mega-cmd process."
+        )
+
     @property
     def code(self) -> int:
-        """The integer error code."""
+        """The integer error code for an enum member."""
         return self.value[0]
 
     @property
     def description(self) -> str:
-        """The string description of the code."""
+        """Description of error for enum member."""
         return self.value[1]
 
 
