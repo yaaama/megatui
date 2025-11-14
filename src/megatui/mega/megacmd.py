@@ -434,8 +434,9 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
     logger.info(f"Successfully moved '{file_path}' to '{target_path}'")
 
 
-async def mega_node_exists(node_path: MegaPath) -> bool:
+async def exists_in_remote(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
+
     try:
         _ = await mega_ls(path=node_path)
     except MegaCmdError as e:
@@ -457,7 +458,7 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
     assert file_path and new_name, (
         f"Cannot have empty args: `{file_path}`, `{new_name}`"
     )
-    exists = await mega_node_exists(file_path)
+    exists = await exists_in_remote(file_path)
 
     # Check if it exists
     if not exists:
@@ -471,7 +472,7 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
 
     new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
-    is_duplicate = await mega_node_exists(new_path)
+    is_duplicate = await exists_in_remote(new_path)
 
     if is_duplicate:
         logger.error("There is another file with the same name.")
@@ -496,13 +497,15 @@ async def mega_rm(fpath: MegaPath, flags: tuple[str, ...] | None) -> None:
 ###############################################################################
 async def mega_put(
     local_paths: Path | Iterable[Path],
-    target_path: MegaPath | None = None,
+    target_folder_path: MegaPath | None = None,
     queue: bool = True,
     create_remote_dir: bool = True,
 ):
     """Upload a file from the local system to a remote path.
 
     Args:
+        local_paths: Path(s) to files we should upload.
+        target_folder_path: Path to remote folder we should upload to
         'queue' refers to whether we should queue the file (prevents blocking).
         'create_remote_dir' will mean we create a directory on the remote if it does not yet exist.
     """
@@ -510,10 +513,11 @@ async def mega_put(
         logger.error("Error! Local file is not specified for upload.")
         raise ValueError("Local file is not specified for upload.")
 
-    if not target_path:
-        target_path = await mega_pwd()
+    # If target_path is not specified, just upload it to pwd
+    if not target_folder_path:
+        target_folder_path = await mega_pwd()
 
-    path_str = str(target_path)
+    path_str = str(target_folder_path)
     # Base of the command
     cmd = ["put"]
 
@@ -539,11 +543,13 @@ async def mega_put(
         cmd.extend(paths_to_upload)
 
     # Remote destination
-    cmd.append(path_str)
+    cmd.append(target_folder_path)
 
     await _exec_megacmd(tuple(cmd))
 
-    logger.info(f"Successfully initiated upload of '{local_paths}' to '{target_path}'")
+    logger.info(
+        f"Successfully initiated upload of '{local_paths}' to '{target_folder_path}'"
+    )
 
 
 def _verify_handle_structure(handle: str) -> bool:
@@ -774,7 +780,7 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
 
     remote_path = MegaPath(path, clean_name) if path else f"{clean_name}"
 
-    already_exists = await mega_node_exists(MegaPath(remote_path))
+    already_exists = await exists_in_remote(MegaPath(remote_path))
 
     if already_exists:
         logger.error("Duplicate directory name.")

@@ -230,7 +230,9 @@ class MegaTUI(App[None], inherit_bindings=False):
         filenames = ", ".join(str(files))
         self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
 
-        await m.mega_put(local_paths=tuple(files), target_path=destination, queue=True)
+        await m.mega_put(
+            local_paths=tuple(files), target_folder_path=destination, queue=True
+        )
         # TODO We should request a refresh when the upload is completed, not
         # when it has been initiated.
         self.filelist.post_message(RefreshRequest())
