@@ -285,6 +285,11 @@ class MegaNode:
         return self.ftype == MegaFileTypes.DIRECTORY
 
 
+# Alias
+# MegaItems = list[MegaItem]
+type MegaNodes = tuple[MegaNode, ...]
+
+
 class MegaCmdErrorCode(Enum):
     """An enumeration for 'megacmd' output codes, with their descriptions.
     Reference for errors in megaCMD:

@@ -34,11 +34,11 @@ from megatui.mega.data import (
     MEGA_CURR_DIR,
     MEGA_ROOT_PATH,
     MegaNode,
+    MegaNodes,
     MegaPath,
     MegaSizeUnits,
 )
 from megatui.mega.megacmd import (
-    MegaItems,
     mega_cd,
     mega_get,
     mega_ls,
@@ -346,7 +346,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         filenames_str = ", ".join(filenames)
         file_count = len(selected)
 
-        conf_result = await self.app.push_screen(
+        conf_result: bool = await self.app.push_screen(
             ConfirmationScreen(
                 title="Confirm Deletion",
                 prompt=f"Delete '{file_count}' file(s)?",
@@ -645,7 +645,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.app.post_message(MakeRemoteDirectory(results))
 
-    async def _download_files(self, files: MegaItems) -> None:
+    async def _download_files(self, files: MegaNodes) -> None:
         """Helper method to download files.
 
         TODO: Check for existing files on system and handle them
@@ -688,8 +688,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_view_transfer_list(self):
         pass
 
-    async def _move_files(self, files: MegaItems, new_path: MegaPath) -> None:
-        """Helper function to move MegaItems to a new path."""
+    async def _move_files(self, files: MegaNodes, new_path: MegaPath) -> None:
+        """Helper function to move MegaNodes to a new path."""
         if not files:
             self.log.warning("No files received to move.")
             return
@@ -764,7 +764,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         final = (cell_selection, cell_icon, cell_name, cell_mtime, cell_size)
         return final
 
-    def _update_list_on_success(self, path: MegaPath, fetched_items: MegaItems) -> None:
+    def _update_list_on_success(self, path: MegaPath, fetched_items: MegaNodes) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
         self.log.debug(f"Updating UI for path: {path}")
         self._curr_path = path
@@ -802,14 +802,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
         exclusive=True,
         name="fetch_files",
     )
-    async def _fetch_files(self, path: MegaPath) -> MegaItems | None:
+    async def _fetch_files(self, path: MegaPath) -> MegaNodes | None:
         """Asynchronously fetches items from MEGA for the given path.
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
         """
         self.log.debug(f"Begun fetching nodes for path: {path}")
         # Fetch and sort items
-        fetched_items: MegaItems = await mega_ls(path)
+        fetched_items: MegaNodes = await mega_ls(path)
 
         if not fetched_items:
             self.log.debug(f"No items found in '{path}'")
@@ -831,7 +831,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._loading_path = path  # Track the path we are loading
 
         # Start the worker. Results handled by on_worker_state_changed.
-        worker_obj: Worker[MegaItems | None] = self._fetch_files(path)
+        worker_obj: Worker[MegaNodes | None] = self._fetch_files(path)
 
         fetched_items = await worker_obj.wait()
 
@@ -876,7 +876,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return self._row_data_map[row_key]
 
     @property
-    def selected_or_highlighted_items(self) -> MegaItems | None:
+    def selected_or_highlighted_items(self) -> MegaNodes | None:
         """Returns items that are selected.
         Default to returning highlighted item if is nothing selected.
         """
@@ -894,7 +894,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         return (self.node_under_cursor,)
 
     @property
-    def selected_items(self) -> MegaItems:
+    def selected_items(self) -> MegaNodes:
         """Return MegaNode(s) that are currently selected."""
         # Get selected items
         return tuple(self._selected_items.values())

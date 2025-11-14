@@ -8,8 +8,7 @@ from pathlib import Path
 
 from textual.message import Message
 
-from megatui.mega.data import MegaNode, MegaPath
-from megatui.mega.megacmd import MegaItems
+from megatui.mega.data import MegaNode, MegaNodes, MegaPath
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -71,7 +70,7 @@ class MakeRemoteDirectory(Message):
 
 
 class DeleteNodesRequest(Message):
-    def __init__(self, nodes: MegaItems):
+    def __init__(self, nodes: MegaNodes):
         super().__init__()
         self.nodes = nodes
 

@@ -26,6 +26,7 @@ from megatui.mega.data import (
     MegaFileTypes,
     MegaMediaInfo,
     MegaNode,
+    MegaNodes,
     MegaPath,
     MegaSizeUnits,
     MegaTransferItem,
@@ -51,11 +52,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 logger.info("'megacmd' LOADED.")
-
-
-# Alias
-# MegaItems = list[MegaItem]
-type MegaItems = tuple[MegaNode, ...]
 
 
 def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
@@ -185,7 +181,7 @@ async def check_mega_login() -> bool:
 
 async def mega_ls(
     path: MegaPath | None = None, flags: tuple[str, ...] | None = None
-) -> MegaItems:
+) -> MegaNodes:
     """Lists files and directories in a given MEGA path using 'mega-ls -l' (sizes in bytes).
 
     Args:
@@ -395,7 +391,7 @@ async def mega_pwd() -> MegaPath:
 ###############################################################################
 async def mega_cd_ls(
     target_path: MegaPath | None, ls_flags: tuple[str, ...] | None = None
-) -> MegaItems:
+) -> MegaNodes:
     """Change directories and ls."""
     if not target_path:
         target_path = MegaPath("/")
@@ -404,7 +400,7 @@ async def mega_cd_ls(
 
     results = await asyncio.gather(mega_cd(target_path), mega_ls(target_path, ls_flags))
 
-    items: MegaItems = results[1]
+    items: MegaNodes = results[1]
 
     logger.debug(f"Finished cd and ls for {target_path}. Found {len(items)} items.")
 
@@ -436,7 +432,6 @@ async def mega_mv(file_path: MegaPath, target_path: MegaPath) -> None:
 
 async def exists_in_remote(node_path: MegaPath) -> bool:
     """Check for the existence of a node using its path."""
-
     try:
         _ = await mega_ls(path=node_path)
     except MegaCmdError as e:
@@ -517,7 +512,6 @@ async def mega_put(
     if not target_folder_path:
         target_folder_path = await mega_pwd()
 
-    path_str = str(target_folder_path)
     # Base of the command
     cmd = ["put"]
 
@@ -531,24 +525,22 @@ async def mega_put(
     # Add path to upload
     # This correctly handles the ambiguity of Path also being an Iterable.
     if isinstance(local_paths, Path):
-        logger.info(f"Uploading file: {local_paths} to {path_str}")
         # Convert the single Path to a string before appending.
         cmd.append(str(local_paths))
     else:
         # If it's not a single Path, it must be our intended Iterable[Path].
-        # Convert to a list to safely get its length and prevent issues with one-time iterators.
+        # Convert to a list to safely get its length and prevent issues with one-time
         paths_to_upload = [str(p) for p in local_paths]
-        logger.info(f"Uploading {len(paths_to_upload)} files to {path_str}")
         # Extend the command list with the new list of strings.
         cmd.extend(paths_to_upload)
 
     # Remote destination
-    cmd.append(target_folder_path)
+    cmd.append(target_folder_path.str)
 
     await _exec_megacmd(tuple(cmd))
 
     logger.info(
-        f"Successfully initiated upload of '{local_paths}' to '{target_folder_path}'"
+        f"Successfully initiated upload of '{local_paths}' to '{target_folder_path.str}'"
     )
 
 
