@@ -970,7 +970,7 @@ async def mega_mediainfo(
     header_keys = header_line.split()
 
     if not header_keys or header_keys[0] != "FILE":
-        raise ValueError(f"Could not parse `mediainfo` header output: {header_line}")
+        raise ValueError(f"Could not parse `mediainfo` header output: '{header_line}'")
 
     parsed = (
         info
@@ -978,8 +978,9 @@ async def mega_mediainfo(
         if (info := _parse_mediainfo_line(line, header_keys)) is not None
     )
 
-    final_parsed = tuple(parsed)
-    if not final_parsed:
+    if not parsed:
         raise ValueError("Did not manage to parse any mediainfo lines from the output.")
+
+    final_parsed = tuple(parsed)
 
     return final_parsed
