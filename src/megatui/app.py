@@ -4,7 +4,7 @@ import sys
 from functools import cached_property
 from typing import ClassVar, override
 
-from textual import on, work
+from textual import getters, on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
@@ -86,6 +86,10 @@ class MegaTUI(App[None], inherit_bindings=False):
         Binding(key="f4", action="view_transfer_list", description="display transfers"),
     ]
 
+    filelist = getters.query_one("#filelist", expect_type=FileList)
+
+    top_status_bar = getters.query_one("#top-status-bar", TopStatusBar)
+
     def __init__(self):
         super().__init__()
 
@@ -100,7 +104,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         # Our file list
         file_list = FileList()
         # Top status bar
-        top_status_bar = TopStatusBar()
+        top_status_bar = TopStatusBar("top-status-bar")
 
         footer = Footer(show_command_palette=True)
         footer.compact = True
@@ -313,17 +317,6 @@ class MegaTUI(App[None], inherit_bindings=False):
             message=f"[bold][red]{node_count}[/red][/bold] nodes(s) deleted!",
             title="Deletion",
         )
-
-    # Widget access.
-    @cached_property
-    def filelist(self):
-        """Return FileList widget."""
-        return self.query_one(FileList)
-
-    @cached_property
-    def top_status_bar(self):
-        """Return TopStatusBar of UI."""
-        return self.query_one(TopStatusBar)
 
 
 # Run the application #####################################################################

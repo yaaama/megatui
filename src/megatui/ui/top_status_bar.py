@@ -20,6 +20,9 @@ class TopStatusBar(Horizontal):
 
     DEFAULT_CSS = """ """
 
+    def __init__(self, id: str):
+        super().__init__(id=id)
+
     @override
     def compose(self) -> ComposeResult:
         """Create the child widgets."""
