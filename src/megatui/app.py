@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import sys
-from functools import cached_property
 from typing import ClassVar, override
 
 from textual import getters, on, work
@@ -83,7 +82,7 @@ class MegaTUI(App[None], inherit_bindings=False):
             show=False,
             priority=True,
         ),
-        Binding(key="f4", action="view_transfer_list", description="display transfers"),
+        Binding(key="t", action="view_transfer_list", description="Display Transfers"),
     ]
 
     filelist = getters.query_one("#filelist", expect_type=FileList)
@@ -205,7 +204,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         except ValueError as e:
             self.post_message(
                 StatusUpdate(
-                    message=f"Could not create directory '{event.dir_path.str}'\n{str(e)}."
+                    message=f"Could not create directory '{event.dir_path.str}'\n{e!s}."
                 )
             )
 
@@ -218,8 +217,9 @@ class MegaTUI(App[None], inherit_bindings=False):
             await m.mega_node_rename(msg.node.path, msg.new_name)
             self.post_message(RefreshRequest(RefreshType.DEFAULT))
         except ValueError as e:
-            self.post_message(StatusUpdate(message=f"{str(e)}"))
+            self.post_message(StatusUpdate(message=f"{e!s}"))
 
+    @on(UploadRequest)
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
         """Handle upload requests."""
@@ -269,6 +269,8 @@ class MegaTUI(App[None], inherit_bindings=False):
     @on(StatusUpdate)
     def update_status_message(self, message: StatusUpdate):
         """Refresh UI when status bar is updated."""
+        self.notify(message=f"{message.message}")
+
         status_bar = self.top_status_bar
         status_bar.status_msg = message.message
 

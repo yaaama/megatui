@@ -270,7 +270,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             cursor_type="row",
             header_height=2,
             zebra_stripes=False,
-            show_row_labels=True,
+            show_row_labels=False,
             cursor_foreground_priority="renderable",
         )
 
