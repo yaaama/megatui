@@ -250,7 +250,6 @@ class MegaTUI(App[None], inherit_bindings=False):
             Content.from_text(f"[r][b]{message.count}[/] file(s) selected[/]")
         )
         self.log.debug(f"Selected {message.count}")
-        selection_label.refresh()
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
