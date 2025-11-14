@@ -263,9 +263,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # * Initialisation #########################################################
 
-    def __init__(self):
+    def __init__(self, id: str):
         super().__init__(
-            id="filelist",
+            id=id,
             show_header=True,
             cursor_type="row",
             header_height=2,

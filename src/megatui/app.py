@@ -101,7 +101,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         self.capture_mouse(None)
 
         # Our file list
-        file_list = FileList()
+        file_list = FileList(id="filelist")
         # Top status bar
         top_status_bar = TopStatusBar("top-status-bar")
 
