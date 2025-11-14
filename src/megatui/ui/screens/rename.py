@@ -71,9 +71,7 @@ class RenameDialog(ModalScreen[tuple[str, MegaNode]]):
 
     @on(Input.Submitted, "#input-box")
     def action_submit_rename(self) -> tuple[str, MegaNode] | None:
-        if value := self.query_one(Input).value.strip():
-            self.app.post_message(RenameNodeRequest(self.node, value))
-        self.dismiss()
+        if input := self.query_one(Input).value.strip():
+            self.dismiss((input, self.node))
 
-    def action_close_window(self) -> None:
-        self.app.pop_screen()
+        self.dismiss(None)

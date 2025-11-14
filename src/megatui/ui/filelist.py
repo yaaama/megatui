@@ -48,8 +48,10 @@ from megatui.mega.megacmd import (
 )
 from megatui.messages import (
     DeleteNodesRequest,
+    MakeRemoteDirectory,
     RefreshRequest,
     RefreshType,
+    RenameNodeRequest,
     StatusUpdate,
 )
 from megatui.ui.file_tree import UploadFilesModal
@@ -603,16 +605,14 @@ class FileList(DataTable[Any], inherit_bindings=False):
         selected_item = self.node_under_cursor
 
         if not selected_item:
-            self.log.error("No highlighted file to rename.")
             return
 
         node_path = str(selected_item.path)
 
         if node_path == "/":
-            self.log.error("Cannot rename root directory!")
             return
 
-        await self.app.push_screen(
+        results = await self.app.push_screen(
             RenameDialog(
                 popup_prompt=f"Rename {selected_item.name}",
                 node=selected_item,
@@ -624,16 +624,28 @@ class FileList(DataTable[Any], inherit_bindings=False):
             wait_for_dismiss=True,
         )
 
+        if (not results[0]) or (not results[1]):
+            return
+
+        self.app.post_message(RenameNodeRequest(results[0], results[1]))
+
+    @work
     async def action_mkdir(self) -> None:
         """Make a directory."""
-        await self.app.push_screen(
+        results = await self.app.push_screen(
             MkdirDialog(
                 popup_prompt=f"Make New Directory '{self._curr_path}'",
                 emoji_markup_prepended=":open_file_folder:",
                 curr_path=self._curr_path,
                 initial_input=None,
-            )
+            ),
+            wait_for_dismiss=True,
         )
+
+        if not results:
+            return
+
+        self.app.post_message(MakeRemoteDirectory(results))
 
     async def _download_files(self, files: MegaItems) -> None:
         """Helper method to download files.

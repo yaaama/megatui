@@ -58,10 +58,10 @@ class RefreshRequest(Message):
 
 
 class RenameNodeRequest(Message):
-    def __init__(self, node: MegaNode, new_name: str):
+    def __init__(self, new_name: str, node: MegaNode):
         super().__init__()
-        self.node = node
         self.new_name = new_name
+        self.node = node
 
 
 class MakeRemoteDirectory(Message):

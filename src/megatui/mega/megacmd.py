@@ -472,6 +472,12 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
 
     new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
+    is_duplicate = await mega_node_exists(new_path)
+
+    if is_duplicate:
+        logger.error("There is another file with the same name.")
+        raise RuntimeError("Cannot rename file to one that already exists.")
+
     await mega_mv(file_path, new_path)
 
 
@@ -771,9 +777,15 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
     # Base command. The -p flag creates parent directories as needed (e.g., for 'a/b/c').
     cmd = ["mkdir", "-p"]
 
-    remote_path = MegaPath(path, clean_name).str if path else f"{clean_name}"
+    remote_path = MegaPath(path, clean_name) if path else f"{clean_name}"
 
-    cmd.append(remote_path)
+    already_exists = await mega_node_exists(MegaPath(remote_path))
+
+    if already_exists:
+        logger.error("Duplicate directory name.")
+        raise ValueError("Duplicate directory name!")
+
+    cmd.append(str(remote_path))
 
     # Try running command
     try:

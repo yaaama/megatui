@@ -188,27 +188,33 @@ class MegaTUI(App[None], inherit_bindings=False):
     # # Message Handlers ###########################################################
     #
 
+    @on(MakeRemoteDirectory)
     @work(name="mkdir", group="megacmd")
     async def on_make_remote_directory(self, event: MakeRemoteDirectory) -> None:
         # If no path return
         if not event.dir_path:
             return
 
-        success = await m.mega_mkdir(name=event.dir_path.str, path=None)
-        if not success:
+        try:
+            await m.mega_mkdir(name=event.dir_path.str, path=None)
+            self.post_message(RefreshRequest(RefreshType.DEFAULT))
+        except ValueError as e:
             self.post_message(
                 StatusUpdate(
-                    message=f"Could not create directory '{event.dir_path.str}' for some reason."
+                    message=f"Could not create directory '{event.dir_path.str}'\n{str(e)}."
                 )
             )
 
-        await self.filelist.action_refresh()
-
+    @on(RenameNodeRequest)
     @work(name="rename")
     async def on_rename_node_request(self, msg: RenameNodeRequest):
         self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
-        await m.mega_node_rename(msg.node.path, msg.new_name)
-        await self.filelist.action_refresh()
+
+        try:
+            await m.mega_node_rename(msg.node.path, msg.new_name)
+            self.post_message(RefreshRequest(RefreshType.DEFAULT))
+        except ValueError as e:
+            self.post_message(StatusUpdate(message=f"{str(e)}"))
 
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
