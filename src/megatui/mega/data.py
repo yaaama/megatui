@@ -175,7 +175,7 @@ class MegaSizeUnits(Enum):
 
     # Helper to get the string representation used in the size calculation
     def unit_str(self) -> str:
-        """String representation for the unit"""
+        """String representation for the unit."""
         # Match the order in the Enum
         _unit_strings = ["B", "KB", "MB", "GB", "TB"]
         try:

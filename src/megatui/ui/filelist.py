@@ -607,6 +607,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         node_path = str(selected_item.path)
 
+        # Cannot rename root path
         if node_path == "/":
             return
 
