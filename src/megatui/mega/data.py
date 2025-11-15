@@ -7,7 +7,6 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from functools import cached_property
 from typing import Final, LiteralString, NamedTuple, override
 
 logger = logging.getLogger(__name__)
@@ -50,7 +49,7 @@ MEGA_DEFAULT_CMD_ARGS = {
 
 # A dictionary defining the components of the 'ls' output.
 # These keys will become the named capture groups in the final regex.
-LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
+_LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
     #  Flags: Can be either alphabetical or a hyphen (e.g., 'd---')
     "flags": r"[a-zA-Z-]{4}",
     # Version ('-' or a number)
@@ -71,12 +70,12 @@ LS_PATTERN_COMPONENTS: Final[dict[str, str]] = {
 LS_REGEXP: Final[re.Pattern[str]] = re.compile(
     rf"""
     ^
-    (?P<flags>{LS_PATTERN_COMPONENTS["flags"]}) \s+
-    (?P<version>{LS_PATTERN_COMPONENTS["version"]}) \s+
-    (?P<size>{LS_PATTERN_COMPONENTS["size"]}) \s+
-    (?P<datetime>{LS_PATTERN_COMPONENTS["datetime"]}) \s+
-    (?P<filehandle>{LS_PATTERN_COMPONENTS["filehandle"]}) \s+
-    (?P<filename>{LS_PATTERN_COMPONENTS["filename"]})
+    (?P<flags>{_LS_PATTERN_COMPONENTS["flags"]}) \s+
+    (?P<version>{_LS_PATTERN_COMPONENTS["version"]}) \s+
+    (?P<size>{_LS_PATTERN_COMPONENTS["size"]}) \s+
+    (?P<datetime>{_LS_PATTERN_COMPONENTS["datetime"]}) \s+
+    (?P<filehandle>{_LS_PATTERN_COMPONENTS["filehandle"]}) \s+
+    (?P<filename>{_LS_PATTERN_COMPONENTS["filename"]})
     $
     """,
     re.VERBOSE,
@@ -434,55 +433,24 @@ class MegaDiskFree:
     version_size_bytes: int | None
 
 
+@dataclass(frozen=True, slots=True, eq=False, match_args=False)
 class MegaMediaInfo:
+    """Class to store media information for a file."""
+
     path: str
     width: int | None
     height: int | None
     fps: float | None
     playtime: str | None
 
-    def __init__(
-        self,
-        path: str,
-        width: int | None,
-        height: int | None,
-        fps: int | None,
-        playtime: str | None,
-    ):
-        self.path = path
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self.playtime = playtime
-
-    @cached_property
-    def fname(self) -> str:
-        split = self.path.rsplit("/", 1)
-        return ".../" + split[1]
-
     @property
     def resolution(self) -> str:
+        """Resolution details."""
         if self.width and self.height:
             resolution = f"({self.width}x{self.height})"
         else:
             resolution = "(Unknown resolution)"
         return resolution
-
-    @override
-    def __repr__(self) -> str:
-        return (
-            "MegaMediaInfo("
-            + f"path={self.path!r}, "
-            + f"width={self.width}, "
-            + f"height={self.height}, "
-            + f"fps={self.fps}, "
-            + f"playtime={self.playtime!r}"
-            + ")"
-        )
-
-    @override
-    def __str__(self) -> str:
-        return f"Path: '{self.path}', Resolution:{self.resolution}, FPS: {self.fps}, Playtime: {self.playtime}"
 
 
 MEGA_TRANSFERS_REGEXP = re.compile(

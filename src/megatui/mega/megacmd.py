@@ -62,11 +62,9 @@ def _build_megacmd_cmd(command: tuple[str, ...]) -> tuple[str, ...]:
     Also performs checking to see if the command is valid.
     """
     if not command:
-        logger.critical("Command tuple cannot be empty.")
         raise ValueError("Command tuple cannot be empty.")
 
     if command[0] not in MEGA_COMMANDS_SUPPORTED:
-        logger.critical(f"Unsupported command '{command[0]}' requested.")
         raise NotImplementedError(
             f"The library does not support command: '{command[0]}'"
         )
@@ -131,8 +129,7 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
 
         if process.returncode not in known_codes:
             raise MegaUnknownError(
-                response=cmd_response,
-                note=f"Unknown error code: {cmd_response.__str__()}'",
+                f"Unknown error: '{cmd_response.__str__()}'",
             )
 
         # Error printed by megacmd
@@ -140,7 +137,12 @@ async def _exec_megacmd(command: tuple[str, ...]) -> MegaCmdResponse:
             cmd_response.stderr if cmd_response.stderr else cmd_response.stdout
         )
         # Formatted error
-        formatted_err_msg = f"Failed '{cmd[0]}', ReturnCode='{cmd_response.return_code}', StdOut:'{process.stdout}', StdErr='{command_error_output}'"
+        formatted_err_msg = (
+            f"Failed '{cmd[0]}',"
+            + f"ReturnCode='{cmd_response.return_code}',"
+            + f"StdOut='{process.stdout}',"
+            + f"StdErr='{command_error_output}'"
+        )
         textwrap.fill(formatted_err_msg)
         logger.error(formatted_err_msg)
         raise MegaCmdError(message=formatted_err_msg, response=cmd_response)
