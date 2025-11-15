@@ -175,7 +175,7 @@ class MegaSizeUnits(Enum):
 
     # Helper to get the string representation used in the size calculation
     def unit_str(self) -> str:
-        """Returns the unit best suited for the size of the file."""
+        """String representation for the unit"""
         # Match the order in the Enum
         _unit_strings = ["B", "KB", "MB", "GB", "TB"]
         try:
@@ -184,6 +184,15 @@ class MegaSizeUnits(Enum):
         except IndexError:
             logger.warning(f"Unknown MegaSizeUnits value: {self.value}")
             return "?"
+
+    def bytes_to_unit(self, bytes: int) -> float:
+        if not bytes:
+            return 0
+
+        # 1 << 10 is 1024 (2^10) (KiloBytes)
+        divisor = 1 if (self.value == 0) else (1 << (10 * self.value))
+
+        return float(bytes) / divisor
 
 
 class MegaNode:

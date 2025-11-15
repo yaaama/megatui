@@ -330,13 +330,12 @@ async def mega_ls(
 async def mega_du(
     dir_path: MegaPath | None,
     include_version_info: bool = False,
-    # TODO Integrate units param into func
-    units: MegaSizeUnits | None = None,  # pyright: ignore[reportUnusedParameter]
+    units: MegaSizeUnits | None = None,
 ):
     """Get disk usage.
     'dir_path' is the path of the directory or if None, the current directory.
     'include_version_info' includes sizes of versions.
-    'units' must be one of the values specified by SIZE_UNIT enum.
+    'units' must be one of the values specified by `MegaSizeUnits` enum.
     """
     # Prepare our command
     cmd: list[str] = ["du"]
@@ -345,6 +344,7 @@ async def mega_du(
         dir_path = MEGA_ROOT_PATH
 
     if include_version_info:
+        raise NotImplementedError("We have not yet implemented the version flag.")
         cmd.append("--versions")
 
     cmd.append(dir_path.str)
@@ -353,7 +353,6 @@ async def mega_du(
 
     logger.debug(f"Successfully ran 'du' for path '{dir_path}'")
 
-    # TODO Finish this off by parsing the headers (we can discard) and the file paths and size
     if not response.stdout:
         return None
     output = response.stdout.splitlines()
@@ -373,9 +372,22 @@ async def mega_du(
     _filename, _size = file_line_match.groups()
 
     if (not _filename) or (not _size):
-        raise ValueError("Did not parse a filename or a size from 'du' output.")
+        raise ValueError(
+            f"Did not parse a filename or a size from 'du' output: \n'{output}'"
+        )
 
-    return MegaDiskUsage(location=MegaPath(_filename), size_bytes=int(_size))
+    try:
+        size_bytes = int(_size)
+    except ValueError as e:
+        logger.error("Could not parse 'du' output:\n'%s'", output)
+        raise e
+
+    if units:
+        size = units.bytes_to_unit(_size)
+    else:
+        size = size_bytes
+
+    return MegaDiskUsage(location=MegaPath(_filename), size_bytes=size)
 
 
 ###############################################################################
