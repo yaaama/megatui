@@ -289,7 +289,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         )
 
     @on(DeleteNodesRequest)
-    async def _delete_files(self, event: DeleteNodesRequest):
+    async def on_delete_nodes_request(self, event: DeleteNodesRequest):
         """Helper function to call megacmd and delete files specified by arg `files`."""
         log.info("Deleting files")
 
@@ -324,7 +324,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         )
 
     @on(MoveNodesRequest)
-    async def _move_files(self, event: MoveNodesRequest) -> None:
+    async def on_move_nodes_request(self, event: MoveNodesRequest) -> None:
         """Move nodes to new path on request."""
         files = event.nodes
         path = event.path
@@ -347,7 +347,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         log.info("All file move operations completed.")
 
     @on(DownloadNodesRequest)
-    async def _download_files(self, event: DownloadNodesRequest) -> None:
+    async def on_download_nodes_request(self, event: DownloadNodesRequest) -> None:
         """Helper method to download files.
 
         TODO: Check for existing files on system and handle them
