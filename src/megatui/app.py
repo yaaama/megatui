@@ -334,7 +334,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
         tasks: list[asyncio.Task[None]] = []
         for f in files:
-            log.info(f"Queueing move for `{f.name}` from `{f.path}` to: `{path}`")
+            log.debug(f"Queueing move for `{f.name}` from `{f.path}` to: `{path}`")
             task = asyncio.create_task(m.mega_mv(file_path=f.path, target_path=path))
             tasks.append(task)
 
@@ -358,15 +358,28 @@ class MegaTUI(App[None], inherit_bindings=False):
             log.warning("Did not receive any files to download!")
             return
 
+        tasks: list[asyncio.Task[None]] = []
         dl_len = 0
-        for _i, file in enumerate(files):
-            await m.mega_get(target_path=str(download_path), remote_path=str(file.path))
+        for file in files:
+            log.debug(
+                f"Queueing download for `{file.name}` from `{file.path}` to: `{download_path}`"
+            )
+            task = asyncio.create_task(
+                m.mega_get(target_path=str(download_path), remote_path=str(file.path))
+            )
+            tasks.append(task)
             dl_len += 1
+
+        await asyncio.gather(*tasks)
 
         self.notify(
             message=f"Queued [red][i][b]{dl_len}[/red][/i][/b] files for download.",
             title="Downloading",
             markup=True,
+        )
+
+        self.filelist.post_message(
+            RefreshRequest(RefreshType.AFTER_DOWNLOAD, reload=False)
         )
 
 

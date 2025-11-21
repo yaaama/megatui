@@ -41,7 +41,8 @@ class RefreshType(Enum):
     DEFAULT = auto()  # A standard, user-initiated refresh (e.g., pressing 'r')
     AFTER_DELETION = auto()  # Refresh after one or more items were deleted
     AFTER_CREATION = auto()  # Refresh after a new item (file/dir) was created
-    AFTER_MV = auto()
+    AFTER_MV = auto()  # Refresh after nodes were moved to cwd
+    AFTER_DOWNLOAD = auto()  # After downloads queued
 
 
 class RefreshRequest(Message):
@@ -51,10 +52,12 @@ class RefreshRequest(Message):
         self,
         type: RefreshType = RefreshType.DEFAULT,
         cursor_row_before_refresh: int | None = None,
+        reload: bool = True,
     ) -> None:
         super().__init__()
         self.type = type
         self.cursor_row_before_refresh = cursor_row_before_refresh
+        self.reload = reload
 
 
 class RenameNodeRequest(Message):

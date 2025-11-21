@@ -420,7 +420,8 @@ class FileList(DataTable[Any], inherit_bindings=False):
         prev_row = event.cursor_row_before_refresh
 
         with self.app.batch_update():
-            await self._perform_refresh()
+            if event.reload:
+                await self._perform_refresh()
 
             match event.type:
                 case RefreshType.AFTER_DELETION:
@@ -434,6 +435,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                     # If target index is within bounds then move it there
                     if target_cursor_index >= 0:
                         self.move_cursor(row=target_cursor_index, animate=False)
+
                 case RefreshType.AFTER_MV:
                     self.action_unselect_all_files()
                     self.move_cursor(row=prev_row)
@@ -445,6 +447,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
                         # If target index is within bounds then move it there
                         if target_cursor_index >= 0:
                             self.move_cursor(row=target_cursor_index, animate=False)
+
+                case RefreshType.AFTER_DOWNLOAD:
+                    self.action_unselect_all_files()
 
     async def action_refresh(self, quiet: bool = False) -> None:
         """Refreshes current working directory."""
