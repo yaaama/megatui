@@ -133,21 +133,22 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     # * State #################################################################
 
-    _row_data_map: dict[
-        str, MegaNode
-    ]  # Row and associated MegaItem mapping for current directory.
+    _row_data_map: dict[str, MegaNode]
+    """Map between rowkey and node for current view."""
 
-    _selected_items: dict[
-        str, MegaNode
-    ]  # Dict to store selected MegaItem(s), indexed by their handles.
+    _selected_items: dict[str, MegaNode]
+    """Stores selected nodes, indexed by their handles. """
 
     _curr_path: MegaPath  # Current path we are in.
+    """Current path we are in."""
 
     _loading_path: MegaPath  # Path we are currently loading.
+    """Path we are trying to load."""
 
     _cursor_index_stack: deque[
         int
     ]  # Stores cursor index before navigating into a child folder.
+    """Cursor index history stack. """
 
     # * Bindings ###############################################################
     _FILE_ACTION_BINDINGS: ClassVar[list[BindingType]] = [
@@ -217,7 +218,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             description="Move Node to Current Directory",
         ),
     ]
-    """ Binds that deal with files. """
+    """Binds that deal with files."""
 
     _NAVIGATION_BINDINGS: ClassVar[list[BindingType]] = [
         Binding(
@@ -251,7 +252,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             description="Jump to Last Node",
         ),
     ]
-    """ Binds related to navigation. """
+    """Binds related to navigation."""
 
     BINDINGS: ClassVar[list[BindingType]] = _NAVIGATION_BINDINGS + _FILE_ACTION_BINDINGS
 

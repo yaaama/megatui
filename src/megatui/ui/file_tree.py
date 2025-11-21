@@ -186,7 +186,7 @@ class LocalSystemFileTree(DirectoryTree, inherit_bindings=False):
         }
 
     def _toggle_selection(self, node: TreeNode[DirEntry]) -> None:
-        """Toggles the selection state of a node based on the new logic."""
+        """Toggles the selection state of a node"""
         if not (node and node.data and node.data.path):
             return
 
