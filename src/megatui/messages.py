@@ -83,6 +83,13 @@ class MoveNodesRequest(Message):
         self.nodes = nodes
 
 
+class DownloadNodesRequest(Message):
+    def __init__(self, path: Path | str, nodes: Iterable[MegaNode]):
+        super().__init__()
+        self.path = path
+        self.nodes = nodes
+
+
 class Notification(Message):
     """Send a notification to the user."""
 

@@ -3,7 +3,6 @@ Contains actions and is the main way to interact with the application.
 """
 
 # UI Components Related to Files
-import asyncio
 import os
 from collections import deque
 from dataclasses import dataclass
@@ -40,14 +39,13 @@ from megatui.mega.data import (
 )
 from megatui.mega.megacmd import (
     mega_cd,
-    mega_get,
     mega_ls,
     mega_mediainfo,
-    mega_mv,
     mega_pwd,
 )
 from megatui.messages import (
     DeleteNodesRequest,
+    DownloadNodesRequest,
     MakeRemoteDirectory,
     MoveNodesRequest,
     RefreshRequest,
@@ -648,29 +646,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.app.post_message(MakeRemoteDirectory(results))
 
-    async def _download_files(self, files: MegaNodes) -> None:
-        """Helper method to download files.
-
-        TODO: Check for existing files on system and handle them
-        """
-        if not files:
-            log.warning("Did not receive any files to download!")
-            return
-
-        dl_len = len(files)
-        for i, file in enumerate(files):
-            self.post_message(
-                StatusUpdate(message=f"Downloading ({i + 1}/{dl_len}) '{file.name}'")
-            )
-            await mega_get(
-                target_path=str(self.download_path), remote_path=str(file.path)
-            )
-            rendered_emoji = Text.from_markup(text=":ballot_box_with_check:")
-            title = Text.from_markup(f"[b]{rendered_emoji} download complete![/]")
-            self.notify(
-                f"'{file.name}' finished downloading ", title=f"{title}", markup=True
-            )
-
     async def action_download(self) -> None:
         """Download the currently highlighted file or a selection of files.
 
@@ -680,7 +655,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """
         dl_items = self.selected_or_highlighted_items or ()
 
-        await self._download_files(dl_items)
+        if not dl_items:
+            return
+
+        self.app.post_message(DownloadNodesRequest(self.download_path, dl_items))
 
     async def action_move_files(self):
         """Move selected files to current directory."""

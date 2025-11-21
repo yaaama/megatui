@@ -15,6 +15,7 @@ from megatui.mega import megacmd as m
 from megatui.mega.data import MegaPath
 from megatui.messages import (
     DeleteNodesRequest,
+    DownloadNodesRequest,
     MakeRemoteDirectory,
     MoveNodesRequest,
     RefreshRequest,
@@ -344,6 +345,29 @@ class MegaTUI(App[None], inherit_bindings=False):
             RefreshRequest(RefreshType.AFTER_MV, self.filelist.cursor_row)
         )
         log.info("All file move operations completed.")
+
+    @on(DownloadNodesRequest)
+    async def _download_files(self, event: DownloadNodesRequest) -> None:
+        """Helper method to download files.
+
+        TODO: Check for existing files on system and handle them
+        """
+        files = event.nodes
+        download_path = self.filelist.download_path
+        if not files:
+            log.warning("Did not receive any files to download!")
+            return
+
+        dl_len = 0
+        for _i, file in enumerate(files):
+            await m.mega_get(target_path=str(download_path), remote_path=str(file.path))
+            dl_len += 1
+
+        self.notify(
+            message=f"Queued [red][i][b]{dl_len}[/red][/i][/b] files for download.",
+            title="Downloading",
+            markup=True,
+        )
 
 
 # Run the application #####################################################################
