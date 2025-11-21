@@ -3,7 +3,7 @@ import logging
 import sys
 from typing import ClassVar, override
 
-from textual import getters, on, work
+from textual import getters, log, on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
@@ -129,7 +129,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """Called when the app is mounted.
         Performs initial load and some initialisation.
         """
-        self.log.info("MegaAppTUI mounted. Starting initial load.")
+        log.info("MegaAppTUI mounted. Starting initial load.")
 
         await self.filelist.load_directory()
 
@@ -139,7 +139,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
     def action_toggle_darkmode(self) -> None:
         """Toggle darkmode for the application."""
-        self.log.info("Toggling darkmode.")
+        log.info("Toggling darkmode.")
         self.action_toggle_dark()
 
     def action_show_help_screen(self) -> None:
@@ -211,7 +211,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     @on(RenameNodeRequest)
     @work(name="rename")
     async def on_rename_node_request(self, msg: RenameNodeRequest):
-        self.log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
+        log.info(f"Renaming node `{msg.node.name}` to `{msg.new_name}`")
 
         try:
             await m.mega_node_rename(msg.node.path, msg.new_name)
@@ -223,12 +223,12 @@ class MegaTUI(App[None], inherit_bindings=False):
     @work(name="upload")
     async def on_upload_request(self, msg: UploadRequest):
         """Handle upload requests."""
-        self.log.info("Uploading file(s)")
+        log.info("Uploading file(s)")
 
         files = list(msg.files)
         destination = msg.destination if msg.destination else MegaPath()
         filenames = ", ".join(str(files))
-        self.log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
+        log.debug(f"Destination: `{destination}`\nFiles:\n`{filenames}`")
 
         await m.mega_put(
             local_paths=tuple(files), target_folder_path=destination, queue=True
@@ -245,13 +245,13 @@ class MegaTUI(App[None], inherit_bindings=False):
         selection_label = self.query_one("#label-selected-count", Label)
         if message.count == 0:
             selection_label.update(Content.empty())
-            self.log.debug("Selection counter cleared.")
+            log.debug("Selection counter cleared.")
             return
 
         selection_label.update(
             Content.from_text(f"[r][b]{message.count}[/] file(s) selected[/]")
         )
-        self.log.debug(f"Selected {message.count}")
+        log.debug(f"Selected {message.count}")
 
     @on(FileList.PathChanged)
     def on_file_list_path_changed(self, message: FileList.PathChanged) -> None:
@@ -265,7 +265,7 @@ class MegaTUI(App[None], inherit_bindings=False):
         """Update TopStatusBar to signal that loading PATH had an error."""
         self.top_status_bar.signal_error(f"Failed to load path: {message.path}")
         # Log the detailed error
-        self.log.error(f"Error loading directory: {message.error}")
+        log.error(f"Error loading directory: {message.error}")
 
     @on(StatusUpdate)
     def update_status_message(self, message: StatusUpdate):
@@ -277,7 +277,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
         def clear_status_msg():
             """Clear TopStatusBar of all its contents."""
-            self.log.info("Clearing status message in top bar.")
+            log.info("Clearing status message in top bar.")
             status_bar.clear_status_msg()
 
         # Set timer for status bar to clear its contents
@@ -289,7 +289,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     @on(DeleteNodesRequest)
     async def _delete_files(self, event: DeleteNodesRequest):
         """Helper function to call megacmd and delete files specified by arg `files`."""
-        self.log.info("Deleting files")
+        log.info("Deleting files")
 
         cursor_pos = self.filelist.cursor_row
 
@@ -307,7 +307,7 @@ class MegaTUI(App[None], inherit_bindings=False):
                 )
 
         await asyncio.gather(*tasks)
-        self.log.debug(
+        log.debug(
             "Deletion success for nodes: '%s'",
             ", ".join(item.path.str for item in nodes),
         )

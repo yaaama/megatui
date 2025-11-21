@@ -22,7 +22,7 @@ from typing import (
 
 from rich.style import Style
 from rich.text import Text
-from textual import getters, on, work
+from textual import getters, log, on, work
 from textual.binding import Binding, BindingType
 from textual.content import Content
 from textual.message import Message
@@ -288,7 +288,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
     @override
     def on_mount(self) -> None:
         # Initialise the columns displayed Column and their respective formatting
-        self.log.info("Adding columns to FileList")
+        log("Adding columns to FileList")
         # Add columns with specified widths
         for column in ColumnFormatting:
             self.add_column(
@@ -297,7 +297,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 key=column.name,
             )
 
-        self.log.debug(
+        log(
             "Successfully added columns: '%s'",
             ", ".join(ColumnFormatting._member_names_),
         )
@@ -322,9 +322,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         mediainfo = await mega_mediainfo(nodes=highlighted)
 
         if not mediainfo:
-            self.log.error(
-                "Received invalid mediainfo for node '%s'", str(highlighted.path)
-            )
+            log.error("Received invalid mediainfo for node '%s'", str(highlighted.path))
             return
 
         self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
@@ -335,11 +333,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
     )
     async def action_delete_files(self) -> None:
         """Delete files in the cloud, with confirmation prompt."""
-        self.log.info("Deleting files")
+        log.info("Deleting files")
         # Selected files
         selected = self.selected_or_highlighted_items
         if not selected:
-            self.log.info("Cannot delete empty item.")
+            log.info("Cannot delete empty item.")
             return
 
         filenames = [str(item.path) for item in selected]
@@ -357,10 +355,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # If we get False
         if not conf_result:
-            self.log.debug("Deletion cancelled: Confirmation prompt returned false.")
+            log.debug("Deletion cancelled: Confirmation prompt returned false.")
             return
 
-        self.log.debug("Confirmed deletion.")
+        log.debug("Confirmed deletion.")
         self.app.post_message(DeleteNodesRequest(selected))
 
     async def action_upload_file(self) -> None:
@@ -379,7 +377,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # Check if it's a regular file
         if selected_item_data.is_file:
-            self.log.debug("Cannot enter into a FILE.")
+            log.debug("Cannot enter into a FILE.")
             return
 
         # Folder to enter
@@ -398,7 +396,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if curr_path == "/":
             return
 
-        self.log.debug(f"Navigating out of directory {self._curr_path}")
+        log.debug(f"Navigating out of directory {self._curr_path}")
         parent_path = self._curr_path.parent
         curs_index = (
             self._cursor_index_stack.pop() if len(self._cursor_index_stack) > 0 else 0
@@ -466,7 +464,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         try:
             return self._row_data_map[row_key]
         except KeyError as e:
-            self.log.error(
+            log.error(
                 f"Could not find data for row key '{row_key}'. State is inconsistent."
             )
             raise e
@@ -486,7 +484,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return row_key.value
 
         except RowDoesNotExist:
-            self.log.error("Could not return any row.")
+            log.error("Could not return any row.")
             return None
 
     def _get_megaitem_at_cursor(self) -> MegaNode | None:
@@ -536,7 +534,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         row_key = self._get_curr_row_key()
 
         if not row_key:
-            self.log.debug("Cannot toggle selection, cursor is not on a row.")
+            log.debug("Cannot toggle selection, cursor is not on a row.")
             return
 
         is_selected = row_key in self._selected_items
@@ -652,7 +650,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         TODO: Check for existing files on system and handle them
         """
         if not files:
-            self.log.warning("Did not receive any files to download!")
+            log.warning("Did not receive any files to download!")
             return
 
         dl_len = len(files)
@@ -712,7 +710,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         files = self.selected_items
         cwd = self._curr_path
 
-        self.log.info(f"Moving files to {cwd}")
+        log.info(f"Moving files to {cwd}")
         await self._move_files(files, cwd)
         with self.app.batch_update():
             self.action_unselect_all_files()
@@ -767,7 +765,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
     def _update_list_on_success(self, path: MegaPath, fetched_items: MegaNodes) -> None:
         """Updates state and UI after successful load. Runs on main thread."""
-        self.log.debug(f"Updating UI for path: {path}")
+        log.debug(f"Updating UI for path: {path}")
         self._curr_path = path
 
         self.clear(columns=False)
@@ -808,12 +806,12 @@ class FileList(DataTable[Any], inherit_bindings=False):
         Returns the list of items on success, or None on failure.
         Errors are handled by posting LoadError message.
         """
-        self.log.debug(f"Begun fetching nodes for path: {path}")
+        log.debug(f"Begun fetching nodes for path: {path}")
         # Fetch and sort items
         fetched_items: MegaNodes = await mega_ls(path)
 
         if not fetched_items:
-            self.log.debug(f"No items found in '{path}'")
+            log.debug(f"No items found in '{path}'")
             return None
 
         # Return the result
@@ -828,7 +826,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             # Get the full path of the current directory
             path = await mega_pwd()
 
-        self.log.info(f"Requesting load for directory: {path}")
+        log.info(f"Requesting load for directory: {path}")
         self._loading_path = path  # Track the path we are loading
 
         # Start the worker. Results handled by on_worker_state_changed.
@@ -838,7 +836,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # Cancelled
         if worker_obj.is_cancelled:
-            self.log.debug(
+            log.debug(
                 f"Worker to fetch files for path '{self._loading_path}' was cancelled."
             )
             return
@@ -846,7 +844,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Failed
         if not fetched_items:
             # Worker succeeded but returned None (folder is probably empty)
-            self.log.warning(
+            log.warning(
                 f"Fetch worker for '{self._loading_path}' succeeded but returned 'None' result."
             )
             fetched_items = ()
@@ -855,7 +853,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         # Get number of files
         file_count = len(fetched_items)
 
-        self.log.debug(
+        log.debug(
             f"Worker success for path '{self._loading_path}', item count: {file_count}"
         )
         # Update FileList
@@ -887,7 +885,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         # When nothing is highlighted
         if not self.node_under_cursor:
-            self.log.info(
+            log.info(
                 "Could not default to highlighted item, table has no rows probably."
             )
             return None
