@@ -49,6 +49,7 @@ from megatui.mega.megacmd import (
 from megatui.messages import (
     DeleteNodesRequest,
     MakeRemoteDirectory,
+    MoveNodesRequest,
     RefreshRequest,
     RefreshType,
     RenameNodeRequest,
@@ -418,11 +419,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def on_refresh_request(self, event: RefreshRequest) -> None:
         """Handles refresh requests sent to FileList."""
         event.stop()
+        prev_row = event.cursor_row_before_refresh
 
         with self.app.batch_update():
             await self._perform_refresh()
-
-            prev_row = event.cursor_row_before_refresh
 
             match event.type:
                 case RefreshType.AFTER_DELETION:
@@ -436,6 +436,9 @@ class FileList(DataTable[Any], inherit_bindings=False):
                     # If target index is within bounds then move it there
                     if target_cursor_index >= 0:
                         self.move_cursor(row=target_cursor_index, animate=False)
+                case RefreshType.AFTER_MV:
+                    self.action_unselect_all_files()
+                    self.move_cursor(row=prev_row)
 
                 case RefreshType.DEFAULT | RefreshType.AFTER_CREATION:
                     if prev_row is not None:
@@ -688,34 +691,13 @@ class FileList(DataTable[Any], inherit_bindings=False):
     async def action_view_transfer_list(self):
         pass
 
-    async def _move_files(self, files: MegaNodes, new_path: MegaPath) -> None:
-        """Helper function to move MegaNodes to a new path."""
-        if not files:
-            self.log.warning("No files received to move.")
-            return
-
-        tasks: list[asyncio.Task[None]] = []
-        for f in files:
-            self.log.info(
-                f"Queueing move for `{f.name}` from `{f.path}` to: `{new_path}`"
-            )
-            task = asyncio.create_task(mega_mv(file_path=f.path, target_path=new_path))
-            tasks.append(task)
-
-        # The function will wait here until all move operations are complete.
-        await asyncio.gather(*tasks)
-        self.log.info("All file move operations completed.")
-
     async def action_move_files(self):
         """Move selected files to current directory."""
         files = self.selected_items
         cwd = self._curr_path
 
         log.info(f"Moving files to {cwd}")
-        await self._move_files(files, cwd)
-        with self.app.batch_update():
-            self.action_unselect_all_files()
-            await self.action_refresh(True)
+        self.post_message(MoveNodesRequest(cwd, files))
 
     # A helper to prepare all displayable contents of a row
     def _prepare_row_contents(self, node: MegaNode) -> tuple[Content, ...]:

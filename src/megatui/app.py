@@ -16,6 +16,7 @@ from megatui.mega.data import MegaPath
 from megatui.messages import (
     DeleteNodesRequest,
     MakeRemoteDirectory,
+    MoveNodesRequest,
     RefreshRequest,
     RefreshType,
     RenameNodeRequest,
@@ -320,6 +321,29 @@ class MegaTUI(App[None], inherit_bindings=False):
             message=f"[bold][red]{node_count}[/red][/bold] nodes(s) deleted!",
             title="Deletion",
         )
+
+    @on(MoveNodesRequest)
+    async def _move_files(self, event: MoveNodesRequest) -> None:
+        """Move nodes to new path on request."""
+        files = event.nodes
+        path = event.path
+        if not files:
+            log.warning("No files received to move.")
+            return
+
+        tasks: list[asyncio.Task[None]] = []
+        for f in files:
+            log.info(f"Queueing move for `{f.name}` from `{f.path}` to: `{path}`")
+            task = asyncio.create_task(m.mega_mv(file_path=f.path, target_path=path))
+            tasks.append(task)
+
+        # The function will wait here until all move operations are complete.
+        await asyncio.gather(*tasks)
+
+        self.filelist.post_message(
+            RefreshRequest(RefreshType.AFTER_MV, self.filelist.cursor_row)
+        )
+        log.info("All file move operations completed.")
 
 
 # Run the application #####################################################################

@@ -41,6 +41,7 @@ class RefreshType(Enum):
     DEFAULT = auto()  # A standard, user-initiated refresh (e.g., pressing 'r')
     AFTER_DELETION = auto()  # Refresh after one or more items were deleted
     AFTER_CREATION = auto()  # Refresh after a new item (file/dir) was created
+    AFTER_MV = auto()
 
 
 class RefreshRequest(Message):
@@ -72,6 +73,13 @@ class MakeRemoteDirectory(Message):
 class DeleteNodesRequest(Message):
     def __init__(self, nodes: MegaNodes):
         super().__init__()
+        self.nodes = nodes
+
+
+class MoveNodesRequest(Message):
+    def __init__(self, path: MegaPath, nodes: Iterable[MegaNode]):
+        super().__init__()
+        self.path = path
         self.nodes = nodes
 
 
