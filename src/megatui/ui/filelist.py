@@ -682,15 +682,6 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         await self._download_files(dl_items)
 
-    async def action_cancel_download(self):
-        pass
-
-    async def action_pause_download(self):
-        pass
-
-    async def action_view_transfer_list(self):
-        pass
-
     async def action_move_files(self):
         """Move selected files to current directory."""
         files = self.selected_items
