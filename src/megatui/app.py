@@ -202,7 +202,7 @@ class MegaTUI(App[None], inherit_bindings=False):
 
         try:
             await m.mega_mkdir(name=event.dir_path.str, path=None)
-            self.post_message(RefreshRequest(RefreshType.DEFAULT))
+            self.filelist.post_message(RefreshRequest(RefreshType.AFTER_CREATION))
         except ValueError as e:
             self.post_message(
                 StatusUpdate(
