@@ -251,7 +251,7 @@ class MegaTUI(App[None], inherit_bindings=False):
             return
 
         selection_label.update(
-            Content.from_text(f"[r][b]{message.count}[/] file(s) selected[/]")
+            Content.from_text(f"[r] [b]{message.count}[/b] file(s) selected [/r]")
         )
         log.debug(f"Selected {message.count}")
 
