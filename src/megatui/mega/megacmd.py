@@ -460,7 +460,7 @@ async def exists_in_remote(node_path: MegaPath) -> bool:
     try:
         _ = await mega_ls(path=node_path)
     except MegaCmdError as e:
-        if e.return_code == MegaCmdErrorCode.NOTFOUND:
+        if e.return_code == MegaCmdErrorCode.NOTFOUND.code:
             return False
         else:
             raise e
