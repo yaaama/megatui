@@ -638,18 +638,18 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """Make a directory."""
         results = await self.app.push_screen(
             MkdirDialog(
-                popup_prompt=f"Make New Directory '{self._curr_path}'",
-                emoji_markup_prepended=":open_file_folder:",
-                curr_path=self._curr_path,
+                popup_prompt=f"📂 Make New Directory '{self._curr_path}'",
                 initial_input=None,
             ),
             wait_for_dismiss=True,
         )
 
         if not results:
+            log.debug("No directory name specified for mkdir.")
             return
 
-        self.app.post_message(MakeRemoteDirectory(results))
+        new_dir_path = MegaPath(results)
+        self.app.post_message(MakeRemoteDirectory(new_dir_path))
 
     async def action_download(self) -> None:
         """Download the currently highlighted file or a selection of files.

@@ -1,7 +1,6 @@
 # Make directory screen
 from typing import TYPE_CHECKING, override
 
-from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
@@ -10,14 +9,11 @@ from textual.screen import ModalScreen
 from textual.validation import Regex
 from textual.widgets import Input, Label
 
-from megatui.mega.megacmd import MegaPath
-from megatui.messages import MakeRemoteDirectory
-
 if TYPE_CHECKING:
     from megatui.app import MegaTUI
 
 
-class MkdirDialog(ModalScreen[None]):
+class MkdirDialog(ModalScreen[str]):
     app: "MegaTUI"
 
     BINDINGS: list[BindingType] = [
@@ -28,8 +24,6 @@ class MkdirDialog(ModalScreen[None]):
     def __init__(
         self,
         popup_prompt: str,
-        emoji_markup_prepended: str,
-        curr_path: MegaPath,
         initial_input: str | None = None,
     ) -> None:
         """Initialise the rename dialog.
@@ -41,19 +35,14 @@ class MkdirDialog(ModalScreen[None]):
             initial_input: The initial value for the input box.
         """
         super().__init__()
-        self._emoji = emoji_markup_prepended  # Emoji to prepend the prompt.
         self._prompt = popup_prompt  # Label to display above input box.
         self._initial = initial_input  # The initial value to use for the input.
-        self.curr_path = curr_path
-
-        txt = f"{self._emoji} {self._prompt}"
-        self.prompt: Text = Text.from_markup(txt)
         # Calculated prompt text.
 
     @override
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Label(self.prompt, id="label-mkdir")
+            yield Label(self._prompt, id="label-mkdir")
             yield Input(
                 placeholder=self._initial or "Create New Directory(s)",
                 max_length=60,
@@ -66,9 +55,9 @@ class MkdirDialog(ModalScreen[None]):
     @on(Input.Submitted, "#input-mkdir")
     def action_submit_mkdir(self):
         if value := self.query_one(Input).value.strip():
-            self.app.post_message(MakeRemoteDirectory(self.curr_path.joinpath(value)))
+            self.dismiss(value)
 
-        self.dismiss()
+        self.dismiss(None)
 
     def action_close_window(self) -> None:
         self.app.pop_screen()
