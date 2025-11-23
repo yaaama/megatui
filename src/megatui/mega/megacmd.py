@@ -382,9 +382,9 @@ async def mega_du(
         logger.error("Could not parse 'du' output:\n'%s'", output)
         raise e
 
-    size = units.bytes_to_unit(_size) if units else size_bytes
+    size = units.bytes_to_unit(size_bytes) if units else size_bytes
 
-    return MegaDiskUsage(location=MegaPath(_filename), size_bytes=size)
+    return MegaDiskUsage(location=MegaPath(_filename), size_bytes=size_bytes)
 
 
 ###############################################################################

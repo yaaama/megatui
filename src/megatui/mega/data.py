@@ -165,7 +165,14 @@ class MegaFileTypes(Enum):
 
 
 class MegaSizeUnits(Enum):
-    """File size units."""
+    """Enumeration for file size units allowing conversion from bytes.
+
+    Values correspond to the power of 1024 used for conversion:
+    0: Bytes (1024^0)
+    1: KB (1024^1)
+    2: MB (1024^2)
+    3: GB (1024^3)
+    4: TB (1024^4)"""
 
     B = 0
     KB = 1
@@ -175,24 +182,35 @@ class MegaSizeUnits(Enum):
 
     # Helper to get the string representation used in the size calculation
     def unit_str(self) -> str:
-        """String representation for the unit."""
-        # Match the order in the Enum
-        _unit_strings = ["B", "KB", "MB", "GB", "TB"]
-        try:
-            return _unit_strings[self.value]
-        # Raise an error for unknown units
-        except IndexError:
-            logger.warning(f"Unknown MegaSizeUnits value: {self.value}")
-            return "?"
+        """Returns the string representation of the current unit.
 
-    def bytes_to_unit(self, bytes: int) -> float:
-        if not bytes:
+        Returns:
+            str: The label for the unit (e.g., "MB", "GB").
+        """
+        return self.name
+
+    def bytes_to_unit(self, size_in_bytes: int) -> float:
+        """Converts a raw byte count into the current unit size.
+
+        The calculation uses binary prefixes (1024), not decimal (1000).
+
+        Args:
+            byte_count (int): The size in bytes to convert.
+
+        Returns:
+            float: The converted size (e.g., converting 1024 bytes
+                   on the .KB unit returns 1.0).
+        """
+        if not size_in_bytes:
             return 0
 
+        # Calculate the divisor using bitwise shifting.
         # 1 << 10 is 1024 (2^10) (KiloBytes)
+        # 1 << 20 is 1,048,576 (2^20) (MegaBytes)
+        # Logic: 1 * (2 ^ (10 * unit_index))
         divisor = 1 if (self.value == 0) else (1 << (10 * self.value))
 
-        return float(bytes) / divisor
+        return float(size_in_bytes) / divisor
 
 
 class MegaNode:
