@@ -213,6 +213,9 @@ class MegaSizeUnits(Enum):
         return float(size_in_bytes) / divisor
 
 
+MegaFileSize = tuple[float, MegaSizeUnits]
+
+
 class MegaNode:
     # Class Variables #################################################
     __slots__ = (
@@ -232,7 +235,7 @@ class MegaNode:
     """ Full path of node. """
     bytes: int
     """ Size of node in BYTES, will be 0 for directories."""
-    size: tuple[float, MegaSizeUnits] | None
+    size: MegaFileSize | None
     """ Human readable size for a file, or None for directory. """
 
     mtime: datetime

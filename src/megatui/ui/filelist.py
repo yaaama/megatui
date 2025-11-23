@@ -32,6 +32,7 @@ from textual.worker import Worker
 from megatui.mega.data import (
     MEGA_CURR_DIR,
     MEGA_ROOT_PATH,
+    MegaFileSize,
     MegaNode,
     MegaNodes,
     MegaPath,
@@ -678,17 +679,21 @@ class FileList(DataTable[Any], inherit_bindings=False):
         """Takes a MegaItem and returns a tuple of Content objects for a table
         row.
         """
+        NODE_SIZING_PRECISION = 2
         if node.is_dir:
             icon = self.NODE_ICONS["directory"]
             size_str = "-"
         else:
             icon = self.NODE_ICONS["file"]
 
-            if not node.size:
-                raise ValueError("Non directory node has no size information.")
+            cast(MegaFileSize, node.size)
 
-            assert_type(node.size[1], MegaSizeUnits)
-            size_str = f"{node.size[0]:.2f} {node.size[1].unit_str()}"
+            if not node.size:
+                log.info(f"Non directory node '{node.path}' has no size information.")
+                size_str = f"{0:.{NODE_SIZING_PRECISION}f} {MegaSizeUnits.B.unit_str()}"
+            else:
+                assert_type(node.size[1], MegaSizeUnits)
+                size_str = f"{node.size[0]:.{NODE_SIZING_PRECISION}f} {node.size[1].unit_str()}"
 
         if node.handle in self._selected_items:
             _sel_content = self.SELECTED_LABEL
