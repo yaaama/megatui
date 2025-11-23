@@ -262,13 +262,6 @@ class MegaTUI(App[None], inherit_bindings=False):
         status_bar.path = str(message.path)
         status_bar.clear_status_msg()
 
-    @on(FileList.LoadError)
-    def on_file_list_load_error(self, message: FileList.LoadError):
-        """Update TopStatusBar to signal that loading PATH had an error."""
-        self.top_status_bar.signal_error(f"Failed to load path: {message.path}")
-        # Log the detailed error
-        log.error(f"Error loading directory: {message.error}")
-
     @on(StatusUpdate)
     def update_status_message(self, message: StatusUpdate):
         """Refresh UI when status bar is updated."""

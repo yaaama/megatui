@@ -875,29 +875,3 @@ class FileList(DataTable[Any], inherit_bindings=False):
         def __init__(self, path: MegaPath) -> None:
             super().__init__()
             self.path = path
-
-    class LoadSuccess(Message):
-        """Message sent when items are loaded successfully.
-        'LoadSuccess.path': Newly loaded path.
-        """
-
-        def __init__(self, path: MegaPath) -> None:
-            super().__init__()
-            self.path = path
-
-    class LoadError(Message):
-        """Message sent when loading items fails.
-        'LoadError.path': Path that failed to load.
-        'LoadError.error': An error message.
-        """
-
-        def __init__(self, path: MegaPath, error: str) -> None:
-            super().__init__()
-            self.path = path
-            self.error = error  # Include the error
-
-    class EmptyDirectory(Message):
-        """Message to signal the entered directory is empty."""
-
-        def __init__(self) -> None:
-            super().__init__()
