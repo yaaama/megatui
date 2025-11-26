@@ -1,35 +1,13 @@
 from collections import deque
-from typing import Any, ClassVar, Final, override
+from typing import Any, Final, override
 
-from textual import log
 from textual.app import ComposeResult
 from textual.containers import Vertical
-from textual.content import Content
 from textual.reactive import Reactive, reactive
-from textual.style import Style
 from textual.widgets import DataTable, Static
 
 from megatui.mega.data import MegaTransferItem, MegaTransferType
-
-
-def truncate_str_lhs(
-    text: str, max_length: int, wrapping_txt: str | None = None
-) -> str:
-    """Truncate a string from the left hand side."""
-    text_len = len(text)
-
-    # Check if we need to truncate this at all
-    if text_len < max_length:
-        return text
-
-    # If we don't get a wrapping string, use our default ellipsis
-    if not wrapping_txt:
-        wrapping_txt = "…"
-
-    # Final length of our truncated string
-    truncate_text_to = max_length - len(wrapping_txt)
-
-    return f"{wrapping_txt}{text[-truncate_text_to:]}"
+from megatui.utils import truncate_str_lhs
 
 
 class TransferTable(DataTable[Any], inherit_bindings=False):
