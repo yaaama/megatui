@@ -18,6 +18,7 @@ from megatui.mega.data import (
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
     MEGA_ROOT_PATH,
+    MEGA_TRANSFERS_GLOBAL_REGEXP,
     MEGA_TRANSFERS_REGEXP,
     MegaCmdError,
     MegaCmdErrorCode,
@@ -30,6 +31,7 @@ from megatui.mega.data import (
     MegaNodes,
     MegaPath,
     MegaSizeUnits,
+    MegaTransferGlobalState,
     MegaTransferItem,
     MegaTransferState,
     MegaTransferType,
@@ -866,13 +868,27 @@ async def mega_transfers(
         logger.info("Empty transfer list.")
         return None
 
-    del lines[0]
-
     transfer_output_queue: deque[MegaTransferItem] = deque()
+
+    system_status = MegaTransferGlobalState.NO_STATE
+
+    # Determine whether a global pause is active
+
+    initial_line = lines[0].strip()
+    match = MEGA_TRANSFERS_GLOBAL_REGEXP.match(initial_line)
+    if match and match.group("SYSTEM_STATUS"):
+        state_str = match.group("SYSTEM_STATUS").strip()
+        logger.info(f"Global Transfer State is: '{state_str}'")
+        system_status = MegaTransferGlobalState(state_str)
+        del lines[0]
+        del lines[0]
+    else:
+        del lines[0]
 
     for line in lines:
         stripped_line = line.strip()
         fields = MEGA_TRANSFERS_REGEXP.match(stripped_line)
+
         if not fields:
             logger.info("No fields to parse for line %s", stripped_line)
             continue
@@ -890,6 +906,21 @@ async def mega_transfers(
             logger.warning(f"Could not read tag '{_tag}': '{e}'")
             tag = -1
         state = MegaTransferState(_state)
+
+        if system_status.value:
+            if system_status.value == MegaTransferGlobalState.ALL_PAUSED.value:
+                state = MegaTransferState.PAUSED
+            elif (
+                type == MegaTransferType.DOWNLOAD
+                and system_status.value
+                == MegaTransferGlobalState.DOWNLOADS_PAUSED.value
+            ):
+                state = MegaTransferState.PAUSED
+            elif (
+                type == MegaTransferType.UPLOAD
+                and system_status.value == MegaTransferGlobalState.UPLOADS_PAUSED.value
+            ):
+                state = MegaTransferState.PAUSED
 
         transfer_item = MegaTransferItem(
             type, tag, _source_path, _destination_path, _progress, state

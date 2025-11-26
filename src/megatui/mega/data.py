@@ -484,15 +484,27 @@ class MegaMediaInfo:
         return resolution
 
 
+MEGA_TRANSFERS_GLOBAL_REGEXP = re.compile(
+    r"^(?P<SYSTEM_STATUS>(?:DOWNLOADS|UPLOADS|DOWNLOADS AND UPLOADS) ARE PAUSED\s*)$"
+)
+
 MEGA_TRANSFERS_REGEXP = re.compile(
     r"^(?P<TYPE>.+?)\|"
     + r"(?P<TAG>\d+)\|"
     + r"(?P<SOURCEPATH>.+?)\|"
     + r"(?P<DESTINYPATH>.+?)\|"
     + r"(?P<PROGRESS>.+?)\|"
-    + r"(?P<STATE>.+)$"
+    + r"(?P<STATE>.+)"
+    + r"$"
 )
 """Regular expression to parse the output of `mega-transfers`."""
+
+
+class MegaTransferGlobalState(Enum):
+    ALL_PAUSED = "DOWNLOADS AND UPLOADS ARE PAUSED"
+    DOWNLOADS_PAUSED = "DOWNLOADS ARE PAUSED"
+    UPLOADS_PAUSED = "UPLOADS ARE PAUSED"
+    NO_STATE = None
 
 
 class MegaTransferType(Enum):
