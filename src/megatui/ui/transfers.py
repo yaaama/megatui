@@ -1,9 +1,12 @@
 from collections import deque
-from typing import Any, Final, override
+from typing import Any, ClassVar, Final, override
 
+from textual import log
 from textual.app import ComposeResult
 from textual.containers import Vertical
+from textual.content import Content
 from textual.reactive import Reactive, reactive
+from textual.style import Style
 from textual.widgets import DataTable, Static
 
 from megatui.mega.data import MegaTransferItem, MegaTransferType
@@ -34,15 +37,22 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
     def __init__(self, widget_id: str | None, classes: str | None):
         super().__init__(
-            id=widget_id, classes=classes, cursor_type="row", show_row_labels=True
+            id=widget_id,
+            classes=classes,
+            cursor_type="row",
+            show_row_labels=True,
+            cell_padding=2,
         )
 
     @override
     def on_mount(self):
         # Add the columns with their headers.
-        self.add_columns("Source", "Destination", "Progress", "State")
+        self.add_column(label="[b]Source[/]", width=self.MAX_FILEPATH_LEN)
+        self.add_column(label="[b]Destination[/]", width=self.MAX_FILEPATH_LEN)
+        self.add_column("Progress", width=None)
+        self.add_column("State", width=None)
 
-    MAX_FILEPATH_LEN: Final[int] = 20
+    MAX_FILEPATH_LEN: Final[int] = 30
     """Maximum length of a file path.
     Anything above this length will be truncated.
     """

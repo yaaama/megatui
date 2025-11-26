@@ -119,6 +119,8 @@ TopStatusBar {
 
     #transfer-table {
         margin: 1 1;
+        width: 1fr;
+        height: 1fr;
     }
 
     #no-transfers-message {
