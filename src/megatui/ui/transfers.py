@@ -13,12 +13,52 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
     """Table to store and display ongoing transfers."""
 
     def __init__(self, widget_id: str | None, classes: str | None):
-        super().__init__(id=widget_id, classes=classes)
+        super().__init__(
+            id=widget_id, classes=classes, cursor_type="row", show_row_labels=True
+        )
 
     @override
     def on_mount(self):
         # Add the columns with their headers.
         self.add_columns("Source", "Destination", "Progress", "State")
+
+    MAX_FILEPATH_LEN: Final[int] = 20
+    """Maximum length of a file path.
+    Anything above this length will be truncated.
+    """
+
+    def _generate_transfer_item_row(self, item: MegaTransferItem):
+        state_color = "green" if (item.state.name == "ACTIVE") else "grey"
+
+        state = f"[{state_color}]{item.state.name}[/]"
+
+        if len(item.source_path) >= self.MAX_FILEPATH_LEN:
+            chars_to_keep = self.MAX_FILEPATH_LEN - 1
+            source_p = "…" + item.source_path[-chars_to_keep:]
+        else:
+            source_p = item.source_path
+
+        if len(item.destination_path) >= self.MAX_FILEPATH_LEN:
+            chars_to_keep = self.MAX_FILEPATH_LEN - 1
+            dest_p = "…" + item.destination_path[-chars_to_keep:]
+        else:
+            dest_p = item.destination_path
+
+        return (source_p, dest_p, item.progress.strip(), state)
+
+    def add_transfer_item(self, item: MegaTransferItem):
+        base_icon = "[yellow]...[/]"
+        match item.type:
+            case MegaTransferType.DOWNLOAD:
+                icon = "[blue]▼[/]"
+            case MegaTransferType.UPLOAD:
+                icon = "[green]▲[/]"
+            case _:
+                icon = base_icon
+
+        row = self._generate_transfer_item_row(item)
+
+        self.add_row(*row, height=1, label=icon)
 
     def action_mark_transfer(self):
         """Mark an item in the list.
@@ -70,11 +110,6 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 class TransfersSidePanel(Vertical):
     """Toggleable panel containing transfer information in a `TransferTable`."""
 
-    MAX_FILEPATH_LEN: Final[int] = 20
-    """Maximum length of a file path.
-    Anything above this length will be truncated.
-    """
-
     transfer_list: Reactive[deque[MegaTransferItem] | None] = reactive(None)
 
     def __init__(self, widget_id: str) -> None:
@@ -83,6 +118,7 @@ class TransfersSidePanel(Vertical):
     @override
     def compose(self) -> ComposeResult:
         self.border_title = "Transfers"
+        # Default message we toggle on and off
         yield Static(
             "[i]There are no transfers to show.[/i]", id="no-transfers-message"
         )
@@ -114,34 +150,6 @@ class TransfersSidePanel(Vertical):
         message.add_class("-hidden")
         table.remove_class("-hidden")
 
-        base_icon = "[yellow]...[/]"
         # Add each transfer as a new row to the table
         for item in new_list:
-            # Use Rich markup for styling within cells
-            match item.type:
-                case MegaTransferType.DOWNLOAD:
-                    icon = "[blue]▼[/]"
-                case MegaTransferType.UPLOAD:
-                    icon = "[green]▲[/]"
-                case _:
-                    icon = base_icon
-
-            state_color = "green" if (item.state.name == "ACTIVE") else "grey"
-
-            state = f"[{state_color}]{item.state.name}[/]"
-
-            if len(item.source_path) >= self.MAX_FILEPATH_LEN:
-                chars_to_keep = self.MAX_FILEPATH_LEN - 1
-                source_p = "…" + item.source_path[-chars_to_keep:]
-            else:
-                source_p = item.source_path
-
-            if len(item.destination_path) >= self.MAX_FILEPATH_LEN:
-                chars_to_keep = self.MAX_FILEPATH_LEN - 1
-                dest_p = "…" + item.destination_path[-chars_to_keep:]
-            else:
-                dest_p = item.destination_path
-
-            table.add_row(
-                dest_p, source_p, item.progress.strip(), state, height=1, label=icon
-            )
+            table.add_transfer_item(item)
