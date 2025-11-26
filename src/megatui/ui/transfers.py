@@ -71,7 +71,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         pass
 
     def action_pause_transfer(self):
-        """Pause a transfer"""
+        """Pause a transfer."""
         pass
 
     def action_resume_transfer(self):
@@ -79,7 +79,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         pass
 
     def action_toggle_pause_transfer(self):
-        """Toggle the pause status of a transfer"""
+        """Toggle the pause status of a transfer."""
         pass
 
     def action_clear_finished_transfers(self):
