@@ -342,7 +342,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             return
 
         filenames = [str(item.path) for item in selected]
-        filenames_str = ", ".join(filenames)
+        filenames_str = f",\n".join(filenames)
         file_count = len(selected)
 
         conf_result: bool = await self.app.push_screen(

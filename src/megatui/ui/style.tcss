@@ -280,10 +280,9 @@ ConfirmationScreen {
     align: center middle;
 
     #vert-container {
-        border: ascii $secondary;
         width: 60%;
-        height: auto;
-
+        height: 40%;
+        border: ascii $secondary;
         border-title-style: bold;
         border-title-color: $secondary;
         border-title-align: right;
