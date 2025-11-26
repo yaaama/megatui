@@ -9,6 +9,26 @@ from textual.widgets import DataTable, Static
 from megatui.mega.data import MegaTransferItem, MegaTransferType
 
 
+def truncate_str_lhs(
+    text: str, max_length: int, wrapping_txt: str | None = None
+) -> str:
+    """Truncate a string from the left hand side."""
+    text_len = len(text)
+
+    # Check if we need to truncate this at all
+    if text_len < max_length:
+        return text
+
+    # If we don't get a wrapping string, use our default ellipsis
+    if not wrapping_txt:
+        wrapping_txt = "…"
+
+    # Final length of our truncated string
+    truncate_text_to = max_length - len(wrapping_txt)
+
+    return f"{wrapping_txt}{text[-truncate_text_to:]}"
+
+
 class TransferTable(DataTable[Any], inherit_bindings=False):
     """Table to store and display ongoing transfers."""
 
@@ -32,19 +52,19 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
         state = f"[{state_color}]{item.state.name}[/]"
 
-        if len(item.source_path) >= self.MAX_FILEPATH_LEN:
-            chars_to_keep = self.MAX_FILEPATH_LEN - 1
-            source_p = "…" + item.source_path[-chars_to_keep:]
-        else:
-            source_p = item.source_path
+        source_p = truncate_str_lhs(item.source_path, self.MAX_FILEPATH_LEN)
 
-        if len(item.destination_path) >= self.MAX_FILEPATH_LEN:
-            chars_to_keep = self.MAX_FILEPATH_LEN - 1
-            dest_p = "…" + item.destination_path[-chars_to_keep:]
-        else:
-            dest_p = item.destination_path
+        dest_p = truncate_str_lhs(item.destination_path, self.MAX_FILEPATH_LEN)
 
-        return (source_p, dest_p, item.progress.strip(), state)
+        # Normalise progress string
+        item_progress = " ".join(item.progress.split())
+
+        return (
+            source_p,
+            dest_p,
+            item_progress,
+            state,
+        )
 
     def add_transfer_item(self, item: MegaTransferItem):
         base_icon = "[yellow]...[/]"
