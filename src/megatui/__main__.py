@@ -1,3 +1,5 @@
+"""Main entry-point for our application."""
+
 import asyncio
 
 from megatui.app import run_app

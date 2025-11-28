@@ -1,3 +1,5 @@
+"""App-level code for 'megatui'."""
+
 import asyncio
 import logging
 import sys
@@ -33,6 +35,8 @@ logging.basicConfig(level="NOTSET", handlers=[TextualHandler()])
 
 
 class MegaTUI(App[None], inherit_bindings=False):
+    """Subclass of a textual 'App' class."""
+
     TITLE = "MegaTUI"
     SUB_TITLE = "MEGA Cloud Storage Manager"
     CSS_PATH = "ui/style.tcss"
@@ -92,6 +96,7 @@ class MegaTUI(App[None], inherit_bindings=False):
     top_status_bar = getters.query_one("#top-status-bar", TopStatusBar)
 
     def __init__(self):
+        """Initialise MegaTUI."""
         super().__init__()
 
     # --- UI Composition ---
@@ -129,7 +134,8 @@ class MegaTUI(App[None], inherit_bindings=False):
 
     async def on_mount(self) -> None:
         """Called when the app is mounted.
-        Performs initial load and some initialisation.
+
+        Performs initial load of cloud directory.
         """
         log.info("MegaAppTUI mounted. Starting initial load.")
 
@@ -196,6 +202,8 @@ class MegaTUI(App[None], inherit_bindings=False):
     @on(MakeRemoteDirectory)
     @work(name="mkdir", group="megacmd")
     async def on_make_remote_directory(self, event: MakeRemoteDirectory) -> None:
+        """Handler for a `MakeRemoteDirectory` message."""
+
         # If no path return
         if not event.dir_path:
             return
