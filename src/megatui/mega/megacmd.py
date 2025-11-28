@@ -383,7 +383,7 @@ async def mega_du(
         logger.error("Could not parse 'du' output:\n'%s'", output)
         raise e
 
-    size = units.bytes_to_unit(size_bytes) if units else size_bytes
+    units.bytes_to_unit(size_bytes) if units else size_bytes
 
     return MegaDiskUsage(location=MegaPath(_filename), size_bytes=size_bytes)
 
@@ -395,11 +395,10 @@ async def mega_cd(target_path: MegaPath | None):
         logger.debug("No target path. Will cd to root")
         target_path = MEGA_ROOT_PATH
 
-    logger.info(f"Changing directory to {target_path}")
+    logger.info(f"Changing directory to: '{target_path}'")
 
     cmd: list[str] = ["cd", target_path.str]
     await _exec_megacmd(tuple(cmd))
-    logger.info(f"Successfully changed directory to '{target_path}'")
 
 
 async def mega_pwd() -> MegaPath:
@@ -422,13 +421,15 @@ async def mega_cd_ls(
     if not target_path:
         target_path = MegaPath("/")
 
-    logger.debug(f"Changing directory and listing contents for {target_path}")
+    logger.debug(f"Changing directory and listing contents for: '{target_path}'")
 
     results = await asyncio.gather(mega_cd(target_path), mega_ls(target_path, ls_flags))
 
     items: MegaNodes = results[1]
 
-    logger.debug(f"Finished cd and ls for {target_path}. Found {len(items)} items.")
+    logger.debug(
+        f"Finished cd and ls for '{target_path}'. Found '{len(items)}' number of items."
+    )
 
     return items
 
@@ -437,7 +438,7 @@ async def mega_cd_ls(
 ###############################################################################
 async def mega_cp(file_path: MegaPath, target_path: MegaPath) -> None:
     """Copy file from 'file_path' to 'target_path'."""
-    logger.info(f"Copying file {file_path} to {target_path}")
+    logger.info(f"Copying file '{file_path}' to '{target_path}'")
 
     cmd: tuple[str, ...] = ("cp", file_path.str, target_path.str)
     await _exec_megacmd(cmd)
@@ -477,7 +478,7 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
         new_name: New name for node.
     """
     assert file_path and new_name, (
-        f"Cannot have empty args: `{file_path}`, `{new_name}`"
+        f"Cannot have empty args: (`{file_path}`, `{new_name}`)"
     )
     exists = await exists_in_remote(file_path)
 
@@ -488,8 +489,8 @@ async def mega_node_rename(file_path: MegaPath, new_name: str) -> None:
 
     # Check if we are at the root path
     if file_path.match("/"):
-        logger.warning("Cannot rename root directory!")
-        raise RuntimeError("Cannot rename root directory!")
+        logger.warning("Cannot rename the root directory!")
+        raise RuntimeError("Cannot rename the root directory!")
 
     new_path: MegaPath = MegaPath(file_path.parent / new_name)
 
