@@ -25,8 +25,8 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
     @override
     def on_mount(self):
         # Add the columns with their headers.
-        self.add_column(label="[b]Source[/]", width=self.MAX_FILEPATH_LEN)
-        self.add_column(label="[b]Destination[/]", width=self.MAX_FILEPATH_LEN)
+        self.add_column(label="[b]Source[/]")
+        self.add_column(label="[b]Destination[/]")
         self.add_column("Progress", width=None)
         self.add_column("State", width=None)
 
