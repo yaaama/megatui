@@ -18,7 +18,6 @@ from megatui.mega.data import (
     MEGA_COMMANDS_SUPPORTED,
     MEGA_DEFAULT_CMD_ARGS,
     MEGA_ROOT_PATH,
-    MEGA_TRANSFERS_GLOBAL_REGEXP,
     MEGA_TRANSFERS_REGEXP,
     MegaCmdError,
     MegaCmdErrorCode,
@@ -834,6 +833,15 @@ async def mega_mkdir(name: str, path: MegaPath | None = None) -> bool:
         return False
 
 
+def _check_for_global_transfer_pause(line: str) -> MegaTransferGlobalState:
+    try:
+        # If member exists, then we can go ahead and return the state
+        return MegaTransferGlobalState(line.strip())
+    except ValueError:
+        # If the string isn't in the Enum, it's not a pause state
+        return MegaTransferGlobalState.NO_STATE
+
+
 async def mega_transfers(
     summary: bool = False,
     limit: int = 50,
@@ -870,18 +878,17 @@ async def mega_transfers(
 
     transfer_output_queue: deque[MegaTransferItem] = deque()
 
-    system_status = MegaTransferGlobalState.NO_STATE
-
     # Determine whether a global pause is active
+    initial_line = lines[0]
+    system_status = _check_for_global_transfer_pause(initial_line)
 
-    initial_line = lines[0].strip()
-    match = MEGA_TRANSFERS_GLOBAL_REGEXP.match(initial_line)
-    if match and match.group("SYSTEM_STATUS"):
-        state_str = match.group("SYSTEM_STATUS").strip()
-        logger.info(f"Global Transfer State is: '{state_str}'")
-        system_status = MegaTransferGlobalState(state_str)
+    if system_status != MegaTransferGlobalState.NO_STATE:
+        logger.info(f"Global Transfer State is: '{system_status.value}'")
+        # Remove this line
         del lines[0]
-        del lines[0]
+        if lines:
+            # Remove the next line if it exists (we may have no transfers)
+            del lines[0]
     else:
         del lines[0]
 
@@ -908,17 +915,18 @@ async def mega_transfers(
         state = MegaTransferState(_state)
 
         if system_status.value:
-            if system_status.value == MegaTransferGlobalState.ALL_PAUSED.value:
-                state = MegaTransferState.PAUSED
-            elif (
-                type == MegaTransferType.DOWNLOAD
-                and system_status.value
-                == MegaTransferGlobalState.DOWNLOADS_PAUSED.value
-            ):
-                state = MegaTransferState.PAUSED
-            elif (
-                type == MegaTransferType.UPLOAD
-                and system_status.value == MegaTransferGlobalState.UPLOADS_PAUSED.value
+            if (
+                system_status.value == MegaTransferGlobalState.ALL_PAUSED.value
+                or (
+                    type == MegaTransferType.DOWNLOAD
+                    and system_status.value
+                    == MegaTransferGlobalState.DOWNLOADS_PAUSED.value
+                )
+                or (
+                    type == MegaTransferType.UPLOAD
+                    and system_status.value
+                    == MegaTransferGlobalState.UPLOADS_PAUSED.value
+                )
             ):
                 state = MegaTransferState.PAUSED
 

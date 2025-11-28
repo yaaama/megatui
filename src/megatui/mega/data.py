@@ -484,10 +484,6 @@ class MegaMediaInfo:
         return resolution
 
 
-MEGA_TRANSFERS_GLOBAL_REGEXP = re.compile(
-    r"^(?P<SYSTEM_STATUS>(?:DOWNLOADS|UPLOADS|DOWNLOADS AND UPLOADS) ARE PAUSED\s*)$"
-)
-
 MEGA_TRANSFERS_REGEXP = re.compile(
     r"^(?P<TYPE>.+?)\|"
     + r"(?P<TAG>\d+)\|"
