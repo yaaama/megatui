@@ -906,33 +906,32 @@ async def mega_transfers(
         )
 
         # Parse the type of transfer type
-        type = MegaTransferType(_type)
+        transfer_type = MegaTransferType(_type)
 
         try:
             tag = int(_tag)
         except ValueError as e:
             logger.warning(f"Could not read tag '{_tag}': '{e}'")
             tag = -1
-        state = MegaTransferState(_state)
+        transfer_state = MegaTransferState(_state)
 
-        if system_status.value:
-            if (
-                system_status.value == MegaTransferGlobalState.ALL_PAUSED.value
-                or (
-                    type == MegaTransferType.DOWNLOAD
-                    and system_status.value
-                    == MegaTransferGlobalState.DOWNLOADS_PAUSED.value
-                )
-                or (
-                    type == MegaTransferType.UPLOAD
-                    and system_status.value
-                    == MegaTransferGlobalState.UPLOADS_PAUSED.value
-                )
-            ):
-                state = MegaTransferState.PAUSED
+        match (system_status, transfer_type):
+            case (MegaTransferGlobalState.ALL_PAUSED, _):
+                transfer_state = MegaTransferState.PAUSED
+            case (MegaTransferGlobalState.DOWNLOADS_PAUSED, MegaTransferType.DOWNLOAD):
+                transfer_state = MegaTransferState.PAUSED
+            case (MegaTransferGlobalState.UPLOADS_PAUSED, MegaTransferType.UPLOAD):
+                transfer_state = MegaTransferState.PAUSED
+            case (_, _):
+                break
 
         transfer_item = MegaTransferItem(
-            type, tag, _source_path, _destination_path, _progress, state
+            transfer_type,
+            tag,
+            _source_path,
+            _destination_path,
+            _progress,
+            transfer_state,
         )
         transfer_output_queue.append(transfer_item)
 
