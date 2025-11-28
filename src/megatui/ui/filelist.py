@@ -299,7 +299,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
             )
 
         log(
-            "Successfully added columns: '%s'",
+            "Successfully added columns: ",
             ", ".join(ColumnFormatting._member_names_),
         )
 
@@ -328,10 +328,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
 
         self.app.push_screen(PreviewMediaInfoModal(media_info=mediainfo))
 
-    @work(
-        exclusive=True,
-        description="Delete files. Displays a popup screen for confirmation.",
-    )
+    @work(name="filelist_delete")
     async def action_delete_files(self) -> None:
         """Delete files in the cloud, with confirmation prompt."""
         log.info("Deleting files")
