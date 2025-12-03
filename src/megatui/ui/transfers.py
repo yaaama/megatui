@@ -20,6 +20,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
             cursor_type="row",
             show_row_labels=True,
             cell_padding=2,
+            zebra_stripes=True,
         )
 
     @override
