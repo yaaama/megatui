@@ -193,6 +193,27 @@ async def check_mega_login() -> bool:
 ###########################################################################
 
 
+def _ls_is_empty_directory(output: list[str]) -> bool:
+    """Helper to check if the output of ls indicates an empty directory."""
+    # Assume output is not empty
+
+    # Empty folder should output something like:
+    # /x/y/z:
+    # FLAGS VERS      SIZE            DATE          HANDLE NAME
+    # If number of lines is greater than 2 then it is probably not empty
+    if len(output) > 2:
+        return False
+
+    first_line = output[0].strip()
+
+    # First line should be the folder path with ':' at the end of the line
+    if not first_line.endswith(":"):
+        return False
+
+    # Probably is an empty directory
+    return True
+
+
 async def mega_ls(
     path: MegaPath | None = None, flags: tuple[str, ...] | None = None
 ) -> MegaNodes:
@@ -229,13 +250,18 @@ async def mega_ls(
     items: deque[MegaNode] = deque()
 
     lines = response.stdout.strip().splitlines()
-    # Remove first element (it will be the header line)
-    del lines[0]
 
     # Handle empty output
     if not lines or not lines[0].strip():
         logger.info(f"No items found in '{target_path}' or dir is empty.")
         return ()
+
+    if _ls_is_empty_directory(lines):
+        logger.info(f"Folder '{target_path}' is empty.")
+        return ()
+
+    # Remove first element (it will be the header line)
+    del lines[0]
 
     # Parse the lines we receive
     for line in lines:
