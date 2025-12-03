@@ -303,6 +303,10 @@ class FileList(DataTable[Any], inherit_bindings=False):
             ", ".join(ColumnFormatting._member_names_),
         )
 
+    @on(DataTable.RowHighlighted)
+    def on_row_highlight(self, event: DataTable.RowHighlighted) -> None:
+        event.stop()
+
     # * Actions #########################################################
 
     def action_go_top(self):
