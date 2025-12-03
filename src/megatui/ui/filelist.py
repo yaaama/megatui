@@ -560,7 +560,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
         self._update_row_selection_indicator(row_key, not is_selected)
 
         # Send message that selection has been toggled
-        self.post_message(self.ToggledSelection(len(self._selected_items)))
+        self.app.post_message(self.ToggledSelection(len(self._selected_items)))
 
     def action_unselect_all_files(self) -> None:
         """Unselect all selected items GLOBALLY."""
