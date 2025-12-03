@@ -269,18 +269,18 @@ async def mega_ls(
         parsed_tuple: tuple[MegaFileTypes, tuple[str, ...]]
 
         # Stripped line
-        __line: str = line.strip()
+        _line: str = line.strip()
 
         # Fields matched from regular expression
-        __fields: re.Match[str] | None = LS_REGEXP.match(__line)
+        _fields: re.Match[str] | None = LS_REGEXP.match(_line)
 
         # If we don't have any values, then we have failed this line
-        if not __fields:
-            logger.debug(f"Line did not match LS_REGEXP: '{__line}'")
+        if not _fields:
+            logger.debug(f"Line did not match LS_REGEXP: '{_line}'")
             continue
 
         # Get field values from our regexp matches
-        __file_info: tuple[str, ...] = __fields.groups()
+        __file_info: tuple[str, ...] = _fields.groups()
 
         # If flags (first elem) contains 'd' as first elem, then we have a directory
         if __file_info[0][0] == "d":
