@@ -190,7 +190,8 @@ class MegaTUI(App[None], inherit_bindings=False):
     async def action_view_transfer_list(self):
         panel = self.query_one(TransfersSidePanel)
 
-        if not panel.has_class("-hidden"):
+        if panel.has_class("-hidden"):
+            log("Updating transfers list")
             self.update_transfers()
 
         panel.toggle_class("-hidden")
