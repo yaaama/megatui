@@ -32,6 +32,8 @@ from megatui.mega.data import (
     MegaSizeUnits,
     MegaTransferGlobalState,
     MegaTransferItem,
+    MegaTransferOperationTarget,
+    MegaTransferOperationType,
     MegaTransferState,
     MegaTransferType,
     MegaUnknownError,
@@ -964,6 +966,33 @@ async def mega_transfers(
         logger.debug(f"Parsed: {transfer_item!s}")
 
     return transfer_output_queue
+
+
+async def transfers_set_global_state(
+    operate_on: MegaTransferOperationTarget, operation: MegaTransferOperationType
+) -> None:
+    cmd = ["transfers"]
+
+    match operation:
+        case MegaTransferOperationType.PAUSE:
+            cmd.append("-p")
+        case MegaTransferOperationType.CANCEL:
+            cmd.append("-c")
+        case MegaTransferOperationType.RESUME:
+            cmd.append("-r")
+
+    # To operate globally, the -a flag must be present
+    cmd.append("-a")
+
+    match operate_on:
+        case MegaTransferOperationTarget.DOWNLOADS:
+            cmd.append("--only-downloads")
+        case MegaTransferOperationTarget.UPLOADS:
+            cmd.append("--only-uploads")
+        case _:
+            pass
+
+    await _exec_megacmd(command=tuple(cmd))
 
 
 def _parse_mediainfo_line(line: str, header_keys: list[str]) -> MegaMediaInfo | None:

@@ -6,7 +6,7 @@ import pathlib
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import Enum, auto
 from typing import Final, LiteralString, NamedTuple, override
 
 logger = logging.getLogger(__name__)
@@ -494,6 +494,18 @@ MEGA_TRANSFERS_REGEXP = re.compile(
     + r"$"
 )
 """Regular expression to parse the output of `mega-transfers`."""
+
+
+class MegaTransferOperationType(Enum):
+    PAUSE = auto()
+    RESUME = auto()
+    CANCEL = auto()
+
+
+class MegaTransferOperationTarget:
+    UPLOADS = auto()
+    DOWNLOADS = auto()
+    ALL = auto()
 
 
 class MegaTransferGlobalState(Enum):
