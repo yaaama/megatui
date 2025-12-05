@@ -905,10 +905,13 @@ async def mega_transfers(
         logger.info("Empty transfer list.")
         return None
 
+    logger.info("Received transfers:\n'%s'", response.stdout)
+
     transfer_output_queue: deque[MegaTransferItem] = deque()
 
     # Determine whether a global pause is active
     initial_line = lines[0]
+
     system_status = _check_for_global_transfer_pause(initial_line)
 
     if system_status != MegaTransferGlobalState.NO_STATE:
@@ -993,6 +996,30 @@ async def transfers_set_global_state(
             pass
 
     await _exec_megacmd(command=tuple(cmd))
+
+
+async def transfer_item_set_state(
+    transfer_tag: int | list[int], operation: MegaTransferOperationType
+) -> None:
+    cmd = ["transfers"]
+
+    if isinstance(transfer_tag, Iterable):
+        tags_stringified = [str(tag) for tag in transfer_tag]
+        cmd.extend(tags_stringified)
+    else:
+        cmd.append(str(transfer_tag))
+
+    match operation:
+        case MegaTransferOperationType.PAUSE:
+            cmd.append("-p")
+        case MegaTransferOperationType.CANCEL:
+            cmd.append("-c")
+        case MegaTransferOperationType.RESUME:
+            cmd.append("-r")
+
+    response = await _exec_megacmd(command=tuple(cmd))
+
+    logger.info("Response: '%s', Error: %s", response.stdout, response.stderr)
 
 
 def _parse_mediainfo_line(line: str, header_keys: list[str]) -> MegaMediaInfo | None:
