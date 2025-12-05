@@ -24,6 +24,7 @@ from megatui.messages import (
     RefreshType,
     RenameNodeRequest,
     StatusUpdate,
+    TransferOperationRequest,
     UploadRequest,
 )
 from megatui.ui.filelist import FileList
@@ -195,6 +196,10 @@ class MegaTUI(App[None], inherit_bindings=False):
             self.update_transfers()
 
         panel.toggle_class("-hidden")
+
+    async def on_transfer_operation_request(self, event: TransferOperationRequest):
+        await m.transfer_item_set_state(event.items, event.operation)
+        self.update_transfers()
 
     #
     # # Message Handlers ###########################################################

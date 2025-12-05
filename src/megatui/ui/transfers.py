@@ -1,17 +1,55 @@
 from collections import deque
-from typing import Any, Final, override
+from typing import TYPE_CHECKING, Any, ClassVar, Final, override
 
+from textual import getters, log
 from textual.app import ComposeResult
+from textual.binding import Binding, BindingType
 from textual.containers import Vertical
+from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import DataTable, Static
+from textual.widgets._data_table import RowDoesNotExist, RowKey
 
-from megatui.mega.data import MegaTransferItem, MegaTransferType
+from megatui.mega.data import (
+    MegaTransferItem,
+    MegaTransferOperationType,
+    MegaTransferType,
+)
+from megatui.messages import TransferOperationRequest
 from megatui.utils import truncate_str_lhs
 
 
 class TransferTable(DataTable[Any], inherit_bindings=False):
     """Table to store and display ongoing transfers."""
+
+    if TYPE_CHECKING:
+        from megatui.app import MegaTUI
+
+        app = getters.app(MegaTUI)
+
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding(
+            key="j",
+            action="cursor_down",
+            description="Move Cursor Down",
+        ),
+        Binding(
+            key="k",
+            action="cursor_up",
+            description="Move Cursor Up",
+        ),
+        Binding(key="p", action="pause_transfer"),
+        Binding(key="r", action="resume_transfer"),
+        Binding(key="c", action="cancel_transfer"),
+    ]
+
+    MAX_FILEPATH_LEN: Final[int] = 30
+    """Maximum length of a file path.
+    Anything above this length will be truncated.
+    """
+
+    _transfers: dict[RowKey, MegaTransferItem]
+    """Map between rowkey and transfer item."""
 
     def __init__(self, widget_id: str | None, classes: str | None):
         super().__init__(
@@ -23,6 +61,8 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
             zebra_stripes=True,
         )
 
+        self._transfers = {}
+
     @override
     def on_mount(self):
         # Add the columns with their headers.
@@ -31,10 +71,80 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         self.add_column("Progress", width=None)
         self.add_column("State", width=None)
 
-    MAX_FILEPATH_LEN: Final[int] = 30
-    """Maximum length of a file path.
-    Anything above this length will be truncated.
-    """
+    def _get_transfer_at_rowkey(self, row_key: str) -> MegaTransferItem:
+        """Return the MegaNode for a given row key string."""
+        try:
+            return self._transfers[RowKey(row_key)]
+        except KeyError as e:
+            log.error(
+                f"Could not find data for row key '{row_key}'. State is inconsistent."
+            )
+            raise e
+
+    def _get_curr_row_key(self) -> str | None:
+        """Return RowKey for the Row that the cursor is currently on."""
+        # No rows in the current view
+        if not self._transfers:
+            return None
+
+        try:
+            # DataTable's coordinate system is (row, column)
+            # self.cursor_coordinate.row gives the visual row index
+            # We need the key of that row
+            row_key, _ = self.coordinate_to_cell_key(self.cursor_coordinate)
+
+            log.debug("Row key: '%s'", row_key.value)
+            return row_key.value
+
+        except RowDoesNotExist:
+            log.error("Could not return any row.")
+            return None
+
+    def _get_transfer_at_cursor(self) -> MegaTransferItem | None:
+        """Returns MegaItem under the current cursor.
+
+        Returns:
+        MegaItem if there is one, else None.
+        """
+        row_key = self._get_curr_row_key()
+
+        # Exit if there is a nonexistent rowkey or rowkey.value
+        if not row_key:
+            log.info("No current item at cursor detected.")
+            return None
+
+        return self._get_transfer_at_rowkey(row_key)
+
+    def action_pause_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            log.info("No current item detected.")
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.PAUSE, curr_item.tag)
+        )
+
+    def action_resume_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.RESUME, curr_item.tag)
+        )
+
+    def action_cancel_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.CANCEL, curr_item.tag)
+        )
 
     def _generate_transfer_item_row(self, item: MegaTransferItem):
         state_color = "green" if (item.state.name == "ACTIVE") else "grey"
@@ -67,24 +177,14 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
         row = self._generate_transfer_item_row(item)
 
-        self.add_row(*row, height=1, label=icon)
+        key = self.add_row(*row, height=1, label=icon, key=str(item.tag))
+
+        self._transfers[key] = item
 
     def action_mark_transfer(self):
         """Mark an item in the list.
         Marked items can then be operated on.
         """
-        pass
-
-    def action_cancel_transfer(self):
-        """Cancel a transfer."""
-        pass
-
-    def action_pause_transfer(self):
-        """Pause a transfer."""
-        pass
-
-    def action_resume_transfer(self):
-        """Resume a transfer from a paused state."""
         pass
 
     def action_toggle_pause_transfer(self):

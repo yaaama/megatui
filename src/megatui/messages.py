@@ -8,7 +8,7 @@ from pathlib import Path
 
 from textual.message import Message
 
-from megatui.mega.data import MegaNode, MegaNodes, MegaPath
+from megatui.mega.data import MegaNode, MegaNodes, MegaPath, MegaTransferOperationType
 
 NOTIF_TYPES: set[str] = {
     "info",
@@ -91,6 +91,13 @@ class DownloadNodesRequest(Message):
         super().__init__()
         self.path = path
         self.nodes = nodes
+
+
+class TransferOperationRequest(Message):
+    def __init__(self, operation: MegaTransferOperationType, items: int | list[int]):
+        super().__init__()
+        self.operation = operation
+        self.items = items
 
 
 class Notification(Message):
