@@ -951,7 +951,7 @@ async def mega_transfers(
             case (MegaTransferGlobalState.UPLOADS_PAUSED, MegaTransferType.UPLOAD):
                 transfer_state = MegaTransferState.PAUSED
             case (_, _):
-                break
+                pass
 
         transfer_item = MegaTransferItem(
             transfer_type,
