@@ -438,6 +438,8 @@ class MegaCmdError(Exception):
 
 @dataclass(frozen=True)
 class MegaDiskUsage:
+    """Dataclass representing parsed 'du' output."""
+
     location: MegaPath
     size_bytes: int | None
 
