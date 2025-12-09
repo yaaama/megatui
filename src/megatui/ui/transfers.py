@@ -5,7 +5,6 @@ from textual import getters, log
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
-from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import DataTable, Static
 from textual.widgets._data_table import RowDoesNotExist, RowKey

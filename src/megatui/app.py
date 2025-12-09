@@ -209,7 +209,6 @@ class MegaTUI(App[None], inherit_bindings=False):
     @work(name="mkdir", group="megacmd")
     async def on_make_remote_directory(self, event: MakeRemoteDirectory) -> None:
         """Handler for a `MakeRemoteDirectory` message."""
-
         # If no path return
         if not event.dir_path:
             return
