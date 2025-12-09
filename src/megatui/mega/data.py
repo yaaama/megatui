@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
-from typing import Final, Literal, LiteralString, NamedTuple, override
+from typing import Final, LiteralString, NamedTuple, override
 
 logger = logging.getLogger(__name__)
 
@@ -314,6 +314,10 @@ class MegaNode:
     def is_dir(self) -> bool:
         """TRUE if node is a directory."""
         return self.ftype == MegaFileTypes.DIRECTORY
+
+    @override
+    def __str__(self) -> str:
+        return f"path='{self.path.str}',\nftype='{self.ftype.name}',\nhandle='{self.handle}',\nbytes='{self.bytes}',\nmtime='{self.mtime}'\nversion='{self.version}'"
 
 
 # Alias
