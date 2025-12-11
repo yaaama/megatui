@@ -3,13 +3,13 @@ from __future__ import annotations
 # Rename popup
 from typing import TYPE_CHECKING, override
 
-from rich.text import Text
+import textual.validation
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
+from textual.content import Content
 from textual.screen import ModalScreen
-from textual.validation import Regex
 from textual.widgets import Input, Label
 
 from megatui.mega.data import MegaNode
@@ -28,7 +28,6 @@ class RenameDialog(ModalScreen[tuple[str, MegaNode]]):
     def __init__(
         self,
         popup_prompt: str,
-        emoji_markup_prepended: str,
         node: MegaNode,
         initial_input: str | None = None,
     ) -> None:
@@ -42,15 +41,10 @@ class RenameDialog(ModalScreen[tuple[str, MegaNode]]):
         """
         super().__init__()
         # Emoji to prepend the prompt.
-        self._emoji = emoji_markup_prepended
-        # Label to display above input box.
-        self._prompt = popup_prompt
         # The initial value to use for the input.
         self._initial = initial_input
-        txt = f"{self._emoji} {self._prompt}"
 
-        # Calculated prompt text.
-        self.prompt: Text = Text.from_markup(txt)
+        self.prompt: Content = Content.from_rich_text(popup_prompt)
 
         # Information about the node being renamed.
         self.node = node
@@ -60,11 +54,11 @@ class RenameDialog(ModalScreen[tuple[str, MegaNode]]):
         with Vertical():
             yield Label(self.prompt, id="title-label")
             yield Input(
-                placeholder=self._initial or "Enter new name...",
+                placeholder=self._initial or "Enter new name",
                 max_length=60,
                 valid_empty=False,
                 id="input-box",
-                validators=[Regex("^[a-zA-Z0-9_.\\s]*")],
+                validators=[textual.validation.Regex("^[a-zA-Z0-9_\\-.\\s]*")],
                 validate_on=["changed", "submitted"],
                 compact=True,
             )

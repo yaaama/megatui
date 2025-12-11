@@ -618,13 +618,11 @@ class FileList(DataTable[Any], inherit_bindings=False):
         if node_path == "/":
             return
 
+        emoji = self.NODE_ICONS[selected_item.ftype.name.lower()]
         results = await self.app.push_screen(
             RenameDialog(
-                popup_prompt=f"Rename {selected_item.name}",
+                popup_prompt=f"{emoji} Rename [b]'{selected_item.name}'[/b]",
                 node=selected_item,
-                emoji_markup_prepended=(
-                    ":page_facing_up:" if selected_item.is_file else ":file_folder:"
-                ),
                 initial_input=selected_item.name,
             ),
             wait_for_dismiss=True,
