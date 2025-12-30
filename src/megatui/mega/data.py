@@ -169,10 +169,10 @@ class MegaSizeUnits(Enum):
 
     Values correspond to the power of 1024 used for conversion:
     0: Bytes (1024^0)
-    1: KB (1024^1)
-    2: MB (1024^2)
-    3: GB (1024^3)
-    4: TB (1024^4)
+    1: KiB / KibiByte (1024^1)
+    2: MiB / MebiByte (1024^2)
+    3: GiB / GibiByte (1024^3)
+    4: TiB / TebiByte (1024^4)
     """
 
     B = 0
@@ -186,7 +186,7 @@ class MegaSizeUnits(Enum):
         """Returns the string representation of the current unit.
 
         Returns:
-            str: The label for the unit (e.g., "MB", "GB").
+            str: The label for the unit (e.g., "MiB", "GiB").
         """
         return self.name
 
@@ -200,18 +200,31 @@ class MegaSizeUnits(Enum):
 
         Returns:
             float: The converted size (e.g., converting 1024 bytes
-                   on the .KB unit returns 1.0).
+                   on the .KiB unit returns 1.0).
         """
         if not size_in_bytes:
             return 0
 
         # Calculate the divisor using bitwise shifting.
-        # 1 << 10 is 1024 (2^10) (KiloBytes)
-        # 1 << 20 is 1,048,576 (2^20) (MegaBytes)
+        # 1 << 10 is 1024 (2^10) (1 KibiByte)
+        # 1 << 20 is 1,048,576 (2^20) (1 MebiByte)
         # Logic: 1 * (2 ^ (10 * unit_index))
         divisor = 1 if (self.value == 0) else (1 << (10 * self.value))
 
         return float(size_in_bytes) / divisor
+
+    def speedlimit_unit(self) -> str:
+        match self.value:
+            case 0:
+                return "B"
+            case 1:
+                return "K"
+            case 2:
+                return "M"
+            case 3:
+                return "G"
+            case 4:
+                return "T"
 
 
 MegaFileSize = tuple[float, MegaSizeUnits]
