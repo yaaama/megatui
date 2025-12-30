@@ -17,7 +17,7 @@ SOURCE_FOLDER := src/megatui
 
 ARGS :=
 
-.PHONY: help install run con conxe profile clean upgrade fmt
+.PHONY: help install run con conxe profile clean upgrade fmt test
 
 # The default command when you just type `make`.
 default: help
@@ -28,6 +28,7 @@ help:
 	@echo "Available targets:"
 	@echo "  install        Sync dependencies using 'uv sync'."
 	@echo "  run            Run the application using 'textual run --dev'."
+	@echo "  test           Run unit tests using pytest."
 	@echo "  con 	        	Run 'textual console'. Pass arguments via the ARGS variable."
 	@echo "                 Example: make console ARGS=\"src/megatui/app.py MegatuiApp\""
 	@echo "  conxe 	        Run 'textual console -x event'. Pass arguments via the ARGS variable."
@@ -58,6 +59,11 @@ run:
 	@echo "--> Running the application..."
 	uv run --dev textual run --dev $(APP_PATH)
 
+test:
+	@echo "--> Running tests..."
+	uv run pytest
+
+
 # Run the Textual REPL/console with additional arguments
 con:
 	@echo "--> Running 'textual console' with arguments: $(ARGS)"
@@ -80,6 +86,7 @@ clean:
 	@rm -f $(PROFILE_HTML_FILE)
 	@uv clean
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	@echo "--> Cleanup complete."
 
 

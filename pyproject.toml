@@ -45,6 +45,7 @@ dev = [
   "ruff>=0.12.1",
   "textual-dev>=1.7.0, < 2.0.0",
   "pytest>=8.3.5",
+  "pytest-asyncio>=1.3.0",
   "pyinstrument>=5.1.1",
 ]
 
@@ -64,12 +65,20 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra --color=yes" # Example: report all, quiet, with color
+# Specify where your tests are located
 testpaths = [
-  "tests", # Specify where your tests are located
-  # "another_test_dir",
+  "tests",
 ]
 
 python_files = ["test_*.py", "*_test.py"]
+
+# Enable Live Logging
+log_cli = true
+log_cli_level = "DEBUG"  # Options: DEBUG, INFO, WARNING, ERROR
+log_cli_format = "%(asctime)s (%(filename)s:%(lineno)s) [%(levelname)s] | %(message)s "
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+
 # For pytest-asyncio
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "module"
