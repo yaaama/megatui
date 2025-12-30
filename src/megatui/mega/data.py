@@ -275,14 +275,14 @@ class MegaNode:
 
     # Class Variables #################################################
     __slots__ = (
+        "bytes",
+        "ftype",
+        "handle",
+        "mtime",
         "name",
         "path",
-        "bytes",
-        "mtime",
-        "ftype",
         "size",
         "version",
-        "handle",
     )
 
     name: str
