@@ -1,23 +1,27 @@
-from typing import override
+from typing import TYPE_CHECKING, override
 
-from textual import events
+from textual import events, getters
 from textual.app import ComposeResult
-from textual.containers import Center, Vertical
+from textual.containers import Vertical
+from textual.content import Content
 from textual.screen import ModalScreen
-from textual.widgets import Label
+from textual.widgets import Label, Static
 
 
 class ConfirmationScreen(ModalScreen[bool]):
-    DEFAULT_CSS = """ """
+    if TYPE_CHECKING:
+        from megatui.app import MegaTUI
+
+        app = getters.app(MegaTUI)
 
     def __init__(self, title: str, prompt: str, extra_info: str | None = None):
         super().__init__()
-        self.prompt_title = title
-        self.prompt = prompt
-        self.border_title = title
+        self.prompt_title = Content.from_rich_text(title)
+        self.prompt = Content.from_rich_text(prompt)
+        self.border_title = Content.from_rich_text(title)
 
         if extra_info:
-            self.extra_info = extra_info
+            self.extra_info = Content.from_rich_text(extra_info)
 
     def on_key(self, event: events.Key) -> None:
         """Handle key presses."""
@@ -40,10 +44,8 @@ class ConfirmationScreen(ModalScreen[bool]):
             self.border_title = self.prompt_title
             yield Label(self.prompt, id="confirmation-prompt", expand=True)
             if self.extra_info:
-                yield Label(self.extra_info, id="confirmation-extra-info", expand=True)
-            with Center():
-                yield Label(
-                    "Press [b]'Y|y'[/] to confirm deletion, anything else to cancel.",
-                    id="confirmation-instructions",
-                    expand=True,
-                )
+                yield Label(self.extra_info, id="confirmation-extra-info")
+            yield Label(
+                "Press [b]'Y|y'[/] to confirm deletion,\nanything else to cancel.",
+                id="confirmation-instructions",
+            )

@@ -255,14 +255,14 @@ class MegaNode:
         self,
         name: str,
         path: MegaPath,
-        size: int,
+        bytes: int,
         mtime: datetime,
         ftype: MegaFileTypes,
         version: int,
         handle: str,
     ):
         self.name = name
-        self.bytes = size
+        self.bytes = bytes
         self.mtime = mtime
         self.ftype = ftype
         self.version = version
@@ -271,7 +271,7 @@ class MegaNode:
         self.path = path
 
         # Human friendly sizing
-        if (self.ftype == MegaFileTypes.DIRECTORY) or (size == 0):
+        if (self.ftype == MegaFileTypes.DIRECTORY) or (bytes == 0):
             self.size = None
             return
 

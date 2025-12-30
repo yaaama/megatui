@@ -337,7 +337,7 @@ async def mega_ls(
             MegaNode(
                 name=_name,
                 path=MegaPath(target_path, _name),
-                size=item_size,
+                bytes=item_size,
                 mtime=mtime_obj,
                 ftype=_file_type,
                 version=version,
