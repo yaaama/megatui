@@ -7,6 +7,7 @@ import re
 import textwrap
 from collections import deque
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import cast, overload
@@ -1117,3 +1118,84 @@ async def mega_mediainfo(
     final_parsed = tuple(parsed)
 
     return final_parsed
+
+
+@dataclass(frozen=True)
+class ConnectionSpeedLimit:
+    """Connection speed limit.
+    Expressed in size per second.
+    """
+
+    transfer_limit: float
+    units: MegaSizeUnits
+
+
+@dataclass(frozen=True)
+class TransferSpeedLimits:
+    download_limit: ConnectionSpeedLimit | None
+    upload_limit: ConnectionSpeedLimit | None
+
+
+def _speedlimit_parsed(line: str) -> ConnectionSpeedLimit | None:
+    # Line looks like: 'Upload speed limit = 10 B/s'
+    # line.split(" = ") == ['Upload speed limit', '10 B/s']
+    # line.split(" = ")[-1].split() == ['10', 'B/s']
+    line_split = line.split(" = ")[-1].split()
+
+    size_str = line_split[0]
+
+    if size_str == "unlimited":
+        return None
+
+    # ALWAYS working in bytes (our assumption)
+    size_val = int(size_str)
+
+    # Remove the '/s' part of the size unit
+    line_split[-1].removesuffix("/s")
+
+    human_megafilesize = bytes_to_readable_size(size_val)
+
+    return ConnectionSpeedLimit(human_megafilesize.size, human_megafilesize.unit)
+
+
+async def set_speedlimit(new_limits: TransferSpeedLimits) -> TransferSpeedLimits:
+    cmd = ["speedlimit"]
+
+    new_dl_speed = new_limits.download_limit
+    new_up_speed = new_limits.upload_limit
+
+    if new_dl_speed:
+        cmd.extend(
+            [
+                "-d",
+                str(new_dl_speed.transfer_limit),
+                new_dl_speed.units.speedlimit_unit(),
+            ]
+        )
+    if new_up_speed:
+        cmd.extend(
+            [
+                "-u",
+                str(new_up_speed.transfer_limit),
+                new_up_speed.units.speedlimit_unit(),
+            ]
+        )
+
+    _ = await _exec_megacmd(tuple(cmd))
+
+    return await get_speedlimit()
+
+
+async def get_speedlimit() -> TransferSpeedLimits:
+    cmd = ["speedlimit"]
+
+    response = await _exec_megacmd(tuple(cmd))
+
+    if response.stdout is None:
+        raise MegaCmdError("Received no response.")
+
+    lines = response.stdout.split("\n")
+    upload_limit = _speedlimit_parsed(lines[0])
+    download_limit = _speedlimit_parsed(lines[1])
+
+    return TransferSpeedLimits(download_limit=download_limit, upload_limit=upload_limit)
