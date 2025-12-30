@@ -37,6 +37,7 @@ from megatui.mega.data import (
     MegaTransferState,
     MegaTransferType,
     MegaUnknownError,
+    bytes_to_readable_size,
 )
 
 MEGA_LOGTOFILE = False

@@ -237,6 +237,37 @@ class MegaFileSize:
         self.unit = unit
 
 
+def bytes_to_readable_size(bytes: int) -> MegaFileSize:
+    # Calculate human friendly sizing
+    unit_index: int = min(int(math.log(bytes, 1024)), len(MegaSizeUnits) - 1)
+
+    # calculate 1024^unit_index using shifts
+    # 1 << 10 is 1024 (2^10)
+    # 1 << (10 * unit_index) is (2^10)^unit_index = 1024^unit_index
+    divisor: int = 1 if (unit_index == 0) else (1 << (10 * unit_index))
+
+    # Perform floating point division for the final readable value
+    _size = float(bytes) / divisor
+
+    match unit_index:
+        case 0:
+            _size_unit = MegaSizeUnits.B
+        case 1:
+            _size_unit = MegaSizeUnits.KB
+        case 2:
+            _size_unit = MegaSizeUnits.MB
+        case 3:
+            _size_unit = MegaSizeUnits.GB
+        case _:
+            # Anything larger than 3 will be in TB
+            logger.warning(
+                f"Calculated unit index {unit_index} for size {bytes} is unexpected. Defaulting to TB."
+            )
+            _size_unit = MegaSizeUnits.TB
+
+    return MegaFileSize(_size, _size_unit)
+
+
 class MegaNode:
     """A node object found in the cloud.
     A node can be either a directory or a regular file.
