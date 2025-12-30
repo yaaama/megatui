@@ -227,7 +227,14 @@ class MegaSizeUnits(Enum):
                 return "T"
 
 
-MegaFileSize = tuple[float, MegaSizeUnits]
+class MegaFileSize:
+    __slots__ = ("size", "unit")
+    size: float
+    unit: MegaSizeUnits
+
+    def __init__(self, size: float, unit: MegaSizeUnits):
+        self.size = size
+        self.unit = unit
 
 
 class MegaNode:
@@ -329,7 +336,7 @@ class MegaNode:
                 )
                 _size_unit = MegaSizeUnits.TB
 
-        self.size = (_size, _size_unit)
+        self.size = MegaFileSize(_size, _size_unit)
 
     @property
     def is_file(self) -> bool:
