@@ -176,9 +176,7 @@ async def check_mega_login() -> bool:
     response: MegaCmdResponse = await _exec_megacmd(command=("whoami",))
 
     if (not response) or (not response.stdout):
-        raise ValueError(
-            "Did not receive output from running command. Something is definitely wrong."
-        )
+        logger.info("Not logged in.")
         return False
 
     if response.err_output or response.return_code != 0:
