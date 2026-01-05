@@ -335,8 +335,12 @@ class MegaNode:
         self.path = path
 
         # Human friendly sizing
-        if (self.ftype == MegaFileTypes.DIRECTORY) or (bytes == 0):
+        if self.ftype == MegaFileTypes.DIRECTORY:
             self.size = None
+            return
+
+        if self.bytes == 0:
+            self.size = MegaFileSize(0, MegaSizeUnits.B)
             return
 
         # Calculate human friendly sizing
