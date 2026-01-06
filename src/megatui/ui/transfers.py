@@ -126,37 +126,6 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
         return self._get_transfer_at_rowkey(row_key)
 
-    def action_pause_transfer(self):
-        curr_item = self._get_transfer_at_cursor()
-
-        if not curr_item:
-            log.info("No current item detected.")
-            return
-
-        self.app.post_message(
-            TransferOperationRequest(MegaTransferOperationType.PAUSE, curr_item.tag)
-        )
-
-    def action_resume_transfer(self):
-        curr_item = self._get_transfer_at_cursor()
-
-        if not curr_item:
-            return
-
-        self.app.post_message(
-            TransferOperationRequest(MegaTransferOperationType.RESUME, curr_item.tag)
-        )
-
-    def action_cancel_transfer(self):
-        curr_item = self._get_transfer_at_cursor()
-
-        if not curr_item:
-            return
-
-        self.app.post_message(
-            TransferOperationRequest(MegaTransferOperationType.CANCEL, curr_item.tag)
-        )
-
     def _generate_transfer_item_row(self, item: MegaTransferItem):
         state_color = "green" if (item.state.name == "ACTIVE") else "grey"
 
@@ -218,6 +187,37 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
     def action_toggle_pause_transfer(self):
         """Toggle the pause status of a transfer."""
         pass
+
+    def action_pause_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            log.info("No current item detected.")
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.PAUSE, curr_item.tag)
+        )
+
+    def action_resume_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.RESUME, curr_item.tag)
+        )
+
+    def action_cancel_transfer(self):
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            return
+
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.CANCEL, curr_item.tag)
+        )
 
     def action_clear_finished_transfers(self):
         """Clear all transfers that have finished from the table."""
