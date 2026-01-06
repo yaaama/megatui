@@ -13,6 +13,7 @@ from textual.widgets._data_table import RowDoesNotExist, RowKey
 from megatui.mega.data import (
     MegaTransferItem,
     MegaTransferOperationType,
+    MegaTransferState,
     MegaTransferType,
 )
 from megatui.messages import TransferOperationRequest
@@ -44,7 +45,8 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
             action="cursor_up",
             description="Move Cursor Up",
         ),
-        Binding(key="p", action="pause_transfer"),
+        Binding(key="p", action="toggle_pause_transfer"),
+        Binding(key="P", action="pause_transfer"),
         Binding(key="r", action="resume_transfer"),
         Binding(key="c", action="cancel_transfer"),
         Binding(key="m", action="mark_transfer"),
@@ -156,8 +158,10 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
                 icon = base_icon
 
         row = self._generate_transfer_item_row(item)
+        selection = "*" if item.tag in self.marked_transfers else " "
 
-        key = self.add_row(*row, height=1, label=icon, key=str(item.tag))
+        final_row_contents = (selection, *row)
+        key = self.add_row(*final_row_contents, height=1, label=icon, key=str(item.tag))
 
         self._transfers[key] = item
 
@@ -175,10 +179,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         row_key = RowKey(self._get_curr_row_key())
 
         selection_str: str
-        if item.tag in self.marked_transfers:
-            selection_str = " "
-        else:
-            selection_str = "[red]*[/]"
+        selection_str = " " if item.tag in self.marked_transfers else "[red]*[/]"
 
         self.update_cell(row_key, "selection", selection_str)
         self.marked_transfers.add(item.tag)
@@ -186,18 +187,32 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
     def action_toggle_pause_transfer(self):
         """Toggle the pause status of a transfer."""
-        pass
+        curr_item = self._get_transfer_at_cursor()
+
+        if not curr_item:
+            return
+
+        if curr_item.state == MegaTransferState.PAUSED:
+            self._resume_transfer(curr_item.tag)
+        elif curr_item.state == MegaTransferState.ACTIVE:
+            self._pause_transfer(curr_item.tag)
+
+    def _pause_transfer(self, tag: int):
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.PAUSE, tag)
+        )
+
+    def _resume_transfer(self, tag: int):
+        self.app.post_message(
+            TransferOperationRequest(MegaTransferOperationType.RESUME, tag)
+        )
 
     def action_pause_transfer(self):
         curr_item = self._get_transfer_at_cursor()
 
         if not curr_item:
-            log.info("No current item detected.")
             return
-
-        self.app.post_message(
-            TransferOperationRequest(MegaTransferOperationType.PAUSE, curr_item.tag)
-        )
+        self._pause_transfer(curr_item.tag)
 
     def action_resume_transfer(self):
         curr_item = self._get_transfer_at_cursor()
@@ -205,9 +220,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         if not curr_item:
             return
 
-        self.app.post_message(
-            TransferOperationRequest(MegaTransferOperationType.RESUME, curr_item.tag)
-        )
+        self._resume_transfer(curr_item.tag)
 
     def action_cancel_transfer(self):
         curr_item = self._get_transfer_at_cursor()
