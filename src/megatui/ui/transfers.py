@@ -5,6 +5,7 @@ from textual import getters, log
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Vertical
+from textual.message import Message
 from textual.reactive import Reactive, reactive
 from textual.widgets import DataTable, Static
 from textual.widgets._data_table import RowDoesNotExist, RowKey
@@ -16,6 +17,12 @@ from megatui.mega.data import (
 )
 from megatui.messages import TransferOperationRequest
 from megatui.utils import truncate_str_lhs
+
+
+class TransferMarked(Message):
+    def __init__(self, item: MegaTransferItem):
+        super().__init__()
+        self.item = item
 
 
 class TransferTable(DataTable[Any], inherit_bindings=False):
@@ -40,6 +47,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
         Binding(key="p", action="pause_transfer"),
         Binding(key="r", action="resume_transfer"),
         Binding(key="c", action="cancel_transfer"),
+        Binding(key="m", action="mark_transfer"),
     ]
 
     MAX_FILEPATH_LEN: Final[int] = 30
@@ -50,6 +58,8 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
     _transfers: dict[RowKey, MegaTransferItem]
     """Map between rowkey and transfer item."""
 
+    marked_transfers: set[int] = set()
+
     def __init__(self, widget_id: str | None, classes: str | None):
         super().__init__(
             id=widget_id,
@@ -58,6 +68,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
             show_row_labels=True,
             cell_padding=2,
             zebra_stripes=True,
+            cursor_foreground_priority="renderable",
         )
 
         self._transfers = {}
@@ -65,6 +76,7 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
     @override
     def on_mount(self):
         # Add the columns with their headers.
+        self.add_column(label=" ", width=1, key="selection", default=" ")
         self.add_column(label="[b]Source[/]")
         self.add_column(label="[b]Destination[/]")
         self.add_column("Progress", width=None)
@@ -180,11 +192,28 @@ class TransferTable(DataTable[Any], inherit_bindings=False):
 
         self._transfers[key] = item
 
+    def on_transfer_marked(self, message: TransferMarked):
+        pass
+
     def action_mark_transfer(self):
         """Mark an item in the list.
         Marked items can then be operated on.
         """
-        pass
+        item = self._get_transfer_at_cursor()
+        if not item:
+            return
+
+        row_key = RowKey(self._get_curr_row_key())
+
+        selection_str: str
+        if item.tag in self.marked_transfers:
+            selection_str = " "
+        else:
+            selection_str = "[red]*[/]"
+
+        self.update_cell(row_key, "selection", selection_str)
+        self.marked_transfers.add(item.tag)
+        log.debug(f"Toggled mark on: '{item.tag}'")
 
     def action_toggle_pause_transfer(self):
         """Toggle the pause status of a transfer."""
