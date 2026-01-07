@@ -5,7 +5,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.content import Content
 from textual.screen import ModalScreen
-from textual.widgets import Label, Static
+from textual.widgets import Label
 
 
 class ConfirmationScreen(ModalScreen[bool]):
