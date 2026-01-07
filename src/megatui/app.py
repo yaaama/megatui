@@ -191,11 +191,21 @@ class MegaTUI(App[None], inherit_bindings=False):
     async def action_view_transfer_list(self):
         panel = self.query_one(TransfersSidePanel)
 
-        if panel.has_class("-hidden"):
-            log("Updating transfers list")
-            self.update_transfers()
+        unhiding = False
 
-        panel.toggle_class("-hidden")
+        with self.app.batch_update():
+            if panel.has_class("-hidden"):
+                log("Updating transfers list")
+                self.update_transfers()
+                unhiding = True
+
+            panel.toggle_class("-hidden")
+            if unhiding:
+                # Focus the window if displaying
+                await self.action_focus("transfer-table")
+            else:
+                # Focus back to main screen
+                self.action_focus_previous()
 
     async def on_transfer_operation_request(self, event: TransferOperationRequest):
         await m.transfer_item_set_state(event.items, event.operation)
