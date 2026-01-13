@@ -63,12 +63,10 @@ test:
 	@echo "--> Running tests..."
 	uv run pytest
 
-
 # Run the Textual REPL/console with additional arguments
 con:
 	@echo "--> Running 'textual console' with arguments: $(ARGS)"
 	@uv run --dev textual console $(ARGS)
-
 
 conxe:
 	@echo "--> Running 'textual console -x event'"
@@ -88,6 +86,5 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	@echo "--> Cleanup complete."
-
 
 # end
