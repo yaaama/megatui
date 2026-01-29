@@ -41,12 +41,12 @@ megatui = "megatui.app:run_app"
 
 [dependency-groups]
 dev = [
-  "pre-commit>=4.2.0",
   "ruff>=0.12.1",
   "textual-dev>=1.7.0, < 2.0.0",
   "pytest>=8.3.5",
   "pytest-asyncio>=1.3.0",
   "pyinstrument>=5.1.1",
+  "prek>=0.3.0",
 ]
 
 # Hatch

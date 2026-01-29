@@ -47,7 +47,7 @@ upgrade:
 	@echo "--> Upgrading packages with uv..."
 	uv sync --upgrade
 	@echo "--> Upgrading pre-commit hooks..."
-	pre-commit autoupdate
+	prek auto-update
 
 # Install/sync dependencies from your pyproject.toml
 install:
