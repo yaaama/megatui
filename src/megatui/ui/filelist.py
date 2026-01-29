@@ -691,8 +691,7 @@ class FileList(DataTable[Any], inherit_bindings=False):
                 log.info(f"Non directory node '{node.path}' has no size information.")
                 size_str = f"{0:.{NODE_SIZING_PRECISION}f} {MegaSizeUnits.B.unit_str()}"
             else:
-                assert_type(node.size[1], MegaSizeUnits)
-                size_str = f"{node.size[0]:.{NODE_SIZING_PRECISION}f} {node.size[1].unit_str()}"
+                size_str = f"{node.size.size:.{NODE_SIZING_PRECISION}f} {node.size.unit.unit_str()}"
 
         if node.handle in self._selected_items:
             _sel_content = self.SELECTED_LABEL
